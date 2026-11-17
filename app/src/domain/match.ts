@@ -5,7 +5,7 @@
  * - `die_roll`:   W20-Wurf vor Spiel 1, `playerId` = wer würfelt, `value` = Augenzahl
  * - `life`:       Lebenspunkte-Änderung, `delta`
  * - `undo`:       nimmt ein `life`-Ereignis zurück (`undoOf`)
- * - `game_end`:   Spiel vorbei, `playerId` = Sieger
+ * - `game_end`:   Spiel vorbei, `playerId` = Sieger, `null` = unentschieden (nur nach Zeitablauf)
  *
  * Der Zustand wird nie gespeichert, sondern immer neu berechnet. So lässt sich später
  * jedes Ereignis an den Server schicken (Phase 3) und für Statistiken auswerten (Phase 8).
@@ -15,6 +15,8 @@ import { type EventSource, type GameEvent, lifeTotals } from './lifeEvents';
 export interface MatchPlayer {
   id: string;
   name: string;
+  /** Farbe der eigenen Hälfte im Life-Tracker (Schlüssel aus `PLAYER_COLORS`). */
+  color?: string;
 }
 
 export interface MatchConfig {
@@ -22,17 +24,25 @@ export interface MatchConfig {
   players: readonly [MatchPlayer, MatchPlayer];
   startingLife: number;
   bestOf: number;
+  /** Zeitlimit für das ganze Match in Minuten ab Beginn von Spiel 1, `null` = aus (F-12). */
+  timeLimitMin?: number | null;
   createdAt: string;
 }
+
+/** Nach Ablauf des Zeitlimits folgen noch so viele Extra-Züge (Festlegung „Zeitlimit“). */
+export const EXTRA_TURNS = 5;
 
 export interface GameInfo {
   gameId: string;
   number: number;
   starter: string;
   startedAt: string;
+  /** Sieger; `null` bei laufendem oder unentschieden beendetem Spiel. */
   winner: string | null;
   endedAt: string | null;
 }
+
+export const isDrawn = (g: GameInfo): boolean => g.endedAt !== null && g.winner === null;
 
 export type MatchPhase = 'roll' | 'playing' | 'choose' | 'finished';
 
@@ -40,7 +50,14 @@ export interface MatchState {
   phase: MatchPhase;
   games: GameInfo[];
   wins: Record<string, number>;
+  /** Matchsieger, sobald das Match vorbei ist; `null` bei Unentschieden oder laufendem Match. */
   winner: string | null;
+  /** Match vorbei und unentschieden (z. B. 1:1 nach Zeitablauf). */
+  draw: boolean;
+  /** Ende des Zeitlimits als Zeitstempel (ms), `null` ohne Zeitlimit oder vor Spiel 1. */
+  deadline: number | null;
+  /** Zeitlimit abgelaufen: Es folgen Extra-Züge, danach beginnt kein neues Spiel mehr. */
+  timeUp: boolean;
   /** Das laufende Spiel (nur in Phase `playing`). */
   current: GameInfo | null;
   /** Lebenspunkte im laufenden Spiel, sonst Startleben. */
@@ -78,21 +95,34 @@ export function deriveGames(events: readonly GameEvent[]): GameInfo[] {
     });
 }
 
-export function matchState(config: MatchConfig, events: readonly GameEvent[]): MatchState {
+export function matchState(config: MatchConfig, events: readonly GameEvent[], now: number = Date.now()): MatchState {
   const ids = config.players.map((p) => p.id);
   const games = deriveGames(events);
   const wins: Record<string, number> = Object.fromEntries(ids.map((id) => [id, 0]));
   for (const g of games) if (g.winner !== null && g.winner in wins) wins[g.winner] += 1;
 
-  const winner = ids.find((id) => wins[id] >= winsNeeded(config.bestOf)) ?? null;
+  const first = games[0];
+  const deadline = config.timeLimitMin && first ? Date.parse(first.startedAt) + config.timeLimitMin * 60_000 : null;
+  const timeUp = deadline !== null && now >= deadline;
+
+  const decided = ids.find((id) => wins[id] >= winsNeeded(config.bestOf)) ?? null;
   const last = games.at(-1);
-  const current = last && last.winner === null ? last : null;
+  const current = last && last.endedAt === null ? last : null;
+  // Nach Zeitablauf (oder einem unentschiedenen Spiel) beginnt kein neues Spiel mehr.
+  const overByTime = !!last && !current && (timeUp || isDrawn(last));
 
   let phase: MatchPhase;
-  if (winner !== null) phase = 'finished';
+  if (decided !== null || overByTime) phase = 'finished';
   else if (!last) phase = 'roll';
   else if (current) phase = 'playing';
   else phase = 'choose';
+
+  let winner: string | null = decided;
+  if (phase === 'finished' && winner === null) {
+    const [a, b] = ids;
+    winner = wins[a] > wins[b] ? a : wins[b] > wins[a] ? b : null;
+  }
+  const draw = phase === 'finished' && winner === null;
 
   const totals = current
     ? lifeTotals(ids, events.filter((e) => e.gameId === current.gameId), config.startingLife)
@@ -100,7 +130,12 @@ export function matchState(config: MatchConfig, events: readonly GameEvent[]): M
 
   const chooser = phase === 'choose' && last?.winner ? opponentOf(ids, last.winner) : null;
 
-  return { phase, games, wins, winner, current, totals, chooser };
+  return { phase, games, wins, winner, draw, deadline, timeUp, current, totals, chooser };
+}
+
+/** Restzeit bis zum Zeitlimit in ms (nie negativ), `null` ohne Zeitlimit. */
+export function timeLeft(state: MatchState, now: number = Date.now()): number | null {
+  return state.deadline === null ? null : Math.max(0, state.deadline - now);
 }
 
 /** Bei 0 oder weniger Leben schlägt die App den Sieg des Gegners vor (bei beiden auf 0: kein Vorschlag). */

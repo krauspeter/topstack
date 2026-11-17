@@ -8,6 +8,7 @@ import {
   matchState,
   recentChange,
   suggestedWinner,
+  timeLeft,
   winsNeeded,
 } from './match';
 
@@ -149,5 +150,66 @@ describe('Formatierung', () => {
   it('zeigt Dauer als m:ss', () => {
     expect(formatDuration(0)).toBe('0:00');
     expect(formatDuration(754_000)).toBe('12:34');
+  });
+});
+
+describe('Zeitlimit (F-12) und Unentschieden (F-13)', () => {
+  const timed: MatchConfig = { ...config, timeLimitMin: 50 };
+  const min = 60_000;
+  // Spiel 1 beginnt bei t0 + 0 ms (erstes Ereignis jedes Tests)
+  const startAt = (gameId: string, starter: string, atMs: number) =>
+    ev({ type: 'game_start', gameId, playerId: starter }, atMs);
+  const endAt = (gameId: string, winner: string | null, atMs: number) =>
+    ev({ type: 'game_end', gameId, playerId: winner }, atMs);
+
+  it('ohne Zeitlimit gibt es keine Frist', () => {
+    const s = matchState(config, [startAt('g1', 'A', 0)], t0 + 999 * min);
+    expect(s.deadline).toBeNull();
+    expect(s.timeUp).toBe(false);
+    expect(timeLeft(s, t0)).toBeNull();
+  });
+
+  it('zählt ab Beginn von Spiel 1 herunter', () => {
+    const s = matchState(timed, [startAt('g1', 'A', 0)], t0 + 10 * min);
+    expect(s.deadline).toBe(t0 + 50 * min);
+    expect(timeLeft(s, t0 + 10 * min)).toBe(40 * min);
+    expect(s.timeUp).toBe(false);
+  });
+
+  it('nach Ablauf läuft das aktuelle Spiel weiter (Extra-Züge)', () => {
+    const s = matchState(timed, [startAt('g1', 'A', 0)], t0 + 51 * min);
+    expect(s.timeUp).toBe(true);
+    expect(s.phase).toBe('playing');
+    expect(timeLeft(s, t0 + 51 * min)).toBe(0);
+  });
+
+  it('nach Ablauf beginnt kein neues Spiel: 1:0 gewinnt', () => {
+    const events = [startAt('g1', 'A', 0), endAt('g1', 'B', 45 * min), startAt('g2', 'A', 46 * min), endAt('g2', null, 55 * min)];
+    const s = matchState(timed, events, t0 + 56 * min);
+    expect(s.phase).toBe('finished');
+    expect(s.winner).toBe('B');
+    expect(s.draw).toBe(false);
+    expect(s.games[1].winner).toBeNull();
+  });
+
+  it('1:1 nach Ablauf ist ein Unentschieden', () => {
+    const events = [startAt('g1', 'A', 0), endAt('g1', 'B', 20 * min), startAt('g2', 'A', 21 * min), endAt('g2', 'A', 52 * min)];
+    const s = matchState(timed, events, t0 + 53 * min);
+    expect(s.phase).toBe('finished');
+    expect(s.winner).toBeNull();
+    expect(s.draw).toBe(true);
+    expect(s.wins).toEqual({ A: 1, B: 1 });
+  });
+
+  it('vor Ablauf geht es nach einem Spiel normal weiter', () => {
+    const events = [startAt('g1', 'A', 0), endAt('g1', 'B', 20 * min)];
+    const s = matchState(timed, events, t0 + 21 * min);
+    expect(s.phase).toBe('choose');
+  });
+
+  it('0:0 nach Ablauf mit unentschiedenem Spiel', () => {
+    const s = matchState(timed, [startAt('g1', 'A', 0), endAt('g1', null, 60 * min)], t0 + 61 * min);
+    expect(s.phase).toBe('finished');
+    expect(s.draw).toBe(true);
   });
 });

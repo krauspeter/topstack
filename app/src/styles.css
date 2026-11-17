@@ -1,3 +1,9 @@
+/* Schrift Inter liegt lokal bei, damit sie auch offline greift (ADR-0011, Lizenz: public/fonts/LICENSE-Inter.txt) */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/inter-400.woff') format('woff'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/inter-500.woff') format('woff'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/inter-600.woff') format('woff'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/inter-700.woff') format('woff'); }
+
 /* Design-Tokens „Dunkel & Gold“ (ADR-0011). Ein weiteres Theme ist nur ein weiterer Satz Variablen. */
 :root {
   --bg: #121218;
@@ -91,6 +97,10 @@ input {
 .segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
 .segmented button { min-height: 48px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); font-weight: 600; }
 .segmented button.on { border-color: var(--gold); color: var(--gold); }
+.player-setup { display: grid; gap: 8px; }
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatches button { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--line); padding: 0; }
+.swatches button.on { border-color: var(--gold); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--gold); }
 
 /* ---------- Tisch: zwei Spieler gegenüber ---------- */
 .table {
@@ -144,6 +154,8 @@ input {
 }
 .score { display: grid; justify-items: center; font-variant-numeric: tabular-nums; }
 .score span { color: var(--muted); font-size: 0.9rem; }
+.score .time-low { color: var(--gold); }
+.score .time-up { color: var(--danger); }
 
 /* ---------- W20 ---------- */
 .roll { justify-items: center; align-content: center; gap: 8px; }

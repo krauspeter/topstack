@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { GameEvent } from '../domain/lifeEvents';
 import {
+  EXTRA_TURNS,
   type MatchConfig,
   type MatchState,
   formatDelta,
@@ -9,9 +10,11 @@ import {
   opponentOf,
   recentChange,
   suggestedWinner,
+  timeLeft,
   winsNeeded,
 } from '../domain/match';
 import { buzz, useHold, useNow } from '../hooks';
+import { colorValue } from '../theme';
 
 interface Props {
   config: MatchConfig;
@@ -19,7 +22,8 @@ interface Props {
   events: readonly GameEvent[];
   onChange(playerId: string, delta: number): void;
   onUndo(): void;
-  onWin(winner: string): void;
+  /** `null` = Spiel endet unentschieden (nach Zeitablauf). */
+  onWin(winner: string | null): void;
   onAbort(): void;
 }
 
@@ -41,6 +45,9 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
   const [confirm, setConfirm] = useState<{ winner: string; reason: 'life' | 'concede' } | null>(null);
   const [dismissed, setDismissed] = useState<string | null>(null);
   const [abort, setAbort] = useState(false);
+  const [drawConfirm, setDrawConfirm] = useState(false);
+  // Hinweis „Zeit abgelaufen“ einmal pro Spiel zeigen
+  const [timeNoticeSeen, setTimeNoticeSeen] = useState<string | null>(null);
 
   const game = state.current;
   if (!game) return null;
@@ -51,15 +58,18 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
   // Bei 0 Leben den Sieg vorschlagen; „Weiterspielen“ blendet den Vorschlag für genau diesen Stand aus.
   const totalsKey = ids.map((id) => state.totals[id]).join(':');
   const suggestion = suggestedWinner(state.totals, ids);
-  const showSuggestion = suggestion !== null && dismissed !== totalsKey && !confirm && !menu;
+  const showTimeNotice = state.timeUp && timeNoticeSeen !== game.gameId && !menu && !confirm && !abort && !drawConfirm;
+  const showSuggestion = suggestion !== null && dismissed !== totalsKey && !confirm && !menu && !showTimeNotice;
+  const left = timeLeft(state, now);
 
   const step = (playerId: string, delta: number) => {
     onChange(playerId, delta);
     buzz();
   };
 
-  const finish = (winner: string) => {
+  const finish = (winner: string | null) => {
     setConfirm(null);
+    setDrawConfirm(false);
     setMenu(false);
     setDismissed(null);
     onWin(winner);
@@ -71,7 +81,11 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
         const change = recentChange(gameEvents, p.id, now);
         const life = state.totals[p.id];
         return (
-          <section key={p.id} className={`half tracker ${i === 0 ? 'flipped' : ''} ${life <= 0 ? 'dead' : ''}`}>
+          <section
+            key={p.id}
+            className={`half tracker ${i === 0 ? 'flipped' : ''} ${life <= 0 ? 'dead' : ''}`}
+            style={{ background: colorValue(p.color, i === 0 ? 0 : 1) }}
+          >
             <LifeButton label={`${p.name} −1`} sign={-1} onStep={(d) => step(p.id, d)} />
             <div className="life">
               <span className={`delta ${change === null ? 'hidden' : change < 0 ? 'down' : 'up'}`} aria-live="polite">
@@ -102,7 +116,16 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
         <div className="score" data-testid="score">
           <strong>Spiel {game.number}</strong>
           <span>
-            {state.wins[ids[0]]}:{state.wins[ids[1]]} · {formatDuration(gameDuration(game, now))}
+            {state.wins[ids[0]]}:{state.wins[ids[1]]} ·{' '}
+            {left === null ? (
+              formatDuration(gameDuration(game, now))
+            ) : state.timeUp ? (
+              <b className="time-up">Zeit! +{EXTRA_TURNS} Züge</b>
+            ) : (
+              <span className={left < 5 * 60_000 ? 'time-low' : ''} aria-label="Restzeit">
+                ⏱ {formatDuration(left)}
+              </span>
+            )}
           </span>
         </div>
         <button className="btn ghost icon" onClick={() => setMenu(true)} aria-label="Menü">
@@ -128,7 +151,7 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
         </div>
       )}
 
-      {menu && !confirm && !abort && (
+      {menu && !confirm && !abort && !drawConfirm && (
         <div className="overlay" role="dialog" aria-label="Menü" onClick={() => setMenu(false)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
             {config.players.map((p) => (
@@ -140,6 +163,11 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
                 {p.name} gibt auf
               </button>
             ))}
+            {state.timeUp && (
+              <button className="btn" onClick={() => setDrawConfirm(true)}>
+                Spiel unentschieden beenden
+              </button>
+            )}
             <button className="btn danger" onClick={() => setAbort(true)}>
               Match abbrechen
             </button>
@@ -167,6 +195,40 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
           </div>
         </div>
       )}
+      {showTimeNotice && (
+        <div className="overlay" role="dialog" aria-label="Zeit abgelaufen">
+          <div className="sheet">
+            <p>
+              <strong>Die Zeit ist abgelaufen.</strong>
+              <br />
+              Es folgen noch {EXTRA_TURNS} Extra-Züge. Danach endet das Match, ein neues Spiel beginnt nicht mehr.
+            </p>
+            <p className="muted small">Ist das Spiel nach den Extra-Zügen nicht entschieden, beendet ihr es über das Menü als unentschieden.</p>
+            <button className="btn primary big" onClick={() => setTimeNoticeSeen(game.gameId)}>
+              Verstanden
+            </button>
+          </div>
+        </div>
+      )}
+
+      {drawConfirm && (
+        <div className="overlay" role="dialog" aria-label="Unentschieden bestätigen">
+          <div className="sheet">
+            <p>
+              <strong>Spiel {game.number} unentschieden beenden?</strong>
+              <br />
+              Das Match endet beim Stand {state.wins[ids[0]]}:{state.wins[ids[1]]}.
+            </p>
+            <button className="btn primary big" onClick={() => finish(null)}>
+              Ja, unentschieden
+            </button>
+            <button className="btn" onClick={() => setDrawConfirm(false)}>
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      )}
+
       {abort && (
         <div className="overlay" role="dialog" aria-label="Match abbrechen">
           <div className="sheet">

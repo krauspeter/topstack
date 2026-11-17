@@ -31,12 +31,13 @@ export function useWakeLock(active: boolean): void {
 }
 
 /** Aktuelle Zeit, die sich alle `intervalMs` aktualisiert (für Timer und das Ausblenden der letzten Änderung). */
-export function useNow(intervalMs = 500): number {
+export function useNow(intervalMs = 500, enabled = true): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
+    if (!enabled) return;
     const id = window.setInterval(() => setNow(Date.now()), intervalMs);
     return () => window.clearInterval(id);
-  }, [intervalMs]);
+  }, [intervalMs, enabled]);
   return now;
 }
 
