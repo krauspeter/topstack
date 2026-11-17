@@ -1,49 +1,79 @@
-import { useMemo, useState } from 'react';
-import { type GameEvent, lifeTotals, uuidv7 } from './domain/lifeEvents';
+import { useState } from 'react';
+import { useWakeLock } from './hooks';
+import { ChooseStarter, MatchEnd } from './screens/Between';
+import { Home } from './screens/Home';
+import { Roll } from './screens/Roll';
+import { Seating } from './screens/Seating';
+import { Setup } from './screens/Setup';
+import { Tracker } from './screens/Tracker';
+import { useMatch } from './store/useMatch';
 
-const DEVICE_ID = 'pwa-local';
-const PLAYERS = [
-  { id: 'a', name: 'Spieler A' },
-  { id: 'b', name: 'Spieler B' },
-] as const;
+type Screen = 'home' | 'setup' | 'seating';
 
-/** Platzhalter für Phase 2: zeigt, dass PWA, Reducer und Build funktionieren. */
+/**
+ * Phase 2: Offline-Life-Tracker ohne Server. Ein laufendes Match hat immer Vorrang:
+ * Nach einem Neuladen oder Absturz geht es genau dort weiter, wo der Spielstand war.
+ */
 export function App() {
-  const [events, setEvents] = useState<GameEvent[]>([]);
-  const totals = useMemo(() => lifeTotals(PLAYERS.map((p) => p.id), events), [events]);
+  const match = useMatch();
+  const [screen, setScreen] = useState<Screen>('home');
+  const { record, state } = match;
 
-  const change = (playerId: string, delta: number) =>
-    setEvents((prev) => [
-      ...prev,
-      {
-        id: uuidv7(),
-        gameId: 'local',
-        playerId,
-        type: 'life',
-        delta,
-        deviceId: DEVICE_ID,
-        seq: prev.length + 1,
-        clientTs: new Date().toISOString(),
-        source: 'app',
-      },
-    ]);
+  useWakeLock(record !== null || screen === 'seating');
 
-  return (
-    <main className="table">
-      {PLAYERS.map((p, i) => (
-        <section key={p.id} className={i === 0 ? 'half flipped' : 'half'}>
-          <button aria-label={`${p.name} −1`} onClick={() => change(p.id, -1)}>
-            −
-          </button>
-          <div className="life">
-            <span data-testid={`life-${p.id}`}>{totals[p.id]}</span>
-            <small>{p.name}</small>
-          </div>
-          <button aria-label={`${p.name} +1`} onClick={() => change(p.id, +1)}>
-            +
-          </button>
-        </section>
-      ))}
-    </main>
-  );
+  if (!match.loaded) return <main className="page center muted">Lade Spielstand …</main>;
+
+  if (record && state) {
+    const { config } = record;
+    switch (state.phase) {
+      case 'roll':
+        return <Roll players={config.players} onStart={match.beginFirstGame} onCancel={match.close} />;
+      case 'playing':
+        return (
+          <Tracker
+            config={config}
+            state={state}
+            events={record.events}
+            onChange={match.changeLife}
+            onUndo={match.undo}
+            onWin={match.endGame}
+            onAbort={match.close}
+          />
+        );
+      case 'choose':
+        return <ChooseStarter config={config} state={state} onChoose={match.startNextGame} />;
+      case 'finished':
+        return (
+          <MatchEnd
+            config={config}
+            state={state}
+            onRematch={() => {
+              match.close();
+              match.start([config.players[0].name, config.players[1].name], config.startingLife);
+            }}
+            onDone={() => {
+              match.close();
+              setScreen('home');
+            }}
+          />
+        );
+    }
+  }
+
+  switch (screen) {
+    case 'setup':
+      return (
+        <Setup
+          onStart={(names, life) => {
+            match.start(names, life);
+            setScreen('home');
+          }}
+          onBack={() => setScreen('home')}
+        />
+      );
+    case 'seating':
+      return <Seating onBack={() => setScreen('home')} />;
+    default:
+      return <Home onNewMatch={() => setScreen('setup')} onSeating={() => setScreen('seating')} />;
+  }
 }
