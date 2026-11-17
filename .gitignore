@@ -1,0 +1,9 @@
+.env
+infra/.env
+infra/mosquitto.passwd
+.DS_Store
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+.coverage
