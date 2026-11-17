@@ -125,7 +125,7 @@ export function Seating({ onBack }: { onBack(): void }) {
             onClick={nextBooster}
             aria-label={`Booster ${booster}, nach ${dir === 'left' ? 'links' : 'rechts'}. Tippen für den nächsten Booster`}
           >
-            <svg viewBox={`0 -14 ${SIZE} ${SIZE + 42}`} className={shuffling ? 'shuffling' : ''}>
+            <svg viewBox={`-84 -26 ${SIZE + 168} ${SIZE + 40}`} className={shuffling ? 'shuffling' : ''}>
               <circle cx={C} cy={C} r={62} className="felt" />
               <text x={C} y={C - 8} className="booster">
                 Booster {booster}
@@ -134,29 +134,34 @@ export function Seating({ onBack }: { onBack(): void }) {
                 {dir === 'left' ? 'nach links ↻' : 'nach rechts ↺'}
               </text>
               {seats.map((_, i) => {
-                // Pfeil zwischen Platz i und i+1, zeigt im Uhrzeigersinn (links) oder dagegen (rechts)
-                const angle = -90 + (360 * (i + 0.5)) / n;
-                const pos = seatPosition(i + 0.5, n, 92, C, C);
-                const rotate = angle + (dir === 'left' ? 90 : -90);
+                // Pfeil genau auf der Mitte der Verbindungslinie zwischen Platz i und i+1,
+                // zeigt im Uhrzeigersinn (links) oder dagegen (rechts)
+                const a = seatPosition(i, n, seatR, C, C);
+                const b = seatPosition((i + 1) % n, n, seatR, C, C);
+                const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+                const rotate = dir === 'left' ? angle : angle + 180;
                 return (
                   <path
                     key={`a${i}`}
-                    d="M -7 -5 L 3 0 L -7 5"
+                    d="M -4 -7 L 4 0 L -4 7"
                     className="arrow"
-                    transform={`translate(${pos.x} ${pos.y}) rotate(${rotate})`}
+                    transform={`translate(${(a.x + b.x) / 2} ${(a.y + b.y) / 2}) rotate(${rotate})`}
                   />
                 );
               })}
               {seats.map((name, i) => {
                 const pos = seatPosition(i, n, seatR, C, C);
+                // Namen strahlenförmig außen neben den Platz, damit sie weder Tisch noch Pfeile berühren
+                const label = seatPosition(i, n, seatR + 40, C, C);
+                const dx = label.x - C;
+                const anchor = dx > 40 ? 'start' : dx < -40 ? 'end' : 'middle';
                 return (
-                  <g key={name} transform={`translate(${pos.x} ${pos.y})`} className="seat">
-                    <circle r={24} />
-                    <text y={-2} className="seat-no">
+                  <g key={name} className="seat">
+                    <circle cx={pos.x} cy={pos.y} r={26} />
+                    <text x={pos.x} y={pos.y} className="seat-no">
                       {i + 1}
                     </text>
-                    {/* Namen oben über, unten unter dem Platz, damit sie nicht in den Tisch ragen */}
-                    <text y={pos.y < C - 1 ? -36 : 40} className="seat-name">
+                    <text x={label.x} y={label.y} className="seat-name" style={{ textAnchor: anchor }}>
                       {name.length > 10 ? `${name.slice(0, 9)}…` : name}
                     </text>
                   </g>
