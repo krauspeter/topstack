@@ -1,0 +1,36 @@
+milestone	labels	title	body
+Phase 1	phase-1,docs	Wireframes: Life-Tracker, Turnierablauf, Rangliste	Low-Fi-Wireframes für Life-Tracker (1 und 2 Handys), Turnier starten/einladen, Auslosung mit Tischgrafik, Live-Ansicht, Pause-Ansicht, Siegerehrung, Rangliste. Abstimmung mit der Gruppe (Gate G1).
+Phase 1	phase-1,devops	Repo öffentlich anlegen, CI grün, Branch-Schutz für main	Monorepo hochladen, Dependabot und Secret-Scanning aktivieren, main nur per PR mit grüner CI.
+Phase 1	phase-1,devops	Domain auswählen und Verfügbarkeit prüfen	.app, .de oder .gg – vor Phase 3 registrieren (Passkeys hängen an der Domain, ADR-0008).
+Phase 2	phase-2,app	Match einrichten: zwei Spieler, Startleben 20, Best-of-3	Siehe Roadmap Phase 2.
+Phase 2	phase-2,app	Lebenspunkte: Tippen ±1, langes Drücken ±5, letzte Änderung anzeigen, Vibration	N-02: einhändig, große Tasten.
+Phase 2	phase-2,app	W20-Wurf mit Animation, ab Spiel 2 entscheidet der Verlierer	F-09, UC-10.
+Phase 2	phase-2,app	Draftplätze auslosen, runde Tischgrafik mit Passrichtung	F-03, F-04, UC-06 (lokal, ohne Server).
+Phase 2	phase-2,app	Rückgängig über Ereignisprotokoll, Spielstand in IndexedDB, Wake Lock	ADR-0005, N-01.
+Phase 2	phase-2,app	PWA installierbar, auf iPhone und Android getestet	Manifest, Service Worker, Test auf echten Geräten.
+Phase 3	phase-3,server	Erste Alembic-Migration aus docs/schema.sql	SQLAlchemy-Modelle und Migration.
+Phase 3	phase-3,server	Anmeldung: Passkey und Magic-Link, Einladungslinks	ADR-0008, UC-02.
+Phase 3	phase-3,server	Turnierablauf: starten, einladen, Gäste, Auslosung, Farben	UC-03 bis UC-07.
+Phase 3	phase-3,server	Spielplan, Vorziehen, Ergebnisse mit Korrektur, nächste Runde	UC-08, UC-09, UC-12 bis UC-15; Domänenlogik vorhanden.
+Phase 3	phase-3,server	Ereignis-Sync und WebSocket-Live-Ansicht	POST /games/{id}/events, /ws – Ziel unter 2 s (N-04).
+Phase 3	phase-3,server	Web Push: Du bist dran, neue Runde, Turnierende	F-17.
+Phase 3	phase-3,server	Rangliste und Langzeitstatistik	F-18, F-22.
+Phase 4	phase-4,devops	Cloudflare Tunnel, nächtliche Backups mit Wiederherstellungstest, Uptime Kuma	Gate G4.
+v1.1	v1.1	Mehrere Gruppen mit Rollen und eigenen Regeln	UC-01, ADR-0010.
+v1.1	v1.1	Zuschauer-Link ohne Anmeldung	Öffentlicher Live-Verlauf.
+v1.1	v1.1	Gast in Profil umwandeln	UC-18.
+v1.1	v1.1	Altdaten-Import per CSV und manuell	UC-19, UC-20; CSV-Vorlage in der Roadmap.
+v1.1	v1.1	Elo-Wertung pro Gruppe und global	Start 1000, pro Match; Altdaten fließen nicht ein.
+v1.1	v1.1	Head-to-Head als Tabelle und Direktvergleich	F-22.
+v1.1	v1.1	Awards, Langzeit-Erfolge, Bester der letzten 3 Drafts	Anzeige im Profil, Siegerehrung, Teilen-Bild.
+v1.1	v1.1	Teilen-Bild nach dem Turnier und Lebenspunkte-Kurve	–
+v1.1	v1.1	Tisch-Modus fürs Tablet	–
+v1.1	v1.1	Google-Login sowie Benutzername und Passwort	Ergänzt ADR-0008.
+Hardware	hardware	Hardware-Anforderungen und Bauteilliste Steuergerät	ESP32, Drehgeber/Taster, Display, LiPo mit USB-C.
+Hardware	hardware	Firmware: Entprellung, MQTT, Puffer, OTA	Topics siehe docs/schnittstellen.md.
+Hardware	hardware	Platine (KiCad) und Gehäuse (3D-Druck)	Gate G6.
+v2.0	v2.0	Terminumfrage mit Kalender-Export und Erinnerung	UC-21.
+v2.0	v2.0	Englisch und Portugiesisch	i18n.
+v2.0	v2.0	Datenexport der Gruppe als CSV oder Excel	–
+v2.0	v2.0	Commander: Commander-Schaden, mehr als zwei Spieler	F-20, neue Ereignisart.
+v2.0	v2.0	Kartenbilder und Set-Infos über Scryfall	–
