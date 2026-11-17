@@ -1,0 +1,49 @@
+# Lokale Prüfungen wie in der CI (.github/workflows/ci.yml).
+# Einmalig einrichten:  pip install pre-commit  &&  pre-commit install
+# - beim Commit: schnelle Checks (Sekunden)
+# - beim Push:   Tests und Typecheck für die geänderten Teile
+# Nur in der CI: End-to-End (Playwright), Schema-Check (PostgreSQL), Docker-Build.
+default_install_hook_types: [pre-commit, pre-push]
+
+repos:
+  - repo: local
+    hooks:
+      # ---------- beim Commit ----------
+      - id: ruff-check
+        name: server · ruff check
+        entry: bash -c 'cd server && ruff check .'
+        language: system
+        files: ^server/
+        pass_filenames: false
+
+      - id: ruff-format
+        name: server · ruff format --check
+        entry: bash -c 'cd server && ruff format --check .'
+        language: system
+        files: ^server/
+        pass_filenames: false
+
+      # ---------- beim Push ----------
+      - id: pytest
+        name: server · pytest
+        entry: bash -c 'cd server && python -m pytest -q'
+        language: system
+        files: ^server/
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: app-checks
+        name: app · lint, typecheck, test, build
+        entry: bash -c 'cd app && npm run lint && npm run typecheck && npm test && npm run build'
+        language: system
+        files: ^app/
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: firmware-tests
+        name: firmware · native tests (falls PlatformIO installiert)
+        entry: bash -c 'if command -v pio >/dev/null 2>&1; then cd firmware && pio test -e native; else echo "PlatformIO fehlt – Firmware-Tests laufen nur in der CI"; fi'
+        language: system
+        files: ^firmware/
+        pass_filenames: false
+        stages: [pre-push]

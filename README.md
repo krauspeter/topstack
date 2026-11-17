@@ -37,6 +37,16 @@ cd firmware
 pio test -e native
 ```
 
+## Prüfen vor dem Push
+
+```bash
+pip install pre-commit
+pre-commit install          # einmalig: richtet Commit- und Push-Hooks ein
+bash scripts/push.sh        # pusht und zeigt den CI-Lauf live im Terminal
+```
+
+Beim Commit laufen Ruff-Checks, beim Push Tests, Typecheck und Build der geänderten Teile – wie in der CI. End-to-End-Tests, Schema-Check und Docker-Build laufen nur in der CI.
+
 ## Auf dem Heimserver starten
 
 ```bash
