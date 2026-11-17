@@ -1,0 +1,56 @@
+# TopStack auf dem Heimserver (ADR-0007). Start: docker compose --env-file .env up -d
+name: topstack
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80"]          # Cloudflare Tunnel endet hier; kein Port am Router offen
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - app-dist:/srv/app:ro
+      - caddy-data:/data
+    depends_on: [api]
+
+  api:
+    image: ghcr.io/${GITHUB_OWNER:-krauspeter}/topstack-api:${TOPSTACK_VERSION:-latest}
+    build: ../server
+    restart: unless-stopped
+    environment:
+      TOPSTACK_ENVIRONMENT: ${TOPSTACK_ENVIRONMENT:-prod}
+      TOPSTACK_DATABASE_URL: postgresql+asyncpg://topstack:${POSTGRES_PASSWORD}@db:5432/topstack
+      TOPSTACK_MQTT_HOST: mqtt
+      TOPSTACK_PUBLIC_ORIGIN: ${TOPSTACK_PUBLIC_ORIGIN}
+    depends_on:
+      db: { condition: service_healthy }
+      mqtt: { condition: service_started }
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: topstack
+      POSTGRES_DB: topstack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD fehlt in .env}
+    volumes: [db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U topstack"]
+      interval: 10s
+      retries: 5
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports: ["1883:1883"]      # nur im Heimnetz, nicht über den Tunnel
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto.passwd:/mosquitto/config/passwd:ro
+      - mqtt-data:/mosquitto/data
+
+  # Ab Phase 4: cloudflared, Backup (pg_dump), Uptime Kuma
+
+volumes:
+  app-dist:
+  caddy-data:
+  db-data:
+  mqtt-data:
