@@ -19,6 +19,8 @@ Selbst gehostete App für MTG-Spielgruppen: **Life-Tracker** im Spiel, **Draft-T
 
 ## Lokal entwickeln
 
+Schritt für Schritt testen, am PC und auf dem Handy: siehe [TESTEN.md](TESTEN.md).
+
 ```bash
 # Backend
 cd server
