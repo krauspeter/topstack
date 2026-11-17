@@ -1,6 +1,25 @@
 version: 2
 updates:
-  - { package-ecosystem: npm, directory: /app, schedule: { interval: weekly } }
-  - { package-ecosystem: pip, directory: /server, schedule: { interval: weekly } }
-  - { package-ecosystem: github-actions, directory: /, schedule: { interval: monthly } }
-  - { package-ecosystem: docker, directory: /server, schedule: { interval: monthly } }
+  # Kleine Updates gesammelt in einem PR pro Woche. Major-Versionen (z. B. Vite 6 -> 8)
+  # werden bewusst von Hand angehoben, weil sie meist mehrere Pakete gleichzeitig betreffen.
+  - package-ecosystem: npm
+    directory: /app
+    schedule: { interval: weekly }
+    groups:
+      app-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: pip
+    directory: /server
+    schedule: { interval: weekly }
+    groups:
+      server-minor-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+  - package-ecosystem: docker
+    directory: /server
+    schedule: { interval: monthly }
