@@ -34,3 +34,4 @@ v2.0	v2.0	Englisch und Portugiesisch	i18n.
 v2.0	v2.0	Datenexport der Gruppe als CSV oder Excel	–
 v2.0	v2.0	Commander: Commander-Schaden, mehr als zwei Spieler	F-20, neue Ereignisart.
 v2.0	v2.0	Kartenbilder und Set-Infos über Scryfall	–
+v2.0	v2.0,app	Wählbare Design-Themes: Pergament, Arcade, Minimal hell	ADR-0011: Vorschläge B, C, D aus den Wireframes als Theme in den Profil-Einstellungen; Basis sind die Design-Tokens.
