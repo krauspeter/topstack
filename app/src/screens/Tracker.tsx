@@ -14,7 +14,7 @@ import {
   winsNeeded,
 } from '../domain/match';
 import { buzz, useHold, useNow } from '../hooks';
-import { colorValue } from '../theme';
+import { halfStyle } from '../theme';
 
 interface Props {
   config: MatchConfig;
@@ -84,7 +84,7 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
           <section
             key={p.id}
             className={`half tracker ${i === 0 ? 'flipped' : ''} ${life <= 0 ? 'dead' : ''}`}
-            style={{ background: colorValue(p.color, i === 0 ? 0 : 1) }}
+            style={halfStyle(p.color, i === 0 ? 0 : 1)}
           >
             <LifeButton label={`${p.name} −1`} sign={-1} onStep={(d) => step(p.id, d)} />
             <div className="life">

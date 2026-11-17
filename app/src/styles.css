@@ -99,7 +99,7 @@ input {
 .segmented button.on { border-color: var(--gold); color: var(--gold); }
 .player-setup { display: grid; gap: 8px; }
 .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
-.swatches button { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--line); padding: 0; }
+.swatches button { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); padding: 0; font-weight: 700; }
 .swatches button.on { border-color: var(--gold); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--gold); }
 
 /* ---------- Tisch: zwei Spieler gegenüber ---------- */
@@ -130,7 +130,7 @@ input {
   color: var(--muted);
   touch-action: manipulation;
 }
-.step:active { background: rgb(255 255 255 / 0.06); color: var(--text); }
+.step:active { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
 .life { display: grid; justify-items: center; gap: 4px; pointer-events: none; }
 .life .value { font-size: clamp(5rem, 26vw, 10rem); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
 .life .who { color: var(--muted); display: flex; gap: 8px; align-items: center; }

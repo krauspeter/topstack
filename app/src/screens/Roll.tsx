@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { rollDie, rollWinner } from '../domain/dice';
 import type { MatchPlayer } from '../domain/match';
 import { buzz } from '../hooks';
-import { colorValue } from '../theme';
+import { halfStyle } from '../theme';
 
 const ROLL_MS = 900;
 
@@ -65,7 +65,7 @@ export function Roll({ players, onStart, onCancel }: Props) {
           <section
             key={p.id}
             className={`half roll ${i === 0 ? 'flipped' : ''}`}
-            style={{ background: colorValue(p.color, i === 0 ? 0 : 1) }}
+            style={halfStyle(p.color, i === 0 ? 0 : 1)}
           >
             <button
               className={`die ${spinning[p.id] !== undefined ? 'spinning' : ''} ${winner === p.id ? 'won' : ''}`}

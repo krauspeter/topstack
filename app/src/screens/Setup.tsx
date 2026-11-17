@@ -96,9 +96,11 @@ export function Setup({ onStart, onBack }: Props) {
                   aria-label={c.label}
                   title={c.label}
                   className={colors[i] === c.key ? 'on' : ''}
-                  style={{ background: c.value }}
+                  style={{ background: c.value, color: c.tokens?.['--text'] ?? 'var(--text)' }}
                   onClick={() => setColors((prev) => pair(prev, i, c.key))}
-                />
+                >
+                  {c.symbol}
+                </button>
               ))}
             </div>
           </div>

@@ -51,7 +51,7 @@ export function App() {
               match.close();
               match.start({
                 names: [config.players[0].name, config.players[1].name],
-                colors: [config.players[0].color ?? 'nacht', config.players[1].color ?? 'schiefer'],
+                colors: [config.players[0].color ?? 'blau', config.players[1].color ?? 'rot'],
                 startingLife: config.startingLife,
                 timeLimitMin: config.timeLimitMin ?? null,
               });

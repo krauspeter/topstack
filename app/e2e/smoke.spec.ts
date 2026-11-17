@@ -6,7 +6,7 @@ async function startMatch(page: Page, options: { timeLimit?: string; color?: str
   await page.getByLabel('Spieler 1', { exact: true }).fill('Anna');
   await page.getByLabel('Spieler 2', { exact: true }).fill('Ben');
   if (options.color) {
-    await page.getByRole('radiogroup', { name: 'Farbe für Spieler 1' }).getByRole('radio', { name: options.color }).click();
+    await page.getByRole('radiogroup', { name: 'Farbe für Spieler 1' }).getByRole('radio', { name: options.color, exact: true }).click();
   }
   if (options.timeLimit) await page.getByRole('button', { name: options.timeLimit, exact: true }).click();
   await page.getByRole('button', { name: 'Weiter zum W20-Wurf' }).click();
@@ -24,9 +24,9 @@ async function startMatch(page: Page, options: { timeLimit?: string; color?: str
 }
 
 test('Lebenspunkte zählen, Rückgängig, Spielstand übersteht Neuladen', async ({ page }) => {
-  await startMatch(page, { color: 'Rot' });
-  // Farbe pro Hälfte: Anna sitzt oben und hat Rot gewählt
-  await expect(page.locator('section.half').first()).toHaveCSS('background-color', 'rgb(61, 31, 37)');
+  await startMatch(page, { color: 'Grün' });
+  // Farbe pro Hälfte: Anna sitzt oben und hat Grün gewählt
+  await expect(page.locator('section.half').first()).toHaveCSS('background-color', 'rgb(26, 52, 39)');
   await expect(page.getByTestId('life-p1')).toHaveText('20');
   await expect(page.getByTestId('life-p2')).toHaveText('20');
 
