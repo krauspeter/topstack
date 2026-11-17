@@ -1,29 +1,50 @@
 import { type FormEvent, useState } from 'react';
+import type { MatchSetup } from '../store/useMatch';
+import { DEFAULT_COLORS, PLAYER_COLORS } from '../theme';
 
-const NAMES_KEY = 'topstack.lastNames';
+const LAST_KEY = 'topstack.lastSetup';
 const LIFE_OPTIONS = [20, 30, 40] as const;
+const TIME_OPTIONS = [null, 40, 50, 60] as const;
 
-function lastNames(): [string, string] {
+interface Remembered {
+  names: [string, string];
+  colors: [string, string];
+  startingLife: number;
+  timeLimitMin: number | null;
+}
+
+const isColor = (c: unknown): c is string => typeof c === 'string' && PLAYER_COLORS.some((p) => p.key === c);
+
+function remembered(): Remembered {
+  const fallback: Remembered = { names: ['', ''], colors: [...DEFAULT_COLORS], startingLife: 20, timeLimitMin: null };
   try {
-    const raw = localStorage.getItem(NAMES_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : null;
-    if (Array.isArray(parsed) && parsed.length === 2 && parsed.every((n) => typeof n === 'string')) {
-      return [parsed[0], parsed[1]];
-    }
+    const raw: unknown = JSON.parse(localStorage.getItem(LAST_KEY) ?? 'null');
+    if (!raw || typeof raw !== 'object') return fallback;
+    const r = raw as Partial<Record<keyof Remembered, unknown>>;
+    const names = Array.isArray(r.names) && r.names.length === 2 && r.names.every((n) => typeof n === 'string');
+    const colors = Array.isArray(r.colors) && r.colors.length === 2 && r.colors.every(isColor);
+    return {
+      names: names ? (r.names as [string, string]) : fallback.names,
+      colors: colors ? (r.colors as [string, string]) : fallback.colors,
+      startingLife: LIFE_OPTIONS.some((v) => v === r.startingLife) ? (r.startingLife as number) : 20,
+      timeLimitMin: TIME_OPTIONS.some((v) => v === r.timeLimitMin) ? (r.timeLimitMin as number | null) : null,
+    };
   } catch {
-    // ignorieren
+    return fallback;
   }
-  return ['', ''];
 }
 
 interface Props {
-  onStart(names: [string, string], startingLife: number): void;
+  onStart(setup: MatchSetup): void;
   onBack(): void;
 }
 
 export function Setup({ onStart, onBack }: Props) {
-  const [names, setNames] = useState<[string, string]>(lastNames);
-  const [life, setLife] = useState<number>(20);
+  const [initial] = useState(remembered);
+  const [names, setNames] = useState<[string, string]>(initial.names);
+  const [colors, setColors] = useState<[string, string]>(initial.colors);
+  const [life, setLife] = useState<number>(initial.startingLife);
+  const [timeLimit, setTimeLimit] = useState<number | null>(initial.timeLimitMin);
 
   const clean: [string, string] = [names[0].trim() || 'Spieler 1', names[1].trim() || 'Spieler 2'];
   const duplicate = clean[0].toLocaleLowerCase('de') === clean[1].toLocaleLowerCase('de');
@@ -32,15 +53,15 @@ export function Setup({ onStart, onBack }: Props) {
     e.preventDefault();
     if (duplicate) return;
     try {
-      localStorage.setItem(NAMES_KEY, JSON.stringify(names.map((n) => n.trim())));
+      const keep: Remembered = { names: [names[0].trim(), names[1].trim()], colors, startingLife: life, timeLimitMin: timeLimit };
+      localStorage.setItem(LAST_KEY, JSON.stringify(keep));
     } catch {
       // ignorieren
     }
-    onStart(clean, life);
+    onStart({ names: clean, colors, startingLife: life, timeLimitMin: timeLimit });
   };
 
-  const setName = (i: 0 | 1, value: string) =>
-    setNames((prev) => (i === 0 ? [value, prev[1]] : [prev[0], value]));
+  const pair = <T,>(prev: [T, T], i: 0 | 1, value: T): [T, T] => (i === 0 ? [value, prev[1]] : [prev[0], value]);
 
   return (
     <main className="page">
@@ -53,17 +74,36 @@ export function Setup({ onStart, onBack }: Props) {
 
       <form className="stack" onSubmit={submit}>
         {([0, 1] as const).map((i) => (
-          <label key={i} className="field">
-            <span>Spieler {i + 1}</span>
-            <input
-              value={names[i]}
-              onChange={(e) => setName(i, e.target.value)}
-              placeholder={`Spieler ${i + 1}`}
-              maxLength={24}
-              autoComplete="off"
-              enterKeyHint="next"
-            />
-          </label>
+          <div key={i} className="player-setup">
+            <label className="field">
+              <span>Spieler {i + 1}</span>
+              <input
+                value={names[i]}
+                onChange={(e) => setNames((prev) => pair(prev, i, e.target.value))}
+                placeholder={`Spieler ${i + 1}`}
+                maxLength={24}
+                autoComplete="off"
+                enterKeyHint="next"
+              />
+            </label>
+            <div className="swatches" role="radiogroup" aria-label={`Farbe für Spieler ${i + 1}`}>
+              {PLAYER_COLORS.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={colors[i] === c.key}
+                  aria-label={c.label}
+                  title={c.label}
+                  className={colors[i] === c.key ? 'on' : ''}
+                  style={{ background: c.value, color: c.tokens?.['--text'] ?? 'var(--text)' }}
+                  onClick={() => setColors((prev) => pair(prev, i, c.key))}
+                >
+                  {c.symbol}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
         {duplicate && <p className="warn">Bitte zwei verschiedene Namen eingeben.</p>}
 
@@ -71,14 +111,25 @@ export function Setup({ onStart, onBack }: Props) {
           <legend>Startleben</legend>
           <div className="segmented">
             {LIFE_OPTIONS.map((v) => (
-              <button
-                key={v}
-                type="button"
-                className={v === life ? 'on' : ''}
-                aria-pressed={v === life}
-                onClick={() => setLife(v)}
-              >
+              <button key={v} type="button" className={v === life ? 'on' : ''} aria-pressed={v === life} onClick={() => setLife(v)}>
                 {v}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset className="field">
+          <legend>Zeitlimit fürs Match</legend>
+          <div className="segmented">
+            {TIME_OPTIONS.map((v) => (
+              <button
+                key={v ?? 'aus'}
+                type="button"
+                className={v === timeLimit ? 'on' : ''}
+                aria-pressed={v === timeLimit}
+                onClick={() => setTimeLimit(v)}
+              >
+                {v === null ? 'Aus' : `${v} min`}
               </button>
             ))}
           </div>

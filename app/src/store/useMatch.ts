@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type GameEvent, lastUndoable, uuidv7 } from '../domain/lifeEvents';
 import { type MatchConfig, type MatchState, createEvent, matchState } from '../domain/match';
+import { useNow } from '../hooks';
 import { type MatchRecord, loadActiveMatch, saveMatch } from './db';
 
 const DEVICE_KEY = 'topstack.deviceId';
@@ -28,15 +29,24 @@ function withEvents(record: MatchRecord, device: string, fresh: NewEvent[]): Mat
   return { ...record, events: [...record.events, ...events], updatedAt: new Date(now).toISOString() };
 }
 
+export interface MatchSetup {
+  names: [string, string];
+  colors: [string, string];
+  startingLife: number;
+  /** Minuten oder `null` für kein Zeitlimit. */
+  timeLimitMin: number | null;
+}
+
 export interface MatchApi {
   loaded: boolean;
   record: MatchRecord | null;
   state: MatchState | null;
-  start(names: [string, string], startingLife: number): void;
+  start(setup: MatchSetup): void;
   beginFirstGame(rolls: { playerId: string; value: number }[], starter: string): void;
   changeLife(playerId: string, delta: number): void;
   undo(): void;
-  endGame(winner: string): void;
+  /** `null` = Spiel endet unentschieden (nur nach Zeitablauf). */
+  endGame(winner: string | null): void;
   startNextGame(starter: string): void;
   close(): void;
 }
@@ -78,18 +88,21 @@ export function useMatch(): MatchApi {
     [commit],
   );
 
-  const state = useMemo(() => (record ? matchState(record.config, record.events) : null), [record]);
+  // Mit Zeitlimit tickt der Zustand jede Sekunde, damit Ablauf und Matchende sofort sichtbar werden.
+  const now = useNow(1000, !!record?.config.timeLimitMin);
+  const state = useMemo(() => (record ? matchState(record.config, record.events, now) : null), [record, now]);
 
-  const start = useCallback((names: [string, string], startingLife: number) => {
+  const start = useCallback(({ names, colors, startingLife, timeLimitMin }: MatchSetup) => {
     const now = new Date().toISOString();
     const config: MatchConfig = {
       id: uuidv7(),
       players: [
-        { id: 'p1', name: names[0] },
-        { id: 'p2', name: names[1] },
+        { id: 'p1', name: names[0], color: colors[0] },
+        { id: 'p2', name: names[1], color: colors[1] },
       ],
       startingLife,
       bestOf: 3,
+      timeLimitMin,
       createdAt: now,
     };
     commit({ id: config.id, config, events: [], status: 'active', updatedAt: now });
@@ -134,7 +147,7 @@ export function useMatch(): MatchApi {
   );
 
   const endGame = useCallback(
-    (winner: string) =>
+    (winner: string | null) =>
       update((r) => {
         const s = matchState(r.config, r.events);
         if (!s.current) return r;

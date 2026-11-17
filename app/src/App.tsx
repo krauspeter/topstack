@@ -49,7 +49,12 @@ export function App() {
             state={state}
             onRematch={() => {
               match.close();
-              match.start([config.players[0].name, config.players[1].name], config.startingLife);
+              match.start({
+                names: [config.players[0].name, config.players[1].name],
+                colors: [config.players[0].color ?? 'blau', config.players[1].color ?? 'rot'],
+                startingLife: config.startingLife,
+                timeLimitMin: config.timeLimitMin ?? null,
+              });
             }}
             onDone={() => {
               match.close();
@@ -64,8 +69,8 @@ export function App() {
     case 'setup':
       return (
         <Setup
-          onStart={(names, life) => {
-            match.start(names, life);
+          onStart={(setup) => {
+            match.start(setup);
             setScreen('home');
           }}
           onBack={() => setScreen('home')}

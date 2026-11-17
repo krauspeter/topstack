@@ -1,15 +1,19 @@
 import { type Page, expect, test } from '@playwright/test';
 
-async function startMatch(page: Page) {
+async function startMatch(page: Page, options: { timeLimit?: string; color?: string } = {}) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Neues Match' }).click();
-  await page.getByLabel('Spieler 1').fill('Anna');
-  await page.getByLabel('Spieler 2').fill('Ben');
+  await page.getByLabel('Spieler 1', { exact: true }).fill('Anna');
+  await page.getByLabel('Spieler 2', { exact: true }).fill('Ben');
+  if (options.color) {
+    await page.getByRole('radiogroup', { name: 'Farbe für Spieler 1' }).getByRole('radio', { name: options.color, exact: true }).click();
+  }
+  if (options.timeLimit) await page.getByRole('button', { name: options.timeLimit, exact: true }).click();
   await page.getByRole('button', { name: 'Weiter zum W20-Wurf' }).click();
 
   const anna = page.getByRole('button', { name: 'Anna würfelt' });
   const ben = page.getByRole('button', { name: 'Ben würfelt' });
-  const start = page.getByRole('button', { name: 'Spiel 1 starten' });
+  const start = page.getByRole('button', { name: 'Ich beginne' });
   // Bei Gleichstand setzt die App die Würfel zurück, dann wird neu gewürfelt.
   await expect(async () => {
     if (await anna.isEnabled()) await anna.click();
@@ -20,7 +24,9 @@ async function startMatch(page: Page) {
 }
 
 test('Lebenspunkte zählen, Rückgängig, Spielstand übersteht Neuladen', async ({ page }) => {
-  await startMatch(page);
+  await startMatch(page, { color: 'Grün' });
+  // Farbe pro Hälfte: Anna sitzt oben und hat Grün gewählt
+  await expect(page.locator('section.half').first()).toHaveCSS('background-color', 'rgb(26, 52, 39)');
   await expect(page.getByTestId('life-p1')).toHaveText('20');
   await expect(page.getByTestId('life-p2')).toHaveText('20');
 
@@ -76,4 +82,21 @@ test('Draftplätze auslosen', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Booster 1, nach links/ })).toBeVisible();
   await page.getByRole('button', { name: /Booster 1/ }).click();
   await expect(page.getByRole('button', { name: /Booster 2, nach rechts/ })).toBeVisible();
+});
+
+test('Zeitlimit: nach Ablauf Hinweis, Unentschieden beendet das Match', async ({ page }) => {
+  await page.clock.install();
+  await startMatch(page, { timeLimit: '40 min' });
+  await expect(page.getByLabel('Restzeit')).toContainText(/(40:00|39:[0-5]\d)/);
+
+  await page.clock.fastForward('40:05');
+  await expect(page.getByRole('dialog', { name: 'Zeit abgelaufen' })).toBeVisible();
+  await page.getByRole('button', { name: 'Verstanden' }).click();
+  await expect(page.getByTestId('score')).toContainText('Zeit!');
+
+  await page.getByRole('button', { name: 'Menü' }).click();
+  await page.getByRole('button', { name: 'Spiel unentschieden beenden' }).click();
+  await page.getByRole('button', { name: 'Ja, unentschieden' }).click();
+  await expect(page.getByTestId('match-winner')).toHaveText('Unentschieden');
+  await expect(page.getByText('nach Zeitablauf')).toBeVisible();
 });

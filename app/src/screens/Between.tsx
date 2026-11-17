@@ -1,4 +1,4 @@
-import { type MatchConfig, type MatchState, formatDuration, gameDuration, opponentOf } from '../domain/match';
+import { type MatchConfig, type MatchState, formatDuration, gameDuration, isDrawn, opponentOf } from '../domain/match';
 
 interface ChooseProps {
   config: MatchConfig;
@@ -48,6 +48,7 @@ export function MatchEnd({ config, state, onRematch, onDone }: EndProps) {
   const name = (id: string | null) => config.players.find((p) => p.id === id)?.name ?? '–';
   const winner = state.winner;
   const loser = winner ? opponentOf(ids, winner) : null;
+  const byTime = state.timeUp || state.games.some(isDrawn);
 
   return (
     <main className="page center">
@@ -58,10 +59,11 @@ export function MatchEnd({ config, state, onRematch, onDone }: EndProps) {
           <rect x="29" y="31" width="6" height="12" />
           <rect x="20" y="43" width="24" height="6" rx="2" />
         </svg>
-        <h2 data-testid="match-winner">{name(winner)} gewinnt</h2>
+        <h2 data-testid="match-winner">{state.draw ? 'Unentschieden' : `${name(winner)} gewinnt`}</h2>
         <p className="result">
-          {winner && loser ? `${state.wins[winner]}:${state.wins[loser]}` : ''}
+          {winner && loser ? `${state.wins[winner]}:${state.wins[loser]}` : `${state.wins[ids[0]]}:${state.wins[ids[1]]}`}
         </p>
+        {byTime && <p className="muted small">nach Zeitablauf</p>}
         <table className="games">
           <thead>
             <tr>
@@ -76,7 +78,7 @@ export function MatchEnd({ config, state, onRematch, onDone }: EndProps) {
               <tr key={g.gameId}>
                 <td>{g.number}</td>
                 <td>{name(g.starter)}</td>
-                <td>{name(g.winner)}</td>
+                <td>{isDrawn(g) ? 'unentschieden' : name(g.winner)}</td>
                 <td>{formatDuration(gameDuration(g))}</td>
               </tr>
             ))}

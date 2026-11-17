@@ -11,7 +11,7 @@ export default defineConfig({
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       workbox: {
         // App-Shell komplett vorhalten, damit der Life-Tracker ohne Netz startet (N-01)
-        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,woff,webmanifest}'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/ws/],
       },
@@ -36,7 +36,10 @@ export default defineConfig({
       },
     }),
   ],
+  // Erlaubt Tests über einen temporären Cloudflare-Tunnel (HTTPS aufs Handy)
+  preview: { allowedHosts: ['.trycloudflare.com'] },
   server: {
+    allowedHosts: ['.trycloudflare.com'],
     proxy: { '/api': 'http://localhost:8000', '/ws': { target: 'ws://localhost:8000', ws: true } },
   },
   test: { include: ['src/**/*.test.ts'] },
