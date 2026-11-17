@@ -9,7 +9,7 @@ async function startMatch(page: Page) {
 
   const anna = page.getByRole('button', { name: 'Anna würfelt' });
   const ben = page.getByRole('button', { name: 'Ben würfelt' });
-  const start = page.getByRole('button', { name: 'Spiel 1 starten' });
+  const start = page.getByRole('button', { name: 'Ich beginne' });
   // Bei Gleichstand setzt die App die Würfel zurück, dann wird neu gewürfelt.
   await expect(async () => {
     if (await anna.isEnabled()) await anna.click();
