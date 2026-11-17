@@ -36,7 +36,10 @@ export default defineConfig({
       },
     }),
   ],
+  // Erlaubt Tests über einen temporären Cloudflare-Tunnel (HTTPS aufs Handy)
+  preview: { allowedHosts: ['.trycloudflare.com'] },
   server: {
+    allowedHosts: ['.trycloudflare.com'],
     proxy: { '/api': 'http://localhost:8000', '/ws': { target: 'ws://localhost:8000', ws: true } },
   },
   test: { include: ['src/**/*.test.ts'] },
