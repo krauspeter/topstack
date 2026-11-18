@@ -144,6 +144,7 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 - Ergebnis eintragen ohne Tracker, bestätigen, korrigieren bis Turnierende (`match_correction`), Gegner bekommt eine Nachricht.
 - Turniertabelle mit `domain/standings.py`; Gleichstand nach allen Tiebreakern fordert einen W20-Wurf an.
 - Pausieren und fortsetzen.
+- Abbrechen: vor Runde 1 durch Starter oder Admin, ab Runde 1 direkt durch den Admin oder per Abstimmung mit mehr als der Hälfte der Teilnehmer (ADR-0013).
 - Turnierabschluss, sobald alle Matches gespielt sind: Endplätze und Ranglistenpunkte festschreiben (`domain/ranking.py`), Siegerehrung.
 
 **Fertig, wenn:** Ein Turnier mit 5 Spielern ist von Runde 1 bis zur Siegerehrung durchspielbar, nur mit eingetragenen Ergebnissen.
@@ -170,7 +171,7 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 ### AP-8 · Push-Benachrichtigungen (ca. 4 h) · Branch `feat/p3-push` · F-17
 
 - Web Push mit VAPID-Schlüsseln (aus der `.env`, nicht im Repo).
-- Ereignisse: Du bist dran, neue Runde, Turnierende, Einladung, Ergebnis korrigiert.
+- Ereignisse: Du bist dran, neue Runde, Turnierende, Einladung, Ergebnis korrigiert, Abbruch beantragt.
 - Jedes Ereignis einzeln abschaltbar.
 - Auf dem iPhone kommt Push nur bei installierter App an; das wird beim iPhone-Test in Phase 4 geprüft.
 
@@ -230,7 +231,7 @@ Alle Entscheidungen wurden am 18.11.2026 getroffen.
 | E2 | E-Mail-Versand für Magic-Links | Resend (kostenlos bis 3.000 Mails im Monat), Absender `login@topstack.win`, Domain per SPF und DKIM bei Cloudflare bestätigt; Anbindung in AP-3 |
 | E3 | Betriebssystem des Heimservers | Bestehendes Debian mit Docker auf dem Beelink EQ14 (wie im Repo `heimserver`) bleibt, keine Neuinstallation |
 | E4 | Werden lokale Matches aus Phase 2 nachträglich hochgeladen? | Nein, sie bleiben lokal; nur Turnier-Matches gehen an den Server (ADR-0012) |
-| E5 | Wer darf ein Turnier abbrechen? | Turnierstarter und Gruppen-Admin: vor Runde 1 beide, danach nur der Admin (ADR-0013) |
+| E5 | Wer darf ein Turnier abbrechen? | Vor Runde 1 Turnierstarter und Gruppen-Admin. Ab Runde 1 der Gruppen-Admin direkt oder per Abstimmung: Turnierstarter oder Admin beantragt, mehr als die Hälfte der Teilnehmer bestätigt (ADR-0013) |
 
 ---
 

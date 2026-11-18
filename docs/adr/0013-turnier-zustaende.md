@@ -23,8 +23,8 @@ stateDiagram-v2
     setup --> cancelled: abbrechen
     seated --> cancelled: abbrechen
     drafting --> cancelled: abbrechen
-    running --> cancelled: abbrechen (nur Admin)
-    paused --> cancelled: abbrechen (nur Admin)
+    running --> cancelled: Admin direkt oder Abstimmung
+    paused --> cancelled: Admin direkt oder Abstimmung
 ```
 
 | Übergang | Wer darf | Bedingung |
@@ -37,7 +37,20 @@ stateDiagram-v2
 | Runde 1 und jede weitere Runde starten | jeder Teilnehmer | bei offenen Matches nur mit Bestätigung der Warnung (UC-15) |
 | Pausieren, fortsetzen | jeder Teilnehmer | – |
 | Ergebnis eintragen, korrigieren | die beiden Spieler des Matches, Gruppen-Admin | bis Status `finished`; jede Korrektur landet in `match_correction` |
-| Abbrechen | Turnierstarter, Gruppen-Admin | vor Runde 1; danach nur durch den Admin. Ein abgebrochenes Turnier zählt nicht für Rangliste und Statistik |
+| Abbrechen vor Runde 1 | Turnierstarter, Gruppen-Admin | Status `setup`, `seated` oder `drafting`; sofort, mit Bestätigung |
+| Abbrechen ab Runde 1, direkt | Gruppen-Admin | Status `running` oder `paused`; sofort, mit Bestätigung |
+| Abbrechen ab Runde 1, per Abstimmung | Turnierstarter oder Gruppen-Admin beantragt, Teilnehmer bestätigen | Status `running` oder `paused`; abgebrochen, sobald **mehr als die Hälfte** der Teilnehmer bestätigt hat (siehe unten) |
+
+Ein abgebrochenes Turnier zählt nicht für Rangliste und Statistik.
+
+**Abbruch per Abstimmung (ergänzt am 18.11.2026)**
+- Ab Runde 1 können Turnierstarter und Gruppen-Admin einen Abbruch beantragen. Alle Teilnehmer bekommen eine Nachricht in der App und per Push.
+- Teilnehmer sind alle Einträge in `tournament_entry`, also auch Gäste. Wer den Antrag stellt und selbst teilnimmt, hat damit schon bestätigt.
+- Nötig sind mehr als die Hälfte der Teilnehmer: `bestätigt > teilnehmer / 2`, also 3 von 4 oder 5, 4 von 6 oder 7, 5 von 8.
+- Ist die Mehrheit erreicht, setzt der Server das Turnier sofort auf `cancelled`. Bestätigungen lassen sich bis dahin zurücknehmen.
+- Pro Turnier ist höchstens ein Antrag offen. Er endet, wenn die Mehrheit erreicht ist, wenn der Antragsteller ihn zurückzieht oder wenn das Turnier `finished` erreicht.
+- Solange der Antrag offen ist, läuft das Turnier normal weiter; die Live-Ansicht zeigt „Abbruch beantragt: x von y“.
+- Der direkte Abbruch durch den Gruppen-Admin bleibt zusätzlich möglich.
 
 **Abschluss**
 - Sind alle Matches des Spielplans beendet, setzt der Server das Turnier auf `finished`, berechnet die Tabelle und schreibt `final_place` und `ranking_points` in `tournament_entry` fest.
@@ -57,5 +70,5 @@ stateDiagram-v2
 - **Letzte Änderung gewinnt, ohne Version:** einfacher, aber stille Überschreibungen bei zwei Handys sind genau der Fehler, den die Gruppe merken würde.
 
 ## Folgen
-- Migration ergänzt `match.version` und den Status `cancelled` in `tournament_status`; der Teilindex `one_open_tournament_per_group` schließt `cancelled` aus. `docs/schema.sql` wird danach aus der Migration aktualisiert.
+- Migration ergänzt `match.version`, die Spalten `tournament.cancel_requested_by` und `tournament.cancel_requested_at` sowie die Tabelle `tournament_cancel_vote (tournament_id, entry_id, created_at)` mit Primärschlüssel auf beiden IDs, dazu den Status `cancelled` in `tournament_status`; der Teilindex `one_open_tournament_per_group` schließt `cancelled` aus. `docs/schema.sql` wird danach aus der Migration aktualisiert.
 - Der Status `drafting` ist optional nutzbar: Wer ohne Draft-Timer spielt, kann direkt von `seated` auf Runde 1 gehen; der Server setzt dann `drafting` implizit.

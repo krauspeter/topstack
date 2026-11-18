@@ -68,6 +68,10 @@ Pflicht in Phase 3: alle Fälle mit Priorität **hoch**. Jeder Fall hängt an ei
 | TC-30 | Gleichstand nach allen Tiebreakern | Aufforderung zum W20-Wurf vor dem Abschluss | mittel |
 | TC-31 | Korrektur nach Turnierende | `409` | hoch |
 | TC-32 | Turnier vor Runde 1 abbrechen | Status `cancelled`, zählt nicht für die Rangliste | mittel |
+| TC-32a | Abbruch ab Runde 1 per Abstimmung, 5 Teilnehmer | Starter beantragt (zählt als 1. Bestätigung); bei 2 Bestätigungen noch `running`, bei der 3. `cancelled`; zählt nicht für die Rangliste | hoch |
+| TC-32b | Abbruch ab Runde 1 durch einfachen Teilnehmer | Antrag wird mit `403` abgelehnt | mittel |
+| TC-32c | Antrag zurückziehen und Bestätigung zurücknehmen | Antrag weg bzw. Zähler sinkt; Turnier läuft weiter | mittel |
+| TC-32d | Gruppen-Admin bricht ab Runde 1 direkt ab | `cancelled` ohne Abstimmung | mittel |
 
 ### Life-Tracker am Server (AP-6)
 
