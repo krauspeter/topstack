@@ -22,8 +22,8 @@ Router rufen nur Dienste auf, Dienste nur Repositories und Domänenlogik. So ble
 
 **Migrationen**
 - Alembic mit asynchroner Engine. Die erste Migration erzeugt das Schema aus `docs/schema.sql` 1:1, inklusive Enums, Teilindex und Check-Constraints.
-- Ab dann ist die Migrationskette die Wahrheit. `docs/schema.sql` wird mit `pg_dump --schema-only` aus einer migrierten Datenbank erzeugt und bleibt als lesbare Referenz im Repo.
-- Die CI prüft, dass `alembic upgrade head` auf leerer Datenbank läuft und `alembic check` keine Abweichung zu den Modellen findet.
+- Ab dann ist die Migrationskette die Wahrheit. `docs/schema.sql` bleibt als lesbare, kommentierte Referenz im Repo und wird bei jeder neuen Migration von Hand nachgezogen (ergänzt am 18.11.2026: lesbarer als eine `pg_dump`-Ausgabe).
+- Die CI prüft, dass `alembic upgrade head` auf leerer Datenbank läuft, dass `pg_dump --schema-only` der migrierten Datenbank und einer aus `docs/schema.sql` geladenen Datenbank identisch ist, und dass `alembic check` keine Abweichung zu den Modellen findet (Test `test_models_match_migrations`).
 - Die API führt beim Start `alembic upgrade head` aus (ein Container, eine Instanz, daher unkritisch).
 
 **Tests**

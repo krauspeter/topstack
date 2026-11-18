@@ -1,5 +1,6 @@
 -- TopStack – Datenbankschema (PostgreSQL 16)
--- Stand Phase 1. Referenz für die erste Alembic-Migration in Phase 3.
+-- Stand Phase 3 (AP-1). Lesbare Referenz; maßgeblich ist die Alembic-Kette in server/migrations.
+-- Die CI vergleicht diese Datei mit einer migrierten Datenbank (ADR-0014).
 -- Konventionen: snake_case, UUID-Primärschlüssel, Zeitstempel in UTC (timestamptz).
 
 -- ---------------------------------------------------------------------------
@@ -8,7 +9,7 @@
 CREATE TYPE group_role        AS ENUM ('admin', 'member', 'viewer');
 CREATE TYPE player_kind       AS ENUM ('member', 'guest', 'former');
 CREATE TYPE tournament_format AS ENUM ('draft', 'commander');
-CREATE TYPE tournament_status AS ENUM ('setup', 'seated', 'drafting', 'running', 'paused', 'finished');
+CREATE TYPE tournament_status AS ENUM ('setup', 'seated', 'drafting', 'running', 'paused', 'finished', 'cancelled');
 CREATE TYPE entry_status      AS ENUM ('invited', 'accepted', 'declined', 'removed');
 CREATE TYPE round_status      AS ENUM ('planned', 'running', 'finished');
 CREATE TYPE match_status      AS ENUM ('scheduled', 'running', 'finished');
@@ -138,11 +139,14 @@ CREATE TABLE tournament (
     held_on       date NOT NULL DEFAULT current_date,
     location      text,
     created_at    timestamptz NOT NULL DEFAULT now(),
-    finished_at   timestamptz
+    finished_at   timestamptz,
+    cancel_requested_by  uuid REFERENCES player(id) ON DELETE SET NULL,  -- Abbruch per Abstimmung (ADR-0013)
+    cancel_requested_at  timestamptz,
+    CHECK ((cancel_requested_by IS NULL) = (cancel_requested_at IS NULL))
 );
--- nur ein laufendes Turnier pro Gruppe (UC-03)
+-- nur ein offenes Turnier pro Gruppe (UC-03); abgebrochene zählen nicht
 CREATE UNIQUE INDEX one_open_tournament_per_group
-    ON tournament (group_id) WHERE status <> 'finished' AND NOT imported;
+    ON tournament (group_id) WHERE status NOT IN ('finished', 'cancelled') AND NOT imported;
 
 ALTER TABLE invitation
     ADD FOREIGN KEY (tournament_id) REFERENCES tournament(id) ON DELETE CASCADE;
@@ -157,6 +161,16 @@ CREATE TABLE tournament_entry (
     ranking_points  int,
     PRIMARY KEY (tournament_id, player_id),
     UNIQUE (tournament_id, seat_no)
+);
+
+-- Bestätigungen für einen Abbruch per Abstimmung (ADR-0013)
+CREATE TABLE tournament_cancel_vote (
+    tournament_id  uuid NOT NULL,
+    player_id      uuid NOT NULL,
+    created_at     timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (tournament_id, player_id),
+    FOREIGN KEY (tournament_id, player_id)
+        REFERENCES tournament_entry (tournament_id, player_id) ON DELETE CASCADE
 );
 
 CREATE TABLE round (
@@ -184,6 +198,7 @@ CREATE TABLE match (
     started_at      timestamptz,
     finished_at     timestamptz,
     result_by       uuid REFERENCES player(id),
+    version         int NOT NULL DEFAULT 0,   -- optimistische Sperre (ADR-0013)
     CHECK (player_a_id <> player_b_id)
 );
 CREATE INDEX match_tournament_idx ON match (tournament_id);

@@ -53,6 +53,15 @@ jobs:
     if: needs.changes.outputs.server == 'true'
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: server } }
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: ci, POSTGRES_DB: topstack_test }
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    env:
+      # Repository- und Migrationstests gegen echtes PostgreSQL (ADR-0014)
+      TOPSTACK_TEST_DATABASE_URL: postgresql+asyncpg://postgres:ci@localhost:5432/topstack_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -75,8 +84,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Schema in Postgres 16 laden
-        run: psql -v ON_ERROR_STOP=1 -f docs/schema.sql
+        run: |
+          psql -v ON_ERROR_STOP=1 -c 'CREATE DATABASE ref' -c 'CREATE DATABASE mig'
+          psql -v ON_ERROR_STOP=1 -d ref -f docs/schema.sql
         env: { PGHOST: localhost, PGUSER: postgres, PGPASSWORD: ci }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Leere Datenbank mit Alembic migrieren
+        working-directory: server
+        run: pip install -e . && alembic upgrade head
+        env: { TOPSTACK_DATABASE_URL: 'postgresql+asyncpg://postgres:ci@localhost:5432/mig' }
+      - name: Migration und docs/schema.sql vergleichen
+        run: |
+          dump() {
+            docker exec ${{ job.services.postgres.id }} \
+              pg_dump -U postgres --schema-only --no-owner --no-privileges \
+              --exclude-table=alembic_version "$1" | grep -vE '^\\(un)?restrict'
+          }
+          dump ref > ref.sql
+          dump mig > mig.sql
+          if ! diff -u ref.sql mig.sql; then
+            echo "::error::docs/schema.sql weicht von den Migrationen ab (ADR-0014)"
+            exit 1
+          fi
 
   firmware:
     needs: changes
