@@ -78,3 +78,4 @@ Doppelte Ereignisse sind harmlos: Die ID wird auf dem Gerät erzeugt, der Server
 - [Datenmodell](datenmodell.md) und [Schema als SQL](schema.sql)
 - [Schnittstellen: REST, WebSocket, MQTT](schnittstellen.md)
 - [ADRs](adr/)
+- [Plan für Phase 3](phase3/README.md), [Testplan](phase3/testplan.md), [Heimserver einrichten](phase3/heimserver.md)

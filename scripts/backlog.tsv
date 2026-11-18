@@ -7,15 +7,20 @@ Phase 2	phase-2,app	Lebenspunkte: Tippen ±1, langes Drücken ±5, letzte Änder
 Phase 2	phase-2,app	W20-Wurf mit Animation, ab Spiel 2 entscheidet der Verlierer	F-09, UC-10.
 Phase 2	phase-2,app	Draftplätze auslosen, runde Tischgrafik mit Passrichtung	F-03, F-04, UC-06 (lokal, ohne Server).
 Phase 2	phase-2,app	Rückgängig über Ereignisprotokoll, Spielstand in IndexedDB, Wake Lock	ADR-0005, N-01.
-Phase 2	phase-2,app	PWA installierbar, auf iPhone und Android getestet	Manifest, Service Worker, Test auf echten Geräten.
-Phase 3	phase-3,server	Erste Alembic-Migration aus docs/schema.sql	SQLAlchemy-Modelle und Migration.
-Phase 3	phase-3,server	Anmeldung: Passkey und Magic-Link, Einladungslinks	ADR-0008, UC-02.
-Phase 3	phase-3,server	Turnierablauf: starten, einladen, Gäste, Auslosung, Farben	UC-03 bis UC-07.
-Phase 3	phase-3,server	Spielplan, Vorziehen, Ergebnisse mit Korrektur, nächste Runde	UC-08, UC-09, UC-12 bis UC-15; Domänenlogik vorhanden.
-Phase 3	phase-3,server	Ereignis-Sync und WebSocket-Live-Ansicht	POST /games/{id}/events, /ws – Ziel unter 2 s (N-04).
-Phase 3	phase-3,server	Web Push: Du bist dran, neue Runde, Turnierende	F-17.
-Phase 3	phase-3,server	Rangliste und Langzeitstatistik	F-18, F-22.
-Phase 4	phase-4,devops	Cloudflare Tunnel, nächtliche Backups mit Wiederherstellungstest, Uptime Kuma	Gate G4.
+Phase 2	phase-2,app	PWA installierbar, auf Android getestet (iPhone in Phase 4)	Manifest, Service Worker, Test auf echten Geräten.
+Phase 3	phase-3,docs	AP-0 Voraussetzungen: Domain, Cloudflare Tunnel, E-Mail-Versand, ADRs annehmen	Siehe docs/phase3/README.md, AP-0. Entscheidungen E1 bis E3, ADR-0012 bis ADR-0014 von vorgeschlagen auf angenommen.
+Phase 3	phase-3,server	AP-1 Datenbank: SQLAlchemy-Modelle, erste Alembic-Migration, Tests mit PostgreSQL	Siehe docs/phase3/README.md, AP-1, und ADR-0014. Fertig, wenn alembic upgrade head auf leerer Datenbank läuft und die CI die Migration gegen schema.sql prüft.
+Phase 3	phase-3,devops	AP-2 Heimserver: App und API unter https://topstack.win ausliefern	Siehe docs/phase3/heimserver.md. App-Build in Caddy, Migration beim Start, cloudflared in docker-compose.yml. Testfälle TC-80 bis TC-83.
+Phase 3	phase-3,server,app	AP-3 Anmeldung: Magic-Link, Passkey, Sitzung, Einladung in die Gruppe	UC-02, ADR-0008. Testfälle TC-01 bis TC-06.
+Phase 3	phase-3,server,app	AP-4 Turnier vorbereiten: starten, einladen, Gäste, Auslosung, Farben	UC-03 bis UC-07, F-01 bis F-04, F-06. Testfälle TC-10 bis TC-19.
+Phase 3	phase-3,server,app	AP-5 Turnierablauf: Spielplan, Vorziehen, Ergebnisse, Korrektur, Abschluss	UC-08, UC-09, UC-12 bis UC-17, ADR-0013. Testfälle TC-20 bis TC-32.
+Phase 3	phase-3,server,app	AP-6 Life-Tracker am Server: Outbox, Sync, zwei Handys, Spielende mit Grund	UC-10, UC-11, N-01, ADR-0012. Testfälle TC-40 bis TC-47.
+Phase 3	phase-3,server,app	AP-7 Live-Ansicht und Pause-Ansicht über WebSocket	F-15, N-04. Testfälle TC-50 bis TC-53.
+Phase 3	phase-3,server,app	AP-8 Web Push: Du bist dran, neue Runde, Turnierende	F-17. Testfälle TC-60 bis TC-62. Kann bei Zeitmangel nach Phase 4 wandern.
+Phase 3	phase-3,server,app	AP-9 Rangliste und Basis-Statistik	F-18, F-22 (Basis). Testfälle TC-70 bis TC-74.
+Phase 3	phase-3,docs	AP-10 Abnahme Gate G3: echtes Turnier mit der Gruppe	Abnahmeszenario in docs/phase3/testplan.md, Abschnitt 4.
+Phase 4	phase-4,devops	Nächtliche Backups mit Wiederherstellungstest, Uptime Kuma	Gate G4.
+Phase 4	phase-4,app	iPhone-Test vor v1.0: Installieren, Bildschirm an, Offline, Push	Letzter Schritt vor v1.0 (Entscheidung vom 18.11.2026). Safari, Zum Home-Bildschirm, Testfälle aus docs/phase3/testplan.md auf dem iPhone wiederholen.
 v1.1	v1.1	Mehrere Gruppen mit Rollen und eigenen Regeln	UC-01, ADR-0010.
 v1.1	v1.1	Zuschauer-Link ohne Anmeldung	Öffentlicher Live-Verlauf.
 v1.1	v1.1	Gast in Profil umwandeln	UC-18.

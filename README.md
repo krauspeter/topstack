@@ -4,7 +4,7 @@ Selbst gehostete App für MTG-Spielgruppen: **Life-Tracker** im Spiel, **Draft-T
 
 [![CI](https://github.com/krauspeter/topstack/actions/workflows/ci.yml/badge.svg)](https://github.com/krauspeter/topstack/actions/workflows/ci.yml)
 
-> Status: 🚧 Phase 1 – Architektur & Design (Nov 2026). Läuft auf dem [Heimserver](https://github.com/krauspeter/heimserver).
+> Status: ✅ Phase 2 – Offline-Life-Tracker abgeschlossen (18.11.2026) · 🚧 Phase 3 – Backend, Turniere & Rangliste in Planung ([Plan](docs/phase3/README.md)). Läuft auf dem [Heimserver](https://github.com/krauspeter/heimserver).
 
 ## Aufbau
 
@@ -14,7 +14,7 @@ Selbst gehostete App für MTG-Spielgruppen: **Life-Tracker** im Spiel, **Draft-T
 | [`server/`](server) | Backend – Python, FastAPI, PostgreSQL; Domänenlogik in `topstack/domain/` |
 | [`firmware/`](firmware) | Steuergerät – ESP32, PlatformIO, Unity-Tests |
 | [`infra/`](infra) | Docker Compose, Caddy, Mosquitto für den Heimserver |
-| [`docs/`](docs) | [Architektur](docs/architektur.md), [Datenmodell](docs/datenmodell.md), [Schnittstellen](docs/schnittstellen.md), [ADRs](docs/adr) |
+| [`docs/`](docs) | [Architektur](docs/architektur.md), [Datenmodell](docs/datenmodell.md), [Schnittstellen](docs/schnittstellen.md), [ADRs](docs/adr), [Phase 3](docs/phase3/README.md) |
 | [`scripts/`](scripts) | Hilfsskripte, z. B. Backlog als GitHub Issues anlegen |
 
 ## Lokal entwickeln
