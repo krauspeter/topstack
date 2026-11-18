@@ -1,6 +1,9 @@
 import { type FormEvent, useState } from 'react';
 import type { MatchSetup } from '../store/useMatch';
-import { DEFAULT_COLORS, PLAYER_COLORS } from '../theme';
+import { COLORLESS, type ColorChoice, MANA, choiceName, describeColors, isSelected, isValidColors, toggleColor } from '../domain/colors';
+import { DEFAULT_COLORS, choiceSurface } from '../theme';
+
+const CHOICES: readonly ColorChoice[] = [...MANA, COLORLESS];
 
 const LAST_KEY = 'topstack.lastSetup';
 const LIFE_OPTIONS = [20, 30, 40] as const;
@@ -13,8 +16,6 @@ interface Remembered {
   timeLimitMin: number | null;
 }
 
-const isColor = (c: unknown): c is string => typeof c === 'string' && PLAYER_COLORS.some((p) => p.key === c);
-
 function remembered(): Remembered {
   const fallback: Remembered = { names: ['', ''], colors: [...DEFAULT_COLORS], startingLife: 20, timeLimitMin: null };
   try {
@@ -22,7 +23,7 @@ function remembered(): Remembered {
     if (!raw || typeof raw !== 'object') return fallback;
     const r = raw as Partial<Record<keyof Remembered, unknown>>;
     const names = Array.isArray(r.names) && r.names.length === 2 && r.names.every((n) => typeof n === 'string');
-    const colors = Array.isArray(r.colors) && r.colors.length === 2 && r.colors.every(isColor);
+    const colors = Array.isArray(r.colors) && r.colors.length === 2 && r.colors.every(isValidColors);
     return {
       names: names ? (r.names as [string, string]) : fallback.names,
       colors: colors ? (r.colors as [string, string]) : fallback.colors,
@@ -86,23 +87,29 @@ export function Setup({ onStart, onBack }: Props) {
                 enterKeyHint="next"
               />
             </label>
-            <div className="swatches" role="radiogroup" aria-label={`Farbe für Spieler ${i + 1}`}>
-              {PLAYER_COLORS.map((c) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  role="radio"
-                  aria-checked={colors[i] === c.key}
-                  aria-label={c.label}
-                  title={c.label}
-                  className={colors[i] === c.key ? 'on' : ''}
-                  style={{ background: c.value, color: c.tokens?.['--text'] ?? 'var(--text)' }}
-                  onClick={() => setColors((prev) => pair(prev, i, c.key))}
-                >
-                  {c.symbol}
-                </button>
-              ))}
+            <div className="swatches" role="group" aria-label={`Farben für Spieler ${i + 1}`}>
+              {CHOICES.map((c) => {
+                const surface = choiceSurface(c);
+                const on = isSelected(colors[i], c);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    aria-pressed={on}
+                    aria-label={choiceName(c)}
+                    title={choiceName(c)}
+                    className={on ? 'on' : ''}
+                    style={{ background: surface.value, color: surface.tokens?.['--text'] ?? 'var(--text)' }}
+                    onClick={() => setColors((prev) => pair(prev, i, toggleColor(prev[i], c)))}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
             </div>
+            <p className="muted small" data-testid={`colors-p${i + 1}`}>
+              {describeColors(colors[i])}
+            </p>
           </div>
         ))}
         {duplicate && <p className="warn">Bitte zwei verschiedene Namen eingeben.</p>}

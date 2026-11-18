@@ -7,6 +7,7 @@ import { Seating } from './screens/Seating';
 import { Setup } from './screens/Setup';
 import { Tracker } from './screens/Tracker';
 import { useMatch } from './store/useMatch';
+import { playerColors } from './theme';
 
 type Screen = 'home' | 'setup' | 'seating';
 
@@ -51,7 +52,7 @@ export function App() {
               match.close();
               match.start({
                 names: [config.players[0].name, config.players[1].name],
-                colors: [config.players[0].color ?? 'blau', config.players[1].color ?? 'rot'],
+                colors: [playerColors(config.players[0], 0), playerColors(config.players[1], 1)],
                 startingLife: config.startingLife,
                 timeLimitMin: config.timeLimitMin ?? null,
               });

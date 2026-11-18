@@ -14,7 +14,8 @@ import {
   winsNeeded,
 } from '../domain/match';
 import { buzz, useHold, useNow } from '../hooks';
-import { halfStyle } from '../theme';
+import { halfStyle, playerColors } from '../theme';
+import { ManaPips } from './ManaPips';
 
 interface Props {
   config: MatchConfig;
@@ -84,7 +85,7 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
           <section
             key={p.id}
             className={`half tracker ${i === 0 ? 'flipped' : ''} ${life <= 0 ? 'dead' : ''}`}
-            style={halfStyle(p.color, i === 0 ? 0 : 1)}
+            style={halfStyle(playerColors(p, i === 0 ? 0 : 1))}
           >
             <LifeButton label={`${p.name} −1`} sign={-1} onStep={(d) => step(p.id, d)} />
             <div className="life">
@@ -95,6 +96,7 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
                 {life}
               </span>
               <span className="who">
+                <ManaPips colors={playerColors(p, i === 0 ? 0 : 1)} />
                 {p.name}
                 {game.starter === p.id && <span className="badge" title="Hat dieses Spiel begonnen">beginnt</span>}
               </span>
