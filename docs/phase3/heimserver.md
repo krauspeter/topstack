@@ -9,7 +9,7 @@ Handy ──HTTPS──▶ Cloudflare ──Tunnel──▶ cloudflared ──�
                                                           └──▶ API ──▶ PostgreSQL
 ```
 
-Die Befehle sind für Linux (z. B. Ubuntu Server) geschrieben. Auf Windows mit Docker Desktop funktionieren sie in Git Bash genauso, nur die Installation in Schritt 1 ist anders.
+Der Mini-PC (Beelink EQ14) läuft bereits mit Debian und Docker (siehe Repo `heimserver`), Entscheidung E3: Das System bleibt, wie es ist. Die Befehle sind für Debian geschrieben und funktionieren auf Ubuntu genauso.
 
 ---
 
@@ -22,7 +22,7 @@ docker --version
 docker compose version
 ```
 
-Fehlt es, auf Ubuntu:
+Auf dem Beelink sollte beides schon da sein. Fehlt es doch (Debian oder Ubuntu):
 
 ```bash
 curl -fsSL https://get.docker.com | sh
@@ -54,7 +54,7 @@ Ausfüllen:
 | `POSTGRES_PASSWORD` | langes Zufallspasswort, z. B. aus `openssl rand -base64 32` |
 | `CF_TUNNEL_TOKEN` | Token aus Schritt 4 |
 
-Ab AP-3 und AP-8 kommen weitere Werte dazu (E-Mail-Zugang, VAPID-Schlüssel). Sie werden dann in `.env.example` ergänzt.
+Ab AP-3 und AP-8 kommen weitere Werte dazu: der API-Schlüssel von Resend für die Magic-Link-Mails (Entscheidung E2) und die VAPID-Schlüssel für Push. Sie werden dann in `.env.example` ergänzt.
 
 Passwortdatei für den MQTT-Broker anlegen (wird erst in Phase 6 genutzt, muss aber existieren):
 
