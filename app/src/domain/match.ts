@@ -15,7 +15,9 @@ import { type EventSource, type GameEvent, lifeTotals } from './lifeEvents';
 export interface MatchPlayer {
   id: string;
   name: string;
-  /** Farbe der eigenen Hälfte im Life-Tracker (Schlüssel aus `PLAYER_COLORS`). */
+  /** Deckfarben als WUBRG-Zeichenkette, `''` = farblos (wie `tournament_entry.colors`). */
+  colors?: string;
+  /** Veraltet: einzelner Farbschlüssel aus älteren Spielständen. */
   color?: string;
 }
 

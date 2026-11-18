@@ -142,6 +142,8 @@ input {
 .pips { display: flex; gap: 6px; }
 .pips i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--gold); }
 .pips i.on { background: var(--gold); }
+.pips-mana { display: inline-flex; gap: 3px; }
+.pips-mana i { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 0.7rem; font-style: normal; font-weight: 700; border: 1px solid color-mix(in srgb, var(--text) 45%, transparent); }
 
 .center-bar {
   display: flex;

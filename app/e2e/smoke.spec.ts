@@ -1,12 +1,13 @@
 import { type Page, expect, test } from '@playwright/test';
 
-async function startMatch(page: Page, options: { timeLimit?: string; color?: string } = {}) {
+async function startMatch(page: Page, options: { timeLimit?: string; colors?: [string[], string[]] } = {}) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Neues Match' }).click();
   await page.getByLabel('Spieler 1', { exact: true }).fill('Anna');
   await page.getByLabel('Spieler 2', { exact: true }).fill('Ben');
-  if (options.color) {
-    await page.getByRole('radiogroup', { name: 'Farbe für Spieler 1' }).getByRole('radio', { name: options.color, exact: true }).click();
+  for (const [i, names] of (options.colors ?? []).entries()) {
+    const group = page.getByRole('group', { name: `Farben für Spieler ${i + 1}` });
+    for (const name of names) await group.getByRole('button', { name, exact: true }).click();
   }
   if (options.timeLimit) await page.getByRole('button', { name: options.timeLimit, exact: true }).click();
   await page.getByRole('button', { name: 'Weiter zum W20-Wurf' }).click();
@@ -24,9 +25,11 @@ async function startMatch(page: Page, options: { timeLimit?: string; color?: str
 }
 
 test('Lebenspunkte zählen, Rückgängig, Spielstand übersteht Neuladen', async ({ page }) => {
-  await startMatch(page, { color: 'Grün' });
-  // Farbe pro Hälfte: Anna sitzt oben und hat Grün gewählt
-  await expect(page.locator('section.half').first()).toHaveCSS('background-color', 'rgb(26, 52, 39)');
+  // Anna: Blau (voreingestellt) plus Rot = mehrfarbig, Ben: farblos
+  await startMatch(page, { colors: [['Rot'], ['Farblos']] });
+  await expect(page.locator('section.half').nth(0)).toHaveCSS('background-color', 'rgb(214, 179, 90)');
+  await expect(page.locator('section.half').nth(1)).toHaveCSS('background-color', 'rgb(75, 77, 85)');
+  await expect(page.getByRole('img', { name: 'Blau-Rot (mehrfarbig)' })).toBeVisible();
   await expect(page.getByTestId('life-p1')).toHaveText('20');
   await expect(page.getByTestId('life-p2')).toHaveText('20');
 

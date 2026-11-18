@@ -31,6 +31,7 @@ function withEvents(record: MatchRecord, device: string, fresh: NewEvent[]): Mat
 
 export interface MatchSetup {
   names: [string, string];
+  /** Deckfarben je Spieler als WUBRG-Zeichenkette, `''` = farblos. */
   colors: [string, string];
   startingLife: number;
   /** Minuten oder `null` für kein Zeitlimit. */
@@ -97,8 +98,8 @@ export function useMatch(): MatchApi {
     const config: MatchConfig = {
       id: uuidv7(),
       players: [
-        { id: 'p1', name: names[0], color: colors[0] },
-        { id: 'p2', name: names[1], color: colors[1] },
+        { id: 'p1', name: names[0], colors: colors[0] },
+        { id: 'p2', name: names[1], colors: colors[1] },
       ],
       startingLife,
       bestOf: 3,
