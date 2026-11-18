@@ -72,5 +72,5 @@ Ein abgebrochenes Turnier zählt nicht für Rangliste und Statistik. Turnierstar
 - **Letzte Änderung gewinnt, ohne Version:** einfacher, aber stille Überschreibungen bei zwei Handys sind genau der Fehler, den die Gruppe merken würde.
 
 ## Folgen
-- Migration ergänzt `match.version`, die Spalten `tournament.cancel_requested_by` und `tournament.cancel_requested_at` sowie die Tabelle `tournament_cancel_vote (tournament_id, entry_id, created_at)` mit Primärschlüssel auf beiden IDs, dazu den Status `cancelled` in `tournament_status`; der Teilindex `one_open_tournament_per_group` schließt `cancelled` aus. `docs/schema.sql` wird danach aus der Migration aktualisiert.
+- Migration ergänzt `match.version`, die Spalten `tournament.cancel_requested_by` und `tournament.cancel_requested_at` sowie die Tabelle `tournament_cancel_vote (tournament_id, player_id, created_at)` mit Primärschlüssel auf beiden IDs und Fremdschlüssel auf `tournament_entry`, sodass nur Teilnehmer bestätigen können, dazu den Status `cancelled` in `tournament_status`; der Teilindex `one_open_tournament_per_group` schließt `cancelled` aus. `docs/schema.sql` wird danach aus der Migration aktualisiert.
 - Der Status `drafting` ist optional nutzbar: Wer ohne Draft-Timer spielt, kann direkt von `seated` auf Runde 1 gehen; der Server setzt dann `drafting` implizit.
