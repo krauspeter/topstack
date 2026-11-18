@@ -5,6 +5,8 @@ WORKDIR /srv
 COPY pyproject.toml ./
 COPY topstack ./topstack
 RUN pip install --no-cache-dir .
+COPY alembic.ini ./
+COPY migrations ./migrations
 
 RUN useradd --system --uid 10001 topstack
 USER topstack

@@ -97,11 +97,11 @@ flowchart LR
 
 ### AP-1 · Datenbank und Migrationen (ca. 6 h) · Branch `feat/p3-db`
 
-- SQLAlchemy-2-Modelle für alle Tabellen aus `docs/schema.sql` (async, `asyncpg`).
-- Erste Alembic-Migration, die das Schema 1:1 erzeugt. Danach ist die Migration die Wahrheit, `schema.sql` wird aus ihr abgeleitet.
-- Datenbanksitzung pro Anfrage, Konfiguration über `TOPSTACK_DATABASE_URL`.
-- Test-Fixtures mit echtem PostgreSQL in der CI (ADR-0014).
-- Skript `server/scripts/seed_group.py`: legt die eigene Gruppe mit Regeln, Saison 2027 und dich als Admin an.
+- [x] SQLAlchemy-2-Modelle für alle 25 Tabellen (async, `asyncpg`): `server/topstack/db/models.py`
+- [x] Erste Alembic-Migration `0001`, die das Schema 1:1 erzeugt, inklusive der Ergänzungen aus ADR-0013 (`cancelled`, `match.version`, Abbruch per Abstimmung). Danach ist die Migration die Wahrheit; `schema.sql` bleibt als lesbare Referenz und wird in der CI gegen die migrierte Datenbank verglichen.
+- [x] Datenbanksitzung pro Anfrage (`topstack/db/session.py`), Konfiguration über `TOPSTACK_DATABASE_URL`
+- [x] Repositories für Konten und Gruppen (`topstack/db/repo/`), Test-Fixtures mit echtem PostgreSQL in der CI (ADR-0014)
+- [x] Skript `python -m topstack.scripts.seed_group`: legt die eigene Gruppe mit Regeln, Saison 2027 und dich als Admin an. Liegt im Paket statt unter `server/scripts/`, damit es auch im Docker-Image läuft.
 
 **Fertig, wenn:** `alembic upgrade head` auf leerer Datenbank läuft, die Migration in der CI gegen `schema.sql` verglichen wird und die Repository-Tests grün sind.
 
