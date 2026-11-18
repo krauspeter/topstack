@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Legt Labels, Meilensteine und Issues aus scripts/backlog.tsv im aktuellen GitHub-Repo an.
 # Voraussetzung: gh CLI, angemeldet (gh auth login), im Repo-Ordner ausführen.
-# Mehrfaches Ausführen legt Issues doppelt an – daher nur einmal starten.
+# Mehrfaches Ausführen legt Issues doppelt an – daher pro Meilenstein nur einmal starten.
+#
+#   scripts/create-backlog-issues.sh                      # alle Meilensteine
+#   scripts/create-backlog-issues.sh "Phase 3" "Phase 4"  # nur diese Meilensteine
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -24,7 +27,16 @@ for m in "${!due[@]}"; do
   fi
 done
 
+only=("$@")
+wanted() {
+  [ ${#only[@]} -eq 0 ] && return 0
+  local m
+  for m in "${only[@]}"; do [ "$m" = "$1" ] && return 0; done
+  return 1
+}
+
 tail -n +2 backlog.tsv | while IFS=$'\t' read -r milestone labels title body; do
+  wanted "$milestone" || continue
   gh issue create --title "$title" --body "$body" --label "$labels" --milestone "$milestone" >/dev/null
   echo "Issue: $title"
 done
