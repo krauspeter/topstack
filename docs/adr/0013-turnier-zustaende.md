@@ -50,7 +50,7 @@ Ein abgebrochenes Turnier zählt nicht für Rangliste und Statistik.
 - Ist die Mehrheit erreicht, setzt der Server das Turnier sofort auf `cancelled`. Bestätigungen lassen sich bis dahin zurücknehmen.
 - Pro Turnier ist höchstens ein Antrag offen. Er endet, wenn die Mehrheit erreicht ist, wenn der Antragsteller ihn zurückzieht oder wenn das Turnier `finished` erreicht.
 - Solange der Antrag offen ist, läuft das Turnier normal weiter; die Live-Ansicht zeigt „Abbruch beantragt: x von y“.
-- Der direkte Abbruch durch den Gruppen-Admin bleibt zusätzlich möglich.
+- Der Gruppen-Admin darf immer direkt abbrechen, in jedem Status vor `finished` und ohne Abstimmung.
 
 **Abschluss**
 - Sind alle Matches des Spielplans beendet, setzt der Server das Turnier auf `finished`, berechnet die Tabelle und schreibt `final_place` und `ranking_points` in `tournament_entry` fest.
