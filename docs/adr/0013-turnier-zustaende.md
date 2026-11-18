@@ -1,6 +1,6 @@
 # ADR-0013: Zustände eines Turniers und Berechtigungen
 
-- Status: vorgeschlagen
+- Status: angenommen (18.11.2026)
 - Datum: 2026-11-18
 
 ## Kontext

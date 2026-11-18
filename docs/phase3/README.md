@@ -1,6 +1,6 @@
 # Phase 3 – Backend, Turniere & Rangliste
 
-Stand: 18.11.2026 · Status: **geplant**, Start nach Abschluss von Phase 2 (18.11.2026)
+Stand: 18.11.2026 · Status: **in Arbeit**, gestartet am 18.11.2026 · Entscheidungen E1 bis E5 getroffen (Abschnitt 6)
 
 Phase 3 macht aus dem Offline-Life-Tracker eine Turnier-App: Der Heimserver speichert Turniere, Ergebnisse und Ereignisse, alle Eingeladenen sehen den Verlauf live, und am Ende steht eine dauerhafte Rangliste.
 
@@ -87,10 +87,11 @@ flowchart LR
 
 ### AP-0 · Voraussetzungen (ca. 3 h)
 
-- Domain festlegen und registrieren. In `infra/.env.example` steht lokal bereits `https://topstack.win`.
-- Cloudflare Tunnel für den Heimserver anlegen. Der Dienst `cloudflared` ist in `infra/docker-compose.yml` lokal schon ergänzt.
-- E-Mail-Versand für Magic-Links festlegen (siehe Entscheidung E2).
-- ADR-0012 bis ADR-0014 prüfen und auf „angenommen“ setzen.
+- [x] Domain `topstack.win` registriert (bei Cloudflare, 17.11.2026)
+- [ ] Cloudflare Tunnel für den Heimserver anlegen. Der Dienst `cloudflared` ist in `infra/docker-compose.yml` lokal schon ergänzt.
+- [ ] Resend-Konto anlegen, Domain `topstack.win` dort hinzufügen und die angezeigten DNS-Einträge (SPF, DKIM) bei Cloudflare eintragen; API-Schlüssel nur in die `.env` auf dem Server
+- [x] E-Mail-Versand für Magic-Links festgelegt: Resend (E2)
+- [x] ADR-0012 bis ADR-0014 angenommen (18.11.2026)
 
 **Fertig, wenn:** Domain zeigt per Tunnel auf den Heimserver, die Entscheidungen E1 bis E3 sind getroffen.
 
@@ -221,13 +222,15 @@ Falls es eng wird, lässt sich AP-8 (Push) nach Phase 4 schieben, ohne dass G3 g
 
 ## 6. Offene Entscheidungen
 
-| Nr. | Frage | Vorschlag | Bis |
-| --- | --- | --- | --- |
-| E1 | Domain | `topstack.win`, steht so schon in deiner lokalen `infra/.env.example`. Bestätigen und registrieren. | AP-0 |
-| E2 | E-Mail-Versand für Magic-Links | Transaktions-Mailanbieter mit kostenlosem Kontingent (z. B. Resend oder Brevo) über SMTP; Absender `login@topstack.win` | AP-0 |
-| E3 | Betriebssystem des Heimservers | Bestehendes System des Mini-PCs weiterverwenden, solange Docker läuft | AP-0 |
-| E4 | Werden lokale Matches aus Phase 2 nachträglich hochgeladen? | Nein, sie bleiben lokal; nur Turnier-Matches gehen an den Server (ADR-0012) | AP-6 |
-| E5 | Wer darf ein Turnier abbrechen? | Turnierstarter und Gruppen-Admin (ADR-0013) | AP-4 |
+Alle Entscheidungen wurden am 18.11.2026 getroffen.
+
+| Nr. | Frage | Entscheidung |
+| --- | --- | --- |
+| E1 | Domain | `topstack.win`, bei Cloudflare registriert (17.11.2026) |
+| E2 | E-Mail-Versand für Magic-Links | Resend (kostenlos bis 3.000 Mails im Monat), Absender `login@topstack.win`, Domain per SPF und DKIM bei Cloudflare bestätigt; Anbindung in AP-3 |
+| E3 | Betriebssystem des Heimservers | Bestehendes Debian mit Docker auf dem Beelink EQ14 (wie im Repo `heimserver`) bleibt, keine Neuinstallation |
+| E4 | Werden lokale Matches aus Phase 2 nachträglich hochgeladen? | Nein, sie bleiben lokal; nur Turnier-Matches gehen an den Server (ADR-0012) |
+| E5 | Wer darf ein Turnier abbrechen? | Turnierstarter und Gruppen-Admin: vor Runde 1 beide, danach nur der Admin (ADR-0013) |
 
 ---
 

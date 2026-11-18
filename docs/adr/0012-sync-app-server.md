@@ -1,6 +1,6 @@
 # ADR-0012: Synchronisation zwischen App und Server
 
-- Status: vorgeschlagen
+- Status: angenommen (18.11.2026)
 - Datum: 2026-11-18
 
 ## Kontext
