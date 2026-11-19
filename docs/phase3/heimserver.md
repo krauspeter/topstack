@@ -9,7 +9,7 @@ Handy ──HTTPS──▶ Cloudflare ──Tunnel──▶ cloudflared ──�
                                                           └──▶ API ──▶ PostgreSQL
 ```
 
-Der Mini-PC (Beelink EQ14) läuft bereits mit Debian und Docker (siehe Repo `heimserver`), Entscheidung E3: Das System bleibt, wie es ist. Die Befehle sind für Debian geschrieben und funktionieren auf Ubuntu genauso.
+Der Mini-PC (Beelink EQ14, Hostname `heimserver`) läuft mit Debian 13. Entscheidung E3: Das System bleibt, wie es ist; Docker wurde am 19.11.2026 nachinstalliert. Alle Befehle laufen **auf dem Heimserver** (Prompt `peter@heimserver`), außer es steht ausdrücklich „auf dem PC“ dabei.
 
 ---
 
@@ -22,11 +22,19 @@ docker --version
 docker compose version
 ```
 
-Auf dem Beelink sollte beides schon da sein. Fehlt es doch (Debian oder Ubuntu):
+Fehlt Docker, über die offizielle Paketquelle installieren (so am 19.11.2026 auf Debian 13 gemacht):
 
 ```bash
-curl -fsSL https://get.docker.com | sh
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl git
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 sudo usermod -aG docker $USER   # danach einmal ab- und wieder anmelden
+docker run --rm hello-world     # Test
 ```
 
 ## 2. Repo auf den Heimserver holen
@@ -43,15 +51,19 @@ Die Datei `.env` liegt nur auf dem Server, nie im Repo (ADR-0009).
 
 ```bash
 cp .env.example .env
-nano .env
+chmod 600 .env
+sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 32)/" .env
+nano .env        # nur noch CF_TUNNEL_TOKEN eintragen
 ```
+
+Das Datenbank-Passwort wird so erzeugt, ohne je auf dem Bildschirm zu erscheinen. PostgreSQL übernimmt es nur beim allerersten Start; später ändern ist aufwendiger. Prüfen ohne Geheimnisse anzuzeigen: `grep -c eyJ .env` muss `1` ergeben.
 
 Ausfüllen:
 
 | Variable | Wert |
 | --- | --- |
 | `TOPSTACK_PUBLIC_ORIGIN` | `https://topstack.win` |
-| `POSTGRES_PASSWORD` | langes Zufallspasswort, z. B. aus `openssl rand -base64 32` |
+| `POSTGRES_PASSWORD` | wird oben per `sed` gesetzt |
 | `CF_TUNNEL_TOKEN` | Token aus Schritt 4 |
 
 Ab AP-3 und AP-8 kommen weitere Werte dazu: der API-Schlüssel von Resend für die Magic-Link-Mails (Entscheidung E2) und die VAPID-Schlüssel für Push. Sie werden dann in `.env.example` ergänzt.
@@ -60,19 +72,20 @@ Passwortdatei für den MQTT-Broker anlegen (wird erst in Phase 6 genutzt, muss a
 
 ```bash
 docker run --rm -v "$PWD":/work eclipse-mosquitto:2 \
-  mosquitto_passwd -c -b /work/mosquitto.passwd topstack "$(openssl rand -base64 24)"
+  mosquitto_passwd -c -b /work/mosquitto.passwd topstack "$(openssl rand -hex 24)"
+sudo chown 1883:1883 mosquitto.passwd   # Mosquitto läuft im Container als Benutzer 1883
+sudo chmod 600 mosquitto.passwd
 ```
 
 ## 4. Cloudflare Tunnel
 
-Voraussetzung: Die Domain `topstack.win` ist bei Cloudflare eingetragen, und `infra/docker-compose.yml` enthält den Dienst `cloudflared` (in deiner lokalen Kopie schon ergänzt, kommt mit AP-2 ins Repo).
+Voraussetzung: Die Domain `topstack.win` ist bei Cloudflare eingetragen. Der Dienst `cloudflared` steht seit PR #55 in `infra/docker-compose.yml`. Diese Schritte laufen **auf dem PC im Browser**.
 
-1. Im Cloudflare-Dashboard zu **Zero Trust → Networks → Tunnels** gehen und **Create a tunnel** wählen (Typ *Cloudflared*). Falls der Tunnel `heimserver` schon existiert, diesen öffnen.
-2. Als Umgebung **Docker** wählen und aus dem angezeigten Befehl nur den Teil nach `--token` kopieren. Das ist `CF_TUNNEL_TOKEN` in der `.env`.
-3. Unter **Public Hostname** eintragen:
-   - Subdomain: leer, Domain: `topstack.win`
-   - Service: `HTTP`, URL: `caddy:80`
-4. Speichern. Die Bezeichnungen im Dashboard können sich ändern; gemeint ist immer: Hostname `topstack.win` zeigt auf `http://caddy:80`.
+1. Im Cloudflare-Dashboard zu **Networking → Tunnels** gehen, **Create a tunnel**, Name `topstack`. Ein eigener Tunnel nur für TopStack, damit kein anderer Connector Anfragen an `caddy` bekommt, das er nicht kennt.
+2. Als Umgebung **Docker** wählen und aus dem angezeigten Befehl nur den Teil nach `--token` kopieren. Das ist `CF_TUNNEL_TOKEN` in der `.env`. Den Befehl nicht ausführen.
+3. **Continue** bleibt grau, bis sich ein Connector meldet. Das ist normal: Seite über **Networking → Tunnels** verlassen, der Tunnel steht dort als „Inactive“.
+4. Tunnel öffnen → **Routes** → **Add route** → **Published application**: Subdomain leer, Domain `topstack.win`, Service URL `http://caddy:80`.
+5. Unter **DNS → Records** prüfen: Der CNAME `topstack.win` muss auf `<Tunnel-ID>.cfargotunnel.com` des Tunnels `topstack` zeigen (ID unter **Overview → Tunnel details**). Ein alter Eintrag eines früheren Tunnels führt zu Fehler 1033.
 
 ## 5. Starten
 
@@ -119,7 +132,10 @@ Die API spielt fehlende Datenbank-Migrationen beim Start selbst ein (ADR-0014). 
 | Problem | Ursache | Lösung |
 | --- | --- | --- |
 | `POSTGRES_PASSWORD fehlt in .env` | `.env` fehlt oder wird nicht gelesen | Befehle mit `--env-file .env` im Ordner `infra` ausführen |
-| Cloudflare zeigt Fehler 1033 oder 502 | Tunnel läuft nicht oder zeigt auf falschen Dienst | `docker compose logs cloudflared`; Public Hostname muss `http://caddy:80` sein |
+| Cloudflare zeigt Fehler 1033, obwohl `cloudflared` „Registered tunnel connection“ meldet | DNS-CNAME zeigt auf einen alten Tunnel (so am 19.11.2026) | **DNS → Records**: CNAME `topstack.win` auf `<ID von topstack>.cfargotunnel.com` ändern; Route `topstack.win` im alten Tunnel löschen |
+| Cloudflare zeigt Fehler 1033, Logs ohne „Registered“ | Tunnel nicht verbunden | `docker compose logs cloudflared`; bei QUIC-Problemen `--protocol http2` vor `run` im `command` ergänzen; bei „Unauthorized“ Token neu eintragen |
+| Cloudflare zeigt Fehler 502 | Route zeigt auf falschen Dienst | Service URL der Route muss `http://caddy:80` sein |
+| `mqtt` steht auf `Restarting (13)` | Mosquitto (Benutzer 1883) darf `mosquitto.passwd` nicht lesen | `sudo chown 1883:1883 mosquitto.passwd`, dann `docker compose restart mqtt` |
 | Seite lädt, aber leer | App-Dateien fehlen im Volume `app-dist` | wird in AP-2 gelöst (App-Build in Caddy) |
 | `api` startet neu und neu | Datenbank nicht erreichbar oder Migration schlägt fehl | `docker compose logs api` |
 | `mosquitto.passwd` ist ein Ordner | Datei fehlte beim ersten Start, Docker hat einen Ordner angelegt | Ordner löschen, Schritt 3 wiederholen |

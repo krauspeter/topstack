@@ -88,12 +88,13 @@ flowchart LR
 ### AP-0 · Voraussetzungen (ca. 3 h)
 
 - [x] Domain `topstack.win` registriert (bei Cloudflare, 17.11.2026)
-- [ ] Cloudflare Tunnel für den Heimserver anlegen. Der Dienst `cloudflared` ist in `infra/docker-compose.yml` lokal schon ergänzt.
-- [ ] Resend-Konto anlegen, Domain `topstack.win` dort hinzufügen und die angezeigten DNS-Einträge (SPF, DKIM) bei Cloudflare eintragen; API-Schlüssel nur in die `.env` auf dem Server
+- [x] Cloudflare Tunnel `topstack` angelegt, Route `topstack.win` → `http://caddy:80`, `cloudflared` in `infra/docker-compose.yml` (PR #55, 19.11.2026)
+- [x] Resend: Domain `topstack.win` verifiziert (Region eu-west-1, DNS per Auto configure, DMARC `p=none`), API-Schlüssel mit „Sending access“ im Passwort-Manager; kommt in AP-3 in die `.env`
+- [x] Heimserver: Docker auf Debian 13 installiert, Stack läuft, `https://topstack.win/api/v1/health` antwortet von außen (19.11.2026)
 - [x] E-Mail-Versand für Magic-Links festgelegt: Resend (E2)
 - [x] ADR-0012 bis ADR-0014 angenommen (18.11.2026)
 
-**Fertig, wenn:** Domain zeigt per Tunnel auf den Heimserver, die Entscheidungen E1 bis E3 sind getroffen.
+**Fertig, wenn:** Domain zeigt per Tunnel auf den Heimserver, die Entscheidungen E1 bis E3 sind getroffen. **Erledigt am 19.11.2026.**
 
 ### AP-1 · Datenbank und Migrationen (ca. 6 h) · Branch `feat/p3-db`
 
