@@ -1,9 +1,14 @@
+import type { Account } from '../store/useAccount';
+
 interface Props {
+  account: Account;
   onNewMatch(): void;
   onSeating(): void;
+  onLogin(): void;
+  onProfile(): void;
 }
 
-export function Home({ onNewMatch, onSeating }: Props) {
+export function Home({ account, onNewMatch, onSeating, onLogin, onProfile }: Props) {
   return (
     <main className="page home">
       <header className="brand">
@@ -25,7 +30,19 @@ export function Home({ onNewMatch, onSeating }: Props) {
         </button>
       </nav>
 
-      <footer className="muted small">Läuft auch ohne Internet · Spielstand bleibt auf diesem Gerät gespeichert</footer>
+      <footer className="stack">
+        {account.status === 'signed-in' && (
+          <button className="btn ghost account" onClick={onProfile}>
+            Angemeldet als <strong>{account.me.display_name}</strong> · Profil
+          </button>
+        )}
+        {account.status === 'anonymous' && (
+          <button className="btn ghost account" onClick={onLogin}>
+            Anmelden
+          </button>
+        )}
+        <p className="muted small">Läuft auch ohne Internet · Spielstand bleibt auf diesem Gerät gespeichert</p>
+      </footer>
     </main>
   );
 }
