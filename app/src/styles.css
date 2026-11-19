@@ -208,3 +208,13 @@ input {
 @media (prefers-reduced-motion: reduce) {
   .die.spinning svg { animation: none; }
 }
+
+/* ---------- Konto (Phase 3, AP-3) ---------- */
+.ok { color: var(--up); }
+.account { min-height: 44px; font-weight: 500; color: var(--muted); }
+.account strong { color: var(--text); }
+h3 { font-size: 1.05rem; }
+.group-list { list-style: none; padding: 0; display: grid; gap: 12px; }
+.group-list li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 10px; }
+.group-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.card p { line-height: 1.5; }

@@ -122,11 +122,12 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 
 ### AP-3 · Anmeldung und Einladung (ca. 8 h) · Branch `feat/p3-auth` · UC-02
 
-- Magic-Link: Token erzeugen, nur Hash speichern, 15 Minuten gültig, einmal nutzbar.
-- Passkey: Registrierung und Anmeldung mit der Bibliothek `webauthn`, Relying Party = Domain.
-- Sitzung als Cookie (HttpOnly, Secure, SameSite=Lax), 1 Jahr mit gleitender Verlängerung (ADR-0008).
-- Einladungslink in die Gruppe erzeugen und annehmen.
-- App: Anmeldeseite, „Passkey anlegen“ nach dem ersten Magic-Link, Profil mit Anzeigename und Lieblingsfarben.
+- [x] Magic-Link: Token erzeugen, nur Hash speichern, 15 Minuten gültig, einmal nutzbar. Eingelöst per `POST /auth/magic-link/verify` aus der App, nicht per `GET` (Link-Prüfer in Mailprogrammen). Versand über Resend. (PR #58)
+- [x] Passkey: Registrierung und Anmeldung mit der Bibliothek `webauthn`, Relying Party = Domain; Challenges serverseitig (Migration 0002). (PR #58)
+- [x] Sitzung als Cookie (HttpOnly, Secure, SameSite=Lax), 1 Jahr mit gleitender Verlängerung (ADR-0008). (PR #58)
+- [x] Einladungslink in die Gruppe erzeugen und annehmen. (PR #58)
+- [x] App: Anmeldeseite (`/anmelden`), Link einlösen mit Angebot „Passkey anlegen“, Einladungsseite (`/einladung/<token>`), Profil (`/profil`) mit Anzeigename, Lieblingsfarben, Passkey, Einladungslink für Admins und Abmelden.
+- [ ] Auf dem Heimserver `RESEND_API_KEY` in `infra/.env` eintragen, aktualisieren, mit einem Freund durchspielen.
 
 **Fertig, wenn:** Ein Freund kann über einen Einladungslink Mitglied werden und bleibt angemeldet; ohne Anmeldung liefert jede geschützte Route `401`.
 
