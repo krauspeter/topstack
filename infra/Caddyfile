@@ -10,8 +10,13 @@
 	}
 	handle {
 		root * /srv/app
+		# Dateien mit Hash im Namen dürfen ewig im Cache bleiben,
+		# alles andere (index.html, sw.js, Manifest) wird immer neu geprüft.
+		@hashed path /assets/*
+		@other not path /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		header @other Cache-Control "no-cache"
 		try_files {path} /index.html
-		header /sw.js Cache-Control "no-cache"
 		file_server
 	}
 

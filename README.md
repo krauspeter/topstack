@@ -51,11 +51,13 @@ Beim Commit laufen Ruff-Checks, beim Push Tests, Typecheck und Build der geände
 
 ## Auf dem Heimserver starten
 
+Ausführliche Anleitung: [docs/phase3/heimserver.md](docs/phase3/heimserver.md). Kurzfassung auf dem Heimserver:
+
 ```bash
 cd infra
-cp .env.example .env                     # ausfüllen
-docker run --rm -v "$PWD:/w" eclipse-mosquitto:2 mosquitto_passwd -c -b /w/mosquitto.passwd topstack-api <passwort>
-docker compose up -d
+cp .env.example .env                     # ausfüllen (Datenbank-Passwort, Tunnel-Token)
+docker compose --env-file .env pull      # Images topstack-web und topstack-api aus ghcr.io
+docker compose --env-file .env up -d     # die API spielt Migrationen beim Start ein
 ```
 
 ## Lizenz

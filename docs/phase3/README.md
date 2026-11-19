@@ -61,7 +61,7 @@ Das Datenmodell ist trotzdem von Anfang an mehrgruppenfähig (ADR-0010). Phase 3
 **Lücken, die Phase 3 schließen muss**
 
 1. Es gibt noch keine Datenbankanbindung, keine Modelle und keine Migration.
-2. Die App wird noch nicht auf den Heimserver ausgeliefert: Das Volume `app-dist` in `infra/docker-compose.yml` bleibt leer.
+2. Die App wird noch nicht auf den Heimserver ausgeliefert: Das Volume `app-dist` in `infra/docker-compose.yml` bleibt leer. (Gelöst in AP-2: Image `topstack-web`.)
 3. Die App kennt nur lokale Spieler-IDs (`p1`, `p2`). Für Turniere braucht sie die Spieler-UUIDs vom Server.
 4. Ein Spielende speichert die App ohne Grund. Der Server unterscheidet `life_zero`, `concede`, `time` und `manual` (`game.end_reason`).
 
@@ -110,10 +110,13 @@ flowchart LR
 
 Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testbar ist.
 
-- App-Build als eigenes Image oder als Build-Schritt, der `app-dist` befüllt.
-- API wendet beim Start `alembic upgrade head` an.
-- Caddy liefert die App aus und leitet `/api` und `/ws` weiter (vorhanden).
-- Anleitung [heimserver.md](heimserver.md) einmal komplett durchspielen.
+- [x] App-Build als eigenes Image `topstack-web`: `app/Dockerfile` baut die App mit Node 22 und legt sie in ein Caddy-Image. Das Volume `app-dist` entfällt; jede neue App-Version kommt mit `docker compose pull`.
+- [x] API spielt beim Start `alembic upgrade head` ein (`server/docker-entrypoint.sh`); schlägt die Migration fehl, startet die API nicht.
+- [x] Caddy liefert die App aus und leitet `/api` und `/ws` weiter; `/assets/*` lange cachen, alles andere (`index.html`, `sw.js`) immer neu prüfen.
+- [x] Port 80 nur noch auf `127.0.0.1` gebunden, von außen geht alles über den Tunnel.
+- [x] CI: Job `smoke` startet den Stack ohne Tunnel und prüft App, API und Migration; Job `images` baut `topstack-api` und `topstack-web` in jedem PR und pusht sie auf `main` nach ghcr.io.
+- [x] Anleitung [heimserver.md](heimserver.md) am 19.11.2026 komplett durchgespielt (AP-0).
+- [ ] Auf dem Heimserver aktualisieren, Gruppe mit `seed_group` anlegen, App auf Android installieren.
 
 **Fertig, wenn:** `https://topstack.win` zeigt die App, `https://topstack.win/api/v1/health` antwortet, die App ist auf einem Android-Handy installierbar.
 

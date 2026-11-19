@@ -96,12 +96,21 @@ docker compose --env-file .env up -d
 docker compose ps
 ```
 
-Alle Dienste sollten `running` bzw. `healthy` zeigen. Logs ansehen:
+`pull` holt zwei eigene Images aus ghcr.io: `topstack-web` (Caddy mit der fertigen App) und `topstack-api`. Beim ersten Start legt die API über `alembic upgrade head` alle Tabellen an. Alle Dienste sollten `running` bzw. `healthy` zeigen. Logs ansehen:
 
 ```bash
 docker compose logs -f api
 docker compose logs -f cloudflared
 ```
+
+### Eigene Gruppe anlegen (einmalig)
+
+```bash
+docker compose --env-file .env exec api python -m topstack.scripts.seed_group \
+  --group "Draft-Runde" --admin-email du@example.org --admin-name Peter
+```
+
+Legt die Gruppe mit Standardregeln, dich als Admin und die Saison 2027 an. Ein zweiter Aufruf ändert nichts.
 
 ## 6. Prüfen
 
@@ -136,7 +145,9 @@ Die API spielt fehlende Datenbank-Migrationen beim Start selbst ein (ADR-0014). 
 | Cloudflare zeigt Fehler 1033, Logs ohne „Registered“ | Tunnel nicht verbunden | `docker compose logs cloudflared`; bei QUIC-Problemen `--protocol http2` vor `run` im `command` ergänzen; bei „Unauthorized“ Token neu eintragen |
 | Cloudflare zeigt Fehler 502 | Route zeigt auf falschen Dienst | Service URL der Route muss `http://caddy:80` sein |
 | `mqtt` steht auf `Restarting (13)` | Mosquitto (Benutzer 1883) darf `mosquitto.passwd` nicht lesen | `sudo chown 1883:1883 mosquitto.passwd`, dann `docker compose restart mqtt` |
-| Seite lädt, aber leer | App-Dateien fehlen im Volume `app-dist` | wird in AP-2 gelöst (App-Build in Caddy) |
+| `pull` meldet „denied“ für `topstack-web` oder `topstack-api` | Das Paket auf GitHub ist privat | GitHub → Profil → **Packages** → Paket → **Package settings** → **Change visibility** → **Public** |
+| App zeigt nach einem Update noch die alte Version | Service Worker hat die alte App zwischengespeichert | App schließen und neu öffnen; die neue Version lädt beim zweiten Start |
+| `api` startet neu und neu, Log zeigt `alembic` | Migration schlägt fehl | `docker compose logs api`; die API startet bewusst erst nach erfolgreicher Migration |
 | `api` startet neu und neu | Datenbank nicht erreichbar oder Migration schlägt fehl | `docker compose logs api` |
 | `mosquitto.passwd` ist ein Ordner | Datei fehlte beim ersten Start, Docker hat einen Ordner angelegt | Ordner löschen, Schritt 3 wiederholen |
 
