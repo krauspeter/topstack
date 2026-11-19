@@ -3,12 +3,13 @@ name: topstack
 
 services:
   caddy:
-    image: caddy:2
+    # Caddy mit eingebautem App-Build (app/Dockerfile), Caddyfile von hier
+    image: ghcr.io/${GITHUB_OWNER:-krauspeter}/topstack-web:${TOPSTACK_VERSION:-latest}
+    build: ../app
     restart: unless-stopped
-    ports: ["80:80"]          # Cloudflare Tunnel endet hier; kein Port am Router offen
+    ports: ["127.0.0.1:80:80"]  # nur lokal; von außen nur über den Cloudflare Tunnel
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - app-dist:/srv/app:ro
       - caddy-data:/data
     depends_on: [api]
 
@@ -58,7 +59,6 @@ services:
   # Ab Phase 4: Backup (pg_dump), Uptime Kuma
 
 volumes:
-  app-dist:
   caddy-data:
   db-data:
   mqtt-data:
