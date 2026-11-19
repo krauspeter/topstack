@@ -14,12 +14,12 @@ async def test_all_model_tables_exist(session: AsyncSession):
     )
     tables = {r[0] for r in rows} - {"alembic_version"}
     assert tables == set(Base.metadata.tables)
-    assert len(tables) == 25
+    assert len(tables) == 26
 
 
 async def test_head_revision(session: AsyncSession):
     version = await session.scalar(text("SELECT version_num FROM alembic_version"))
-    assert version == "0001"
+    assert version == "0002"
 
 
 def test_models_match_migrations(migrated_url: str):

@@ -155,7 +155,7 @@ jobs:
           curl -fsSI http://localhost/sw.js | grep -qi 'cache-control: no-cache'
           curl -fsS http://localhost/manifest.webmanifest | grep -q 'TopStack'
       - name: Migrationen beim Start eingespielt
-        run: docker compose --env-file .env exec -T api alembic current | grep -q '0001 (head)'
+        run: docker compose --env-file .env exec -T api alembic current | grep -q '(head)'
       - name: Logs bei Fehler
         if: failure()
         run: docker compose --env-file .env logs --no-color

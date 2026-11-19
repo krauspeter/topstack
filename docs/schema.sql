@@ -57,6 +57,15 @@ CREATE TABLE session (
     user_agent     text
 );
 
+-- Challenges für Passkeys (WebAuthn), 5 Minuten gültig, einmal nutzbar (AP-3, Migration 0002)
+CREATE TABLE webauthn_challenge (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    purpose      text NOT NULL CHECK (purpose IN ('register', 'login')),
+    challenge    bytea NOT NULL,
+    app_user_id  uuid REFERENCES app_user(id) ON DELETE CASCADE,   -- nur bei 'register'
+    expires_at   timestamptz NOT NULL
+);
+
 -- ---------------------------------------------------------------------------
 -- Gruppen, Regeln, Saisons
 -- ---------------------------------------------------------------------------

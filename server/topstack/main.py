@@ -1,7 +1,7 @@
 from fastapi import APIRouter, FastAPI
 
 from topstack import __version__
-from topstack.api import auth, invitations, me, problems
+from topstack.api import auth, invitations, me, passkeys, problems
 from topstack.config import settings
 
 app = FastAPI(
@@ -22,6 +22,7 @@ async def health() -> dict[str, str]:
 
 
 api.include_router(auth.router)
+api.include_router(passkeys.router)
 api.include_router(me.router)
 api.include_router(invitations.router)
 app.include_router(api)

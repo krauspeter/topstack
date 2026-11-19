@@ -18,7 +18,7 @@ Alle Zeiten in ISO 8601 UTC. Alle IDs sind UUIDs. Fehler als [RFC 9457 Problem D
 | GET | `/me` | Eigenes Profil, Gruppen, Rollen |
 | PATCH | `/me` | Anzeigename, Avatar, Lieblingsfarben |
 
-Geändert in AP-3 (19.11.2026): Der Link in der Mail zeigt auf die App (`/anmelden?token=…&einladung=…`), die ihn per `POST /auth/magic-link/verify` einlöst. Ein `GET` würden Link-Prüfer in Mailprogrammen schon vor dem Klick aufrufen und den einmaligen Link verbrauchen. Neue Konten entstehen nur mit gültiger Einladung; unbekannte Adressen ohne Einladung bekommen keine Mail, die Antwort ist trotzdem `202`. Höchstens 5 Links pro Adresse in 15 Minuten.
+Geändert in AP-3 (19.11.2026): Der Link in der Mail zeigt auf die App (`/anmelden?token=…&einladung=…`), die ihn per `POST /auth/magic-link/verify` einlöst. Ein `GET` würden Link-Prüfer in Mailprogrammen schon vor dem Klick aufrufen und den einmaligen Link verbrauchen. Neue Konten entstehen nur mit gültiger Einladung; unbekannte Adressen ohne Einladung bekommen keine Mail, die Antwort ist trotzdem `202`. Höchstens 5 Links pro Adresse in 15 Minuten. Passkeys: Die `…/options`-Aufrufe liefern die WebAuthn-Optionen als JSON und setzen ein kurzlebiges Cookie mit der ID der Challenge (Tabelle `webauthn_challenge`, 5 Minuten, einmal nutzbar); `…/verify` erwartet die Antwort von `navigator.credentials.create` bzw. `.get` als JSON. Relying Party ist der Hostname von `TOPSTACK_PUBLIC_ORIGIN`.
 
 ### Gruppen und Spieler
 
