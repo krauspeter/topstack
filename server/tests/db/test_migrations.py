@@ -4,7 +4,7 @@ from alembic import command
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests.db.conftest import alembic_config
+from tests.conftest import alembic_config
 from topstack.db.base import Base
 
 
