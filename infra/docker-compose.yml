@@ -47,7 +47,15 @@ services:
       - ./mosquitto.passwd:/mosquitto/config/passwd:ro
       - mqtt-data:/mosquitto/data
 
-  # Ab Phase 4: cloudflared, Backup (pg_dump), Uptime Kuma
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CF_TUNNEL_TOKEN:?CF_TUNNEL_TOKEN fehlt in .env}
+    depends_on: [caddy]
+
+  # Ab Phase 4: Backup (pg_dump), Uptime Kuma
 
 volumes:
   app-dist:
