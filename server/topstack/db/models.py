@@ -158,6 +158,23 @@ class UserSession(Base):
     user_agent: Mapped[str | None] = mapped_column(Text)
 
 
+class WebauthnChallenge(Base):
+    """Challenge für Passkey-Registrierung oder -Anmeldung, 5 Minuten gültig, einmal nutzbar."""
+
+    __tablename__ = "webauthn_challenge"
+    __table_args__ = (
+        CheckConstraint(
+            "purpose IN ('register', 'login')", name="webauthn_challenge_purpose_check"
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    purpose: Mapped[str] = mapped_column(Text, nullable=False)
+    challenge: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    app_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, fk("app_user.id", "CASCADE"))
+    expires_at: Mapped[datetime] = mapped_column(TZ, nullable=False)
+
+
 # ---------------------------------------------------------------------------
 # Gruppen, Regeln, Saisons
 # ---------------------------------------------------------------------------

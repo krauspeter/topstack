@@ -22,6 +22,7 @@ services:
       TOPSTACK_DATABASE_URL: postgresql+asyncpg://topstack:${POSTGRES_PASSWORD}@db:5432/topstack
       TOPSTACK_MQTT_HOST: mqtt
       TOPSTACK_PUBLIC_ORIGIN: ${TOPSTACK_PUBLIC_ORIGIN}
+      TOPSTACK_RESEND_API_KEY: ${RESEND_API_KEY:-}
     depends_on:
       db: { condition: service_healthy }
       mqtt: { condition: service_started }
