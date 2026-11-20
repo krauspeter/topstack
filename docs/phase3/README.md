@@ -40,6 +40,7 @@ Weitere Unterlagen zu dieser Phase:
 
 - Backups, Monitoring, automatisches Deployment, Changelog → **Phase 4**
 - **Test auf dem iPhone** → letzter Schritt vor v1.0 (Phase 4), Entscheidung vom 18.11.2026
+- **Freunde mit eigenem Konto** → erst zum Release von v1.0 (Phase 4); bis dahin hat nur Peter ein Konto, Entscheidung vom 20.11.2026. Damit sie trotzdem in der Rangliste stehen, legt der Admin sie als vorgemerkte Spieler ohne Konto an (ADR-0015, Umsetzung in AP-4)
 - Mehrere Gruppen in der Oberfläche, Zuschauer-Link, Elo, Awards, Head-to-Head als eigene Ansicht, Google-Login → **v1.1**
 - Steuergerät, MQTT im Betrieb → **Phase 6**
 
@@ -127,9 +128,10 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 - [x] Sitzung als Cookie (HttpOnly, Secure, SameSite=Lax), 1 Jahr mit gleitender Verlängerung (ADR-0008). (PR #58)
 - [x] Einladungslink in die Gruppe erzeugen und annehmen. (PR #58)
 - [x] App: Anmeldeseite (`/anmelden`), Link einlösen mit Angebot „Passkey anlegen“, Einladungsseite (`/einladung/<token>`), Profil (`/profil`) mit Anzeigename, Lieblingsfarben, Passkey, Einladungslink für Admins und Abmelden.
-- [ ] Auf dem Heimserver `RESEND_API_KEY` in `infra/.env` eintragen, aktualisieren, mit einem Freund durchspielen.
+- [x] Auf dem Heimserver `RESEND_API_KEY` in `infra/.env` eintragen, aktualisieren, selbst per Magic-Link und Passkey anmelden (19.11.2026).
+- [ ] Ein Freund tritt über einen Einladungslink bei → verschoben auf den Rollout von v1.0 in Phase 4 (Entscheidung vom 20.11.2026).
 
-**Fertig, wenn:** Ein Freund kann über einen Einladungslink Mitglied werden und bleibt angemeldet; ohne Anmeldung liefert jede geschützte Route `401`.
+**Fertig, wenn:** Ein Freund kann über einen Einladungslink Mitglied werden und bleibt angemeldet; ohne Anmeldung liefert jede geschützte Route `401`. **Erledigt am 20.11.2026** mit eigenem Konto; der Beitritt über eine Einladung ist durch Tests abgedeckt (TC-04, Playwright), der Test mit einem echten Freund folgt in Phase 4.
 
 ### AP-4 · Turnier vorbereiten (ca. 8 h) · Branch `feat/p3-tournament-setup` · UC-03 bis UC-07
 
