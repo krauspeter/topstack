@@ -45,7 +45,7 @@ export interface GroupPlayer {
 }
 
 export type TournamentStatus = 'setup' | 'seated' | 'drafting' | 'running' | 'paused' | 'finished' | 'cancelled';
-export type TournamentAction = 'invite' | 'respond' | 'seat' | 'start_draft' | 'report_colors' | 'cancel';
+export type TournamentAction = 'invite' | 'respond' | 'seat' | 'start_draft' | 'report_colors' | 'cancel' | 'delete';
 
 export interface Entry {
   player_id: string;
