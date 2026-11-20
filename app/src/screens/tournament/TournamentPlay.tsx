@@ -15,6 +15,8 @@ const RESULTS: readonly [number, number][] = [
 interface Props {
   t: Tournament;
   busy: boolean;
+  /** Starter oder Admin: bestätigt für Gäste und Spieler ohne Konto mit (wie bei den Farben). */
+  helper: boolean;
   can(action: Tournament['actions'][number]): boolean;
   /** Startet die nächste Runde; Warnungen fragt die Turnierseite ab. */
   onNextRound(): void;
@@ -25,7 +27,7 @@ const score = (m: MatchInfo) =>
   m.games_drawn ? `${m.games_a}:${m.games_b} (+${m.games_drawn})` : `${m.games_a}:${m.games_b}`;
 
 /** Turnier spielen: Runden, Ergebnisse, Tabelle, Abschluss (UC-08 bis UC-17). */
-export function TournamentPlay({ t, busy, can, onNextRound, onAct }: Props) {
+export function TournamentPlay({ t, busy, helper, can, onNextRound, onAct }: Props) {
   const [editing, setEditing] = useState<MatchInfo | null>(null);
   const [showPlan, setShowPlan] = useState(false);
 
@@ -40,6 +42,9 @@ export function TournamentPlay({ t, busy, can, onNextRound, onAct }: Props) {
   const finished = t.status === 'finished';
   const needsRoll = t.standings.some((s) => s.needs_roll && s.roll === null);
   const playing = t.status === 'running' || t.status === 'paused';
+  const proxies = helper
+    ? t.entries.filter((e) => e.status === 'accepted' && (e.kind === 'guest' || e.kind === 'reserved'))
+    : [];
 
   return (
     <>
@@ -74,6 +79,28 @@ export function TournamentPlay({ t, busy, can, onNextRound, onAct }: Props) {
                 Abbruch bestätigen
               </button>
             ))}
+          {proxies.length > 0 && (
+            <div className="stack">
+              <p className="muted small">Für Spieler ohne eigenes Handy-Konto bestätigen:</p>
+              <div className="chips-select" role="group" aria-label="Bestätigen für">
+                {proxies.map((e) => {
+                  const on = t.cancel_vote?.voters.includes(e.player_id) ?? false;
+                  return (
+                    <button
+                      key={e.player_id}
+                      type="button"
+                      className={on ? 'chip on' : 'chip'}
+                      aria-pressed={on}
+                      disabled={busy}
+                      onClick={() => void onAct(`/cancel-request/votes/${e.player_id}`, on ? 'DELETE' : 'PUT')}
+                    >
+                      {e.display_name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {can('request_cancel') && (
             <button className="btn" onClick={() => void onAct('/cancel-request', 'DELETE')}>
               Antrag zurückziehen

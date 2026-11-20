@@ -358,6 +358,7 @@ async def test_cancel_by_vote(client, session):  # TC-31
     r = await client.post(f"/api/v1/tournaments/{tid}/cancel-request")
     assert r.status_code == 200, r.text
     vote = r.json()["cancel_vote"]
+    assert len(vote.pop("voters")) == 1
     assert vote == {
         "requested_by": "Anna",
         "confirmed": 1,
@@ -401,3 +402,39 @@ async def test_reserved_players_keep_names_in_standings(client, session):
         if p.display_name in names
     }
     assert kinds["Ben"] == "reserved" and kinds["Gina"] == "guest"
+
+
+async def test_starter_votes_for_guest_and_reserved(client, session):  # TC-31a
+    group, peter, t = await running(client, session)
+    tid = t["id"]
+    ids = {e["display_name"]: e["player_id"] for e in t["entries"]}
+    r = await client.post(f"/api/v1/tournaments/{tid}/cancel-request")
+    assert r.json()["cancel_vote"]["confirmed"] == 1  # Peter selbst
+    assert r.json()["cancel_vote"]["required"] == 3  # 3 von 5
+
+    # Wer weder Starter noch Admin ist, darf nicht für andere bestätigen
+    anna = await make_user(session, "Anna")
+    await groups.add_member(session, group_id=group.id, user=anna)
+    await as_user(client, session, anna)
+    url = f"/api/v1/tournaments/{tid}/cancel-request/votes"
+    assert is_problem(await client.put(f"{url}/{ids['Ben']}"), 403)
+    await as_user(client, session, peter)
+
+    r = await client.put(f"{url}/{ids['Ben']}")
+    assert r.status_code == 200, r.text
+    assert r.json()["cancel_vote"]["confirmed"] == 2
+    assert ids["Ben"] in r.json()["cancel_vote"]["voters"]
+    r = await client.delete(f"{url}/{ids['Ben']}")
+    assert r.json()["cancel_vote"]["confirmed"] == 1
+    await client.put(f"{url}/{ids['Ben']}")
+    r = await client.put(f"{url}/{ids['Gina']}")
+    assert r.json()["status"] == "cancelled"
+
+
+async def test_no_proxy_vote_for_members(client, session):
+    _, _, (t, users) = await four_member_tournament(client, session)
+    tid = t["id"]
+    await client.post(f"/api/v1/tournaments/{tid}/cancel-request")
+    ben = next(e for e in t["entries"] if e["display_name"] == "Ben")
+    r = await client.put(f"/api/v1/tournaments/{tid}/cancel-request/votes/{ben['player_id']}")
+    assert is_problem(r, 403)  # Ben hat ein Konto und stimmt selbst ab

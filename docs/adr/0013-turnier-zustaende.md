@@ -47,6 +47,7 @@ Ein abgebrochenes Turnier zählt nicht für Rangliste und Statistik. Turnierstar
 **Abbruch per Abstimmung (ergänzt am 18.11.2026)**
 - Ab Runde 1 können Turnierstarter und Gruppen-Admin einen Abbruch beantragen. Alle Teilnehmer bekommen eine Nachricht in der App und per Push.
 - Teilnehmer sind alle Einträge in `tournament_entry`, also auch Gäste. Wer den Antrag stellt und selbst teilnimmt, hat damit schon bestätigt.
+- Für Gäste und Spieler ohne Konto bestätigen Turnierstarter oder Gruppen-Admin stellvertretend, wie beim Melden der Farben (ergänzt am 20.11.2026). Mitglieder mit Konto bestätigen nur selbst.
 - Nötig sind mehr als die Hälfte der Teilnehmer: `bestätigt > teilnehmer / 2`, also 3 von 4 oder 5, 4 von 6 oder 7, 5 von 8.
 - Ist die Mehrheit erreicht, setzt der Server das Turnier sofort auf `cancelled`. Bestätigungen lassen sich bis dahin zurücknehmen.
 - Pro Turnier ist höchstens ein Antrag offen. Er endet, wenn die Mehrheit erreicht ist, wenn der Antragsteller ihn zurückzieht oder wenn das Turnier `finished` erreicht.

@@ -465,3 +465,24 @@ async def withdraw_cancel(tid: uuid.UUID, user: CurrentUser, db: Db) -> Tourname
     async with errors():
         await rounds.withdraw_cancel(db, await svc.load(db, tid, user, lock=True))
         return await reload(db, tid, user)
+
+
+@router.put("/tournaments/{tid}/cancel-request/votes/{pid}")
+async def vote_cancel_for(
+    tid: uuid.UUID, pid: uuid.UUID, user: CurrentUser, db: Db
+) -> TournamentOut:
+    """Starter oder Admin bestätigen für Gäste und Spieler ohne Konto."""
+    async with errors():
+        ctx = await svc.load(db, tid, user, lock=True)
+        await rounds.vote_cancel(db, ctx, yes=True, player_id=pid)
+        return await reload(db, tid, user)
+
+
+@router.delete("/tournaments/{tid}/cancel-request/votes/{pid}")
+async def unvote_cancel_for(
+    tid: uuid.UUID, pid: uuid.UUID, user: CurrentUser, db: Db
+) -> TournamentOut:
+    async with errors():
+        ctx = await svc.load(db, tid, user, lock=True)
+        await rounds.vote_cancel(db, ctx, yes=False, player_id=pid)
+        return await reload(db, tid, user)

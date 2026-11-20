@@ -40,7 +40,7 @@ Weitere Unterlagen zu dieser Phase:
 
 - Backups, Monitoring, automatisches Deployment, Changelog → **Phase 4**
 - **Test auf dem iPhone** → letzter Schritt vor v1.0 (Phase 4), Entscheidung vom 18.11.2026
-- **Freunde mit eigenem Konto** → erst zum Release von v1.0 (Phase 4); bis dahin hat nur Peter ein Konto, Entscheidung vom 20.11.2026. Damit sie trotzdem in der Rangliste stehen, legt der Admin sie als vorgemerkte Spieler ohne Konto an (ADR-0015, Umsetzung in AP-4)
+- **Freunde mit eigenem Konto** → dürfen sich schon vor v1.0 über ihren persönlichen Einladungslink anmelden, sind aber kein Quality Gate: kein Arbeitspaket wartet auf ihren Test, der Rollout an alle bleibt in Phase 4 (geändert am 20.11.2026, vorher „nur Peter bis v1.0“). Damit alle in der Rangliste stehen, auch wer noch kein Konto hat, legt der Admin sie als vorgemerkte Spieler ohne Konto an (ADR-0015, Umsetzung in AP-4)
 - Mehrere Gruppen in der Oberfläche, Zuschauer-Link, Elo, Awards, Head-to-Head als eigene Ansicht, Google-Login → **v1.1**
 - Steuergerät, MQTT im Betrieb → **Phase 6**
 
@@ -154,7 +154,7 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 - [ ] Ergebnis eintragen ohne Tracker, bestätigen, korrigieren bis Turnierende (`match_correction`). Die Nachricht an den Gegner kommt mit Push in AP-8.
 - [ ] Turniertabelle mit `domain/standings.py`; Gleichstand nach allen Tiebreakern fordert einen W20-Wurf an.
 - [ ] Pausieren und fortsetzen.
-- [ ] Abbrechen: vor Runde 1 durch Starter oder Admin, ab Runde 1 direkt durch den Admin oder per Abstimmung mit mehr als der Hälfte der Teilnehmer (ADR-0013).
+- [ ] Abbrechen: vor Runde 1 durch Starter oder Admin, ab Runde 1 direkt durch den Admin oder per Abstimmung mit mehr als der Hälfte der Teilnehmer (ADR-0013); Starter und Admin bestätigen für Gäste und Spieler ohne Konto.
 - [ ] Turnierabschluss, sobald alle Matches gespielt sind: Endplätze und Ranglistenpunkte festschreiben (`domain/ranking.py`), Siegerehrung.
 
 **Fertig, wenn:** Ein Turnier mit 5 Spielern ist von Runde 1 bis zur Siegerehrung durchspielbar, nur mit eingetragenen Ergebnissen.
