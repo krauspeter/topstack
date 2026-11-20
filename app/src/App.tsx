@@ -5,6 +5,9 @@ import { Invitation } from './screens/account/Invitation';
 import { Login } from './screens/account/Login';
 import { Profile } from './screens/account/Profile';
 import { RedeemLink } from './screens/account/RedeemLink';
+import { GuestJoin } from './screens/tournament/GuestJoin';
+import { TournamentHome } from './screens/tournament/TournamentHome';
+import { TournamentView } from './screens/tournament/TournamentView';
 import { ChooseStarter, MatchEnd } from './screens/Between';
 import { Home } from './screens/Home';
 import { Roll } from './screens/Roll';
@@ -86,6 +89,33 @@ export function App() {
         onBack={home}
       />
     );
+  }
+
+  if (url.pathname.startsWith('/gast/')) {
+    const token = decodeURIComponent(url.pathname.slice('/gast/'.length));
+    return <GuestJoin token={token} onDone={home} />;
+  }
+
+  if (url.pathname === '/turnier' || url.pathname.startsWith('/turnier/')) {
+    if (account.status === 'loading') return <main className="page center muted">Lade …</main>;
+    if (account.status !== 'signed-in') {
+      return (
+        <main className="page center">
+          <section className="card">
+            <h2>{account.status === 'offline' ? 'Keine Verbindung' : 'Bitte anmelden'}</h2>
+            <p>Turniere brauchen eine Anmeldung und eine Verbindung zum Server.</p>
+            <button className="btn" onClick={home}>
+              Zur Startseite
+            </button>
+          </section>
+        </main>
+      );
+    }
+    const id = url.pathname.slice('/turnier/'.length);
+    if (url.pathname === '/turnier' || !id) {
+      return <TournamentHome me={account.me} onOpen={(tid) => navigate(`/turnier/${tid}`)} onBack={home} />;
+    }
+    return <TournamentView key={id} id={id} me={account.me} onBack={() => navigate('/turnier')} />;
   }
 
   if (url.pathname === '/profil') {
@@ -190,6 +220,7 @@ export function App() {
           onNewMatch={() => setScreen('setup')}
           onSeating={() => setScreen('seating')}
           onLogin={() => navigate('/anmelden')}
+          onTournaments={() => navigate('/turnier')}
           onProfile={() => navigate('/profil')}
         />
       );
