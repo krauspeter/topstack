@@ -59,7 +59,7 @@ Turnier-Antworten enthalten `actions`: was der angemeldete Nutzer im aktuellen S
 | POST | `/tournaments/{tid}/draft` | Draft beginnen (`seated` → `drafting`) | – |
 | PUT | `/tournaments/{tid}/entries/{pid}/colors` | Farben melden, z. B. `"UB"`, farblos `""`; für Gäste und vorgemerkte Spieler auch durch Starter oder Admin | UC-07 |
 | POST | `/tournaments/{tid}/cancel` | Abbrechen: vor Runde 1 Starter oder Admin, danach nur Admin (ADR-0013) | – |
-| DELETE | `/tournaments/{tid}` | Abgebrochenes Turnier löschen, Starter oder Admin; Gäste des Turniers werden mit gelöscht | – |
+| DELETE | `/tournaments/{tid}` | Abgebrochenes Turnier löschen (Starter oder Admin) oder abgeschlossenes, fehlerhaftes Turnier (nur Admin); Gäste des Turniers werden mit gelöscht | – |
 | POST | `/tournaments/{tid}/rounds/next` | Runde 1 starten (erzeugt den ganzen Spielplan jeder gegen jeden, Pause bei ungerader Zahl) oder nächste Runde; jeder Teilnehmer. Fehlende Farben oder offene Matches: `409` mit `code` `missing_colors` (`names`) bzw. `open_matches` (`count`), mit `{ "confirm": true }` trotzdem | UC-08, UC-15 |
 | POST | `/tournaments/{tid}/matches/{mid}/start` | Match aus einer späteren Runde vorziehen, wenn beide frei sind; der Vorschlag steht in `GET /tournaments/{tid}` als `suggestion` | UC-09 |
 | PUT | `/tournaments/{tid}/matches/{mid}/result` | Ergebnis ohne Tracker eintragen (`{games_a, games_b, games_drawn}`), Best-of-3, Unentschieden erlaubt; mit `version` korrigieren bis Turnierende, Protokoll in `match_correction` | UC-12 bis UC-14 |

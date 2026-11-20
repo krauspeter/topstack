@@ -112,9 +112,15 @@ def test_delete_only_cancelled_by_starter_or_admin():
         check(Action.DELETE, Status.CANCELLED, PLAYER)
     with pytest.raises(WrongStatus):
         check(Action.DELETE, Status.SETUP, ADMIN)
-    with pytest.raises(WrongStatus):
-        check(Action.DELETE, Status.FINISHED, ADMIN)
     assert allowed_actions(Status.CANCELLED, STARTER) == [Action.DELETE]
+
+
+def test_delete_finished_only_by_admin():
+    check(Action.DELETE, Status.FINISHED, ADMIN)
+    with pytest.raises(Forbidden):
+        check(Action.DELETE, Status.FINISHED, STARTER)
+    assert allowed_actions(Status.FINISHED, ADMIN) == [Action.DELETE]
+    assert allowed_actions(Status.FINISHED, STARTER) == []
 
 
 def test_missing_colors_for_round_one_warning():

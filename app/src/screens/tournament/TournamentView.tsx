@@ -382,7 +382,9 @@ export function TournamentView({ id, me, onBack, onDeleted, onPlay }: Props) {
                 ? 'Turnier wirklich abbrechen? Es zählt dann nicht für Rangliste und Statistik.'
                 : confirm === 'request_cancel'
                   ? 'Abbruch beantragen? Bestätigen mehr als die Hälfte der Teilnehmer, ist das Turnier abgebrochen und zählt nicht.'
-                  : 'Turnier endgültig löschen? Teilnehmer, Plätze und Farben sind danach weg. Gäste aus diesem Turnier werden mit gelöscht.'}
+                  : t.status === 'finished'
+                    ? 'Abgeschlossenes Turnier endgültig löschen? Alle Ergebnisse, Endplätze und Ranglistenpunkte dieses Turniers sind danach weg und zählen nicht mehr für die Rangliste. Gäste aus diesem Turnier werden mit gelöscht.'
+                    : 'Turnier endgültig löschen? Teilnehmer, Plätze und Farben sind danach weg. Gäste aus diesem Turnier werden mit gelöscht.'}
             </p>
             <button
               className="btn danger big"

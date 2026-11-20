@@ -392,7 +392,11 @@ async def cancel(db: AsyncSession, ctx: Context) -> None:
 
 
 async def delete(db: AsyncSession, ctx: Context) -> None:
-    """Abgebrochenes Turnier endgültig löschen, samt Gästen, die nur hier mitgespielt haben."""
+    """Turnier endgültig löschen, samt Gästen, die nur hier mitgespielt haben.
+
+    Abgebrochene Turniere: Starter oder Admin. Abgeschlossene (z. B. fehlerhaft erfasste):
+    nur der Admin; Ergebnisse, Spiele, Lebenspunkte und Ranglistenpunkte verschwinden mit.
+    """
     check(Action.DELETE, ctx.status, ctx.actor)
     guests = list(
         await db.scalars(

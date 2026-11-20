@@ -25,7 +25,7 @@ class Action(StrEnum):
     START_DRAFT = "start_draft"
     REPORT_COLORS = "report_colors"
     CANCEL = "cancel"
-    DELETE = "delete"  # nur abgebrochene Turniere
+    DELETE = "delete"  # abgebrochene Turniere; abgeschlossene nur durch den Admin
     START_ROUND = "start_round"  # Runde 1 starten, erzeugt den Spielplan
     NEXT_ROUND = "next_round"
     REPORT_RESULT = "report_result"
@@ -65,7 +65,7 @@ ALLOWED_STATUS: dict[Action, set[Status]] = {
     # Farben kommen beim Deckbau, also erst nach Draftbeginn (geändert am 20.11.2026)
     Action.REPORT_COLORS: {Status.DRAFTING, Status.RUNNING},
     Action.CANCEL: OPEN,
-    Action.DELETE: {Status.CANCELLED},
+    Action.DELETE: {Status.CANCELLED, Status.FINISHED},
     Action.START_ROUND: {Status.DRAFTING},
     Action.NEXT_ROUND: {Status.RUNNING},
     Action.REPORT_RESULT: {Status.RUNNING, Status.PAUSED},
@@ -103,7 +103,12 @@ def role_allows(action: Action, status: Status, actor: Actor) -> bool:
             return actor.is_starter
         case Action.RESPOND | Action.REPORT_COLORS:
             return actor.is_participant
-        case Action.DELETE | Action.REQUEST_CANCEL:
+        case Action.DELETE:
+            # Fehlerhafte abgeschlossene Turniere entfernt nur der Admin (20.11.2026)
+            if status is Status.FINISHED:
+                return actor.is_admin
+            return actor.is_starter or actor.is_admin
+        case Action.REQUEST_CANCEL:
             return actor.is_starter or actor.is_admin
         case (
             Action.START_ROUND
