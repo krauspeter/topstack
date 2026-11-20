@@ -35,22 +35,23 @@ jobs:
     if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Playwright-Image mit allen Systembibliotheken für Chromium und WebKit: Die Installation
+    # per apt („--with-deps“) blieb zweimal am Ubuntu-Spiegel hängen und blockierte die Images.
+    # Bei einem Playwright-Update in package-lock.json die Version hier mitziehen.
+    container: { image: 'mcr.microsoft.com/playwright:v1.65.1-noble' }
     defaults: { run: { working-directory: app } }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22 }
       - name: Abhängigkeiten
-        run: if [ -f package-lock.json ]; then npm ci; else npm install; fi
+        run: npm ci
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
       - name: End-to-End (iPhone und Android emuliert)
-        # Normal 1-2 Minuten; hängt die Installation der Browser, bricht der Schritt ab,
-        # statt die Images für den Heimserver stundenlang zu blockieren
         timeout-minutes: 12
-        run: npx playwright install --with-deps chromium webkit && npm run test:e2e
+        # Browser passend zur installierten Playwright-Version, ohne apt (steckt im Image)
+        run: npx playwright install chromium webkit && npm run test:e2e
       - uses: actions/upload-artifact@v4
         with: { name: app-dist, path: app/dist }
 
