@@ -31,18 +31,34 @@ Geändert in AP-3 (19.11.2026): Der Link in der Mail zeigt auf die App (`/anmeld
 | POST | `/invitations/{token}/accept` | Einladung annehmen (UC-02) | angemeldet |
 | GET | `/groups/{gid}/players` | Spielerliste | Mitglied |
 
+### Spieler der Gruppe
+
+| Methode | Pfad | Zweck |
+| --- | --- | --- |
+| GET | `/groups/{gid}/players` | Mitglieder und vorgemerkte Spieler (ohne Gäste) |
+| POST | `/groups/{gid}/players` | Vorgemerkten Spieler ohne Konto anlegen, nur Admin (ADR-0015) |
+
+`POST /groups/{gid}/invitations` nimmt optional `player_id`: ein persönlicher Link (einmal nutzbar), mit dem ein Freund den vorgemerkten Spieler samt Ergebnissen übernimmt.
+
+Turnier-Antworten enthalten `actions`: was der angemeldete Nutzer im aktuellen Status darf (`invite`, `respond`, `seat`, `start_draft`, `report_colors`, `cancel`). Die App zeigt danach ihre Knöpfe.
+
 ### Turniere
 
 | Methode | Pfad | Zweck | UC |
 | --- | --- | --- | --- |
 | POST | `/groups/{gid}/tournaments` | Turnier starten (`set_code` Pflicht) | UC-03 |
 | GET | `/tournaments/{tid}` | Turnier mit Teilnehmern, Runden, Matches | – |
-| POST | `/tournaments/{tid}/entries` | Mitglieder einladen | UC-04 |
+| GET | `/groups/{gid}/tournaments` | Turniere der Gruppe, offenes zuerst, höchstens 20 | – |
+| POST | `/tournaments/{tid}/entries` | Mitglieder und vorgemerkte Spieler einladen (`{player_ids}`); vorgemerkte sind sofort zugesagt | UC-04 |
+| PUT | `/tournaments/{tid}/entries/me` | Eigene Einladung zusagen oder absagen (`{accept}`) | UC-04 |
 | DELETE | `/tournaments/{tid}/entries/{pid}` | Teilnehmer vor der Auslosung entfernen | UC-04 |
-| POST | `/tournaments/{tid}/guest-link` | QR-Code-/Link-Token für Gäste | UC-05 |
-| POST | `/guest/{token}` | Gast tritt mit Namen bei | UC-05 |
-| POST | `/tournaments/{tid}/seating` | Draftplätze auslosen (erneut = neu auslosen) | UC-06 |
-| PUT | `/tournaments/{tid}/entries/{pid}/colors` | Farben melden, z. B. `"UB"` | UC-07 |
+| POST | `/tournaments/{tid}/guest-link` | QR-Code-/Link-Token für Gäste, 12 Stunden gültig; App-Seite `/gast/<token>` | UC-05 |
+| GET | `/guest/{token}` | Öffentlich: Gruppe, Set, ob die Anmeldung offen ist | UC-05 |
+| POST | `/guest/{token}` | Gast tritt mit Namen bei (`{display_name}`), ohne Konto | UC-05 |
+| POST | `/tournaments/{tid}/seating` | Draftplätze auslosen (erneut = neu auslosen); Antwort enthält `seating.seed` und `seating.draw` für die gleiche Animation auf allen Handys | UC-06 |
+| POST | `/tournaments/{tid}/draft` | Draft beginnen (`seated` → `drafting`) | – |
+| PUT | `/tournaments/{tid}/entries/{pid}/colors` | Farben melden, z. B. `"UB"`, farblos `""`; für Gäste und vorgemerkte Spieler auch durch Starter oder Admin | UC-07 |
+| POST | `/tournaments/{tid}/cancel` | Abbrechen: vor Runde 1 Starter oder Admin, danach nur Admin (ADR-0013) | – |
 | POST | `/tournaments/{tid}/rounds/next` | Nächste Runde starten (bei Runde 1 wird der Spielplan erzeugt) | UC-08, UC-15 |
 | GET | `/tournaments/{tid}/suggestions` | Offene Matches für freie Spieler | UC-09 |
 | POST | `/matches/{mid}/pull-forward` | Match vorziehen | UC-09 |

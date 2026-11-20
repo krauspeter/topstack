@@ -7,7 +7,7 @@
 -- Aufzählungen
 -- ---------------------------------------------------------------------------
 CREATE TYPE group_role        AS ENUM ('admin', 'member', 'viewer');
-CREATE TYPE player_kind       AS ENUM ('member', 'guest', 'former');
+CREATE TYPE player_kind       AS ENUM ('member', 'guest', 'former', 'reserved');  -- reserved: vorgemerkt, ohne Konto (ADR-0015)
 CREATE TYPE tournament_format AS ENUM ('draft', 'commander');
 CREATE TYPE tournament_status AS ENUM ('setup', 'seated', 'drafting', 'running', 'paused', 'finished', 'cancelled');
 CREATE TYPE entry_status      AS ENUM ('invited', 'accepted', 'declined', 'removed');
@@ -129,7 +129,8 @@ CREATE TABLE invitation (
     created_by     uuid REFERENCES app_user(id) ON DELETE SET NULL,
     expires_at     timestamptz NOT NULL,
     max_uses       int,
-    uses           int NOT NULL DEFAULT 0
+    uses           int NOT NULL DEFAULT 0,
+    player_id      uuid REFERENCES player(id) ON DELETE CASCADE  -- gesetzt = übernimmt diesen vorgemerkten Spieler (ADR-0015)
 );
 
 -- ---------------------------------------------------------------------------

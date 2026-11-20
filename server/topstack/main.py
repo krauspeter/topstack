@@ -1,7 +1,7 @@
 from fastapi import APIRouter, FastAPI
 
 from topstack import __version__
-from topstack.api import auth, invitations, me, passkeys, problems
+from topstack.api import auth, invitations, me, passkeys, problems, tournaments
 from topstack.config import settings
 
 app = FastAPI(
@@ -25,4 +25,5 @@ api.include_router(auth.router)
 api.include_router(passkeys.router)
 api.include_router(me.router)
 api.include_router(invitations.router)
+api.include_router(tournaments.router)
 app.include_router(api)

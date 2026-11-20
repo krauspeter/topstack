@@ -48,7 +48,7 @@ def _enum(name: str, *values: str) -> ENUM:
 
 
 GROUP_ROLES = ("admin", "member", "viewer")
-PLAYER_KINDS = ("member", "guest", "former")
+PLAYER_KINDS = ("member", "guest", "former", "reserved")
 TOURNAMENT_FORMATS = ("draft", "commander")
 TOURNAMENT_STATUSES = (
     "setup",
@@ -233,7 +233,7 @@ class Membership(Base):
 
 
 class Player(Base):
-    """Spieleridentität in einer Gruppe: Mitglied (mit Konto), Gast oder Ehemaliger."""
+    """Spieler einer Gruppe: Mitglied (mit Konto), vorgemerkt (ADR-0015), Gast, Ehemaliger."""
 
     __tablename__ = "player"
     __table_args__ = (
@@ -282,6 +282,8 @@ class Invitation(Base):
     expires_at: Mapped[datetime] = mapped_column(TZ, nullable=False)
     max_uses: Mapped[int | None] = mapped_column(Integer)
     uses: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    # gesetzt = übernimmt diesen vorgemerkten Spieler (ADR-0015)
+    player_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, fk("player.id", "CASCADE"))
 
 
 # ---------------------------------------------------------------------------

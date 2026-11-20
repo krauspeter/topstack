@@ -14,7 +14,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from topstack.config import settings
-from topstack.db.models import AppUser, MagicLink, UserSession
+from topstack.db.models import AppUser, MagicLink, Player, UserSession
 from topstack.db.repo import accounts
 from topstack.services import invitations
 from topstack.services.mail import Mail, Mailer
@@ -160,9 +160,15 @@ async def redeem_magic_link(
     if user is None:
         if invitation is None:
             raise NoAccount
-        user = await accounts.create_user(
-            db, email=link.email, display_name=link.email.split("@", 1)[0][:40]
-        )
+        name = link.email.split("@", 1)[0][:40]
+        if invitation.player_id is not None:
+            reserved = await db.get(Player, invitation.player_id)
+            if reserved is not None and reserved.kind == "reserved":
+                name = reserved.display_name  # Freund heißt wie sein vorgemerkter Spieler
+        user = await accounts.create_user(db, email=link.email, display_name=name)
     if invitation is not None:
-        await invitations.accept(db, invitation, user)
+        try:
+            await invitations.accept(db, invitation, user)
+        except invitations.ReservedTaken:
+            log.warning("Vorgemerkter Spieler schon vergeben, Anmeldung ohne Beitritt")
     return user
