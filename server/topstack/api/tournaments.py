@@ -1,4 +1,4 @@
-"""Spieler der Gruppe und Turnier vorbereiten (UC-03 bis UC-07, ADR-0013, ADR-0015)."""
+"""Spieler der Gruppe, Turnier vorbereiten und spielen (UC-03 bis UC-17, ADR-0013, ADR-0015)."""
 
 import uuid
 from collections.abc import AsyncIterator
@@ -10,24 +10,31 @@ from sqlalchemy import func, select
 from topstack.api.deps import CurrentUser, Db
 from topstack.api.problems import problem
 from topstack.api.schemas import (
+    CancelVoteOut,
     ColorsBody,
+    ConfirmBody,
     EntryOut,
     GuestInfo,
     GuestJoin,
     GuestJoined,
     GuestLink,
     InviteBody,
+    MatchOut,
     PlayerOut,
     ReservedCreate,
     RespondBody,
+    ResultBody,
+    RoundOut,
     Seating,
+    StandingOut,
     TournamentCreate,
     TournamentOut,
     TournamentSummary,
 )
 from topstack.config import settings
-from topstack.db.models import AppUser, Tournament, TournamentEntry
-from topstack.domain.tournament import allowed_actions
+from topstack.db.models import AppUser, Match, Tournament, TournamentEntry
+from topstack.domain.tournament import Status, allowed_actions
+from topstack.services import rounds
 from topstack.services import tournaments as svc
 
 router = APIRouter(tags=["Turniere"])
@@ -46,12 +53,59 @@ async def errors() -> AsyncIterator[None]:
         raise problem(409, str(exc) or "Das geht im aktuellen Zustand nicht.") from None
     except svc.Conflict as exc:
         raise problem(409, str(exc)) from None
+    except rounds.MissingColors as exc:
+        raise problem(
+            409,
+            "Noch nicht alle haben ihre Farben eingetragen: " + ", ".join(exc.names),
+            code="missing_colors",
+            names=exc.names,
+        ) from None
+    except rounds.OpenMatches as exc:
+        raise problem(
+            409,
+            f"Es sind noch {exc.count} Matches offen.",
+            code="open_matches",
+            count=exc.count,
+        ) from None
+    except rounds.NeedsRoll as exc:
+        raise problem(
+            409,
+            "Gleichstand nach allen Tiebreakern: " + ", ".join(exc.names) + ". Bitte W20 würfeln.",
+            code="needs_roll",
+            names=exc.names,
+        ) from None
+    except rounds.InvalidResult:
+        raise problem(422, "Ungültiges Ergebnis für ein Best-of-3.") from None
 
 
 async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
     t = ctx.tournament
     me = ctx.my_player.id if ctx.my_player else None
     seating = (t.settings or {}).get("seating")
+    entries = await svc.entries_with_players(db, t.id)
+    ov = await rounds.overview(db, ctx)
+    final = {e.player_id: e for e, _ in entries}
+    may_report_all = ctx.actor.is_starter or ctx.actor.is_admin
+    playing = ctx.status in (Status.RUNNING, Status.PAUSED)
+
+    def match_out(m: Match) -> MatchOut:
+        mine = me in (m.player_a_id, m.player_b_id)
+        return MatchOut(
+            id=m.id,
+            player_a_id=m.player_a_id,
+            player_b_id=m.player_b_id,
+            player_a=ov.names.get(m.player_a_id, "?"),
+            player_b=ov.names.get(m.player_b_id, "?"),
+            status=m.status,
+            games_a=m.games_a,
+            games_b=m.games_b,
+            games_drawn=m.games_drawn,
+            version=m.version,
+            mine=mine,
+            can_report=playing and (mine or may_report_all),
+        )
+
+    vote = await rounds.cancel_vote_state(db, ctx)
     return TournamentOut(
         id=t.id,
         group_id=t.group_id,
@@ -72,10 +126,46 @@ async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
                 colors=e.colors,
                 is_me=p.id == me,
             )
-            for e, p in await svc.entries_with_players(db, t.id)
+            for e, p in entries
         ],
         my_player_id=me,
         actions=[str(a) for a in allowed_actions(ctx.status, ctx.actor)],
+        rounds=[
+            RoundOut(
+                number=r.number,
+                status=r.status,
+                bye=ov.names.get(r.bye_player_id) if r.bye_player_id else None,
+                matches=[match_out(m) for m in ov.matches if m.round_id == r.id],
+            )
+            for r in ov.rounds
+        ],
+        current_round=ov.current.number if ov.current else None,
+        open_in_current=ov.open_in_current,
+        rounds_left=ov.planned_left,
+        standings=[
+            StandingOut(
+                player_id=row.player,
+                display_name=ov.names.get(row.player, "?"),
+                rank=row.rank,
+                played=row.played,
+                wins=row.wins,
+                draws=row.draws,
+                losses=row.losses,
+                match_points=row.match_points,
+                games_won=row.games_won,
+                games_lost=row.games_lost,
+                game_diff=row.game_diff,
+                needs_roll=row.needs_roll,
+                roll=ov.rolls.get(row.player),
+                final_place=final[row.player].final_place if row.player in final else None,
+                ranking_points=final[row.player].ranking_points if row.player in final else None,
+            )
+            for row in ov.standings
+        ]
+        if ov.rounds
+        else [],
+        suggestion=ov.suggestion.id if ov.suggestion else None,
+        cancel_vote=CancelVoteOut(**vars(vote)) if vote else None,
     )
 
 
@@ -266,4 +356,112 @@ async def delete_tournament(tid: uuid.UUID, user: CurrentUser, db: Db) -> None:
 async def cancel(tid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
     async with errors():
         await svc.cancel(db, await svc.load(db, tid, user, lock=True))
+        return await reload(db, tid, user)
+
+
+# ---------------------------------------------------------------------------
+# Turnier spielen (UC-08, UC-09, UC-12 bis UC-17)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/tournaments/{tid}/rounds/next")
+async def start_round(
+    tid: uuid.UUID, body: ConfirmBody, user: CurrentUser, db: Db
+) -> TournamentOut:
+    """Runde 1 (erzeugt den Spielplan) oder die nächste Runde starten.
+
+    Ohne ``confirm`` gibt es 409 mit ``code`` ``missing_colors`` oder ``open_matches``.
+    """
+    async with errors():
+        ctx = await svc.load(db, tid, user, lock=True)
+        if ctx.status is Status.DRAFTING:
+            await rounds.start_round_one(db, ctx, confirm=body.confirm)
+        else:
+            await rounds.next_round(db, ctx, confirm=body.confirm)
+        return await reload(db, tid, user)
+
+
+@router.post("/tournaments/{tid}/matches/{mid}/start")
+async def pull_forward(tid: uuid.UUID, mid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
+    """Match aus einer späteren Runde vorziehen (UC-09)."""
+    async with errors():
+        await rounds.pull_forward(db, await svc.load(db, tid, user, lock=True), mid)
+        return await reload(db, tid, user)
+
+
+@router.put("/tournaments/{tid}/matches/{mid}/result")
+async def report_result(
+    tid: uuid.UUID, mid: uuid.UUID, body: ResultBody, user: CurrentUser, db: Db
+) -> TournamentOut:
+    """Ergebnis eintragen; mit ``version`` korrigieren bis Turnierende."""
+    async with errors():
+        await rounds.report_result(
+            db,
+            await svc.load(db, tid, user, lock=True),
+            mid,
+            games_a=body.games_a,
+            games_b=body.games_b,
+            games_drawn=body.games_drawn,
+            version=body.version,
+        )
+        return await reload(db, tid, user)
+
+
+@router.post("/tournaments/{tid}/pause")
+async def pause(tid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
+    async with errors():
+        await rounds.pause(db, await svc.load(db, tid, user, lock=True))
+        return await reload(db, tid, user)
+
+
+@router.post("/tournaments/{tid}/resume")
+async def resume(tid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
+    async with errors():
+        await rounds.resume(db, await svc.load(db, tid, user, lock=True))
+        return await reload(db, tid, user)
+
+
+@router.post("/tournaments/{tid}/tiebreak-roll")
+async def tiebreak(tid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
+    """W20 für alle, die nach allen Tiebreakern gleich stehen."""
+    async with errors():
+        await rounds.roll_tiebreak(db, await svc.load(db, tid, user, lock=True))
+        return await reload(db, tid, user)
+
+
+@router.post("/tournaments/{tid}/finish")
+async def finish(tid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
+    """Abschluss: Endplätze und Ranglistenpunkte festschreiben (UC-17)."""
+    async with errors():
+        await rounds.finish(db, await svc.load(db, tid, user, lock=True))
+        return await reload(db, tid, user)
+
+
+@router.post("/tournaments/{tid}/cancel-request")
+async def request_cancel(tid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
+    """Abbruch per Abstimmung beantragen (Starter oder Admin, ab Runde 1)."""
+    async with errors():
+        await rounds.request_cancel(db, await svc.load(db, tid, user, lock=True))
+        return await reload(db, tid, user)
+
+
+@router.put("/tournaments/{tid}/cancel-request/vote")
+async def vote_cancel(tid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
+    """Abbruch bestätigen; bei mehr als der Hälfte der Teilnehmer ist das Turnier abgebrochen."""
+    async with errors():
+        await rounds.vote_cancel(db, await svc.load(db, tid, user, lock=True), yes=True)
+        return await reload(db, tid, user)
+
+
+@router.delete("/tournaments/{tid}/cancel-request/vote")
+async def unvote_cancel(tid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
+    async with errors():
+        await rounds.vote_cancel(db, await svc.load(db, tid, user, lock=True), yes=False)
+        return await reload(db, tid, user)
+
+
+@router.delete("/tournaments/{tid}/cancel-request")
+async def withdraw_cancel(tid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
+    async with errors():
+        await rounds.withdraw_cancel(db, await svc.load(db, tid, user, lock=True))
         return await reload(db, tid, user)

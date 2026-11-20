@@ -142,20 +142,20 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 - [x] Farben melden mit der Farbauswahl aus Phase 2 (WUBRG, farblos); Starter und Admin melden für Gäste und vorgemerkte Spieler. (PR #61)
 - [x] App: Turnier-Startseite (`/turnier`), Turnierseite (`/turnier/<id>`) mit Spielerauswahl, QR-Code (eigener Erzeuger ohne Bibliothek, `src/domain/qr.ts`), Tischgrafik aus Phase 2 mit Serverdaten, Farben, Abbruch; Gästeseite (`/gast/<token>`). Aktualisierung alle 5 Sekunden, live ab AP-7.
 - [x] Anpassungen nach dem ersten Test (20.11.2026): Name des Drafts statt Set-Kürzel (2 bis 20 Zeichen), abgebrochene Turniere löschbar, Farbzeilen mit festem Aufbau, kein Flackern beim Speichern, nichts breiter als der Bildschirm, Titel bricht um statt abgeschnitten zu werden. Nach dem zweiten Test: Farben erst nach „Draft beginnen“ (Deckbau); fehlen beim Start von Runde 1 (AP-5) noch Farben, kommt eine Warnung mit den Namen, mit Bestätigung startet die Runde trotzdem.
-- [ ] Auf dem Heimserver ein Testturnier mit 5 Spielern inklusive einem Gast anlegen.
+- [x] Auf dem Heimserver ein Testturnier mit 5 Spielern inklusive einem Gast anlegen. (getestet 20.11.2026, PR #64, #107)
 
 **Fertig, wenn:** Ein Turnier mit 5 Spielern inklusive einem Gast ist angelegt, ausgelost und alle Farben sind gemeldet.
 
 ### AP-5 · Turnierablauf und Ergebnisse (ca. 10 h) · Branch `feat/p3-rounds` · UC-08, UC-09, UC-12 bis UC-17
 
-- Runde 1 starten erzeugt den Spielplan mit `domain/schedule.py`; Pause bei ungerader Spielerzahl.
-- Nächste Runde durch jeden Teilnehmer, bei offenen Matches mit Warnung.
-- Offenes Match vorziehen mit `domain/suggestions.py`, Restplan neu verteilen.
-- Ergebnis eintragen ohne Tracker, bestätigen, korrigieren bis Turnierende (`match_correction`), Gegner bekommt eine Nachricht.
-- Turniertabelle mit `domain/standings.py`; Gleichstand nach allen Tiebreakern fordert einen W20-Wurf an.
-- Pausieren und fortsetzen.
-- Abbrechen: vor Runde 1 durch Starter oder Admin, ab Runde 1 direkt durch den Admin oder per Abstimmung mit mehr als der Hälfte der Teilnehmer (ADR-0013).
-- Turnierabschluss, sobald alle Matches gespielt sind: Endplätze und Ranglistenpunkte festschreiben (`domain/ranking.py`), Siegerehrung.
+- [ ] Runde 1 starten erzeugt den Spielplan mit `domain/schedule.py`; Pause bei ungerader Spielerzahl. Fehlen Farben, Warnung mit Namen, mit Bestätigung trotzdem.
+- [ ] Nächste Runde durch jeden Teilnehmer, bei offenen Matches mit Warnung.
+- [ ] Offenes Match vorziehen mit `domain/suggestions.py`, Restplan neu verteilen.
+- [ ] Ergebnis eintragen ohne Tracker, bestätigen, korrigieren bis Turnierende (`match_correction`). Die Nachricht an den Gegner kommt mit Push in AP-8.
+- [ ] Turniertabelle mit `domain/standings.py`; Gleichstand nach allen Tiebreakern fordert einen W20-Wurf an.
+- [ ] Pausieren und fortsetzen.
+- [ ] Abbrechen: vor Runde 1 durch Starter oder Admin, ab Runde 1 direkt durch den Admin oder per Abstimmung mit mehr als der Hälfte der Teilnehmer (ADR-0013).
+- [ ] Turnierabschluss, sobald alle Matches gespielt sind: Endplätze und Ranglistenpunkte festschreiben (`domain/ranking.py`), Siegerehrung.
 
 **Fertig, wenn:** Ein Turnier mit 5 Spielern ist von Runde 1 bis zur Siegerehrung durchspielbar, nur mit eingetragenen Ergebnissen.
 

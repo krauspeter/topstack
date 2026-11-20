@@ -19,9 +19,17 @@ TITLES = {
 }
 
 
-def problem(status: int, detail: str | None = None) -> HTTPException:
-    """Kurzform für ``raise problem(404, "Gruppe nicht gefunden")``."""
-    return HTTPException(status_code=status, detail=detail)
+class Problem(HTTPException):
+    """HTTPException mit zusätzlichen Feldern im Problem-Details-Body."""
+
+    def __init__(self, status: int, detail: str | None = None, **extra: object) -> None:
+        super().__init__(status_code=status, detail=detail)
+        self.extra = extra
+
+
+def problem(status: int, detail: str | None = None, **extra: object) -> HTTPException:
+    """Kurzform für ``raise problem(404, "Gruppe nicht gefunden")``; Zusatzfelder als kwargs."""
+    return Problem(status, detail, **extra)
 
 
 def _body(status: int, detail: object, **extra: object) -> dict[str, object]:
@@ -41,7 +49,9 @@ def install(app: FastAPI) -> None:
     async def http_problem(_: Request, exc: StarletteHTTPException) -> JSONResponse:
         return JSONResponse(
             _body(
-                exc.status_code, exc.detail if exc.detail != TITLES.get(exc.status_code) else None
+                exc.status_code,
+                exc.detail if exc.detail != TITLES.get(exc.status_code) else None,
+                **getattr(exc, "extra", {}),
             ),
             status_code=exc.status_code,
             media_type=PROBLEM_JSON,
