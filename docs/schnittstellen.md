@@ -46,7 +46,7 @@ Turnier-Antworten enthalten `actions`: was der angemeldete Nutzer im aktuellen S
 
 | Methode | Pfad | Zweck | UC |
 | --- | --- | --- | --- |
-| POST | `/groups/{gid}/tournaments` | Turnier starten (`set_code` Pflicht) | UC-03 |
+| POST | `/groups/{gid}/tournaments` | Turnier starten; `set_code` = Name des Drafts oder Set-Kürzel, 2 bis 20 Zeichen | UC-03 |
 | GET | `/tournaments/{tid}` | Turnier mit Teilnehmern, Runden, Matches | – |
 | GET | `/groups/{gid}/tournaments` | Turniere der Gruppe, offenes zuerst, höchstens 20 | – |
 | POST | `/tournaments/{tid}/entries` | Mitglieder und vorgemerkte Spieler einladen (`{player_ids}`); vorgemerkte sind sofort zugesagt | UC-04 |
@@ -59,6 +59,7 @@ Turnier-Antworten enthalten `actions`: was der angemeldete Nutzer im aktuellen S
 | POST | `/tournaments/{tid}/draft` | Draft beginnen (`seated` → `drafting`) | – |
 | PUT | `/tournaments/{tid}/entries/{pid}/colors` | Farben melden, z. B. `"UB"`, farblos `""`; für Gäste und vorgemerkte Spieler auch durch Starter oder Admin | UC-07 |
 | POST | `/tournaments/{tid}/cancel` | Abbrechen: vor Runde 1 Starter oder Admin, danach nur Admin (ADR-0013) | – |
+| DELETE | `/tournaments/{tid}` | Abgebrochenes Turnier löschen, Starter oder Admin; Gäste des Turniers werden mit gelöscht | – |
 | POST | `/tournaments/{tid}/rounds/next` | Nächste Runde starten (bei Runde 1 wird der Spielplan erzeugt) | UC-08, UC-15 |
 | GET | `/tournaments/{tid}/suggestions` | Offene Matches für freie Spieler | UC-09 |
 | POST | `/matches/{mid}/pull-forward` | Match vorziehen | UC-09 |

@@ -232,3 +232,34 @@ h3 { font-size: 1.05rem; }
 .break { word-break: break-all; }
 .row-btn { width: 100%; display: flex; justify-content: space-between; align-items: center; min-height: 48px; }
 .badge { vertical-align: middle; margin-left: 6px; }
+
+/* ---------- Anpassungen vom 20.11.2026: nie seitlich scrollen, ruhige Layouts ---------- */
+html, body { overflow-x: hidden; }
+.page { width: 100%; min-width: 0; }
+.page > * { min-width: 0; max-width: 100%; }
+input { min-width: 0; max-width: 100%; }
+.row > * { min-width: 0; }
+.btn { max-width: 100%; }
+.table-graphic { width: 100%; }
+
+/* Kopfzeile: Zurück links, Titel darf umbrechen statt abgeschnitten zu werden */
+.title-bar { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; }
+.title-bar .title { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.title-bar h2 { font-size: 1.25rem; overflow-wrap: anywhere; }
+.title-bar .badge { margin-left: 0; }
+
+.entry-list li { flex-wrap: nowrap; }
+.entry-name { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+
+/* Farben: jede Zeile gleich aufgebaut, egal wie viele Farben gewählt sind */
+.color-list { list-style: none; padding: 0; display: grid; gap: 10px; }
+.color-list li { display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; }
+.color-head { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.color-pips { display: inline-flex; min-height: 22px; align-items: center; }
+.color-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.color-grid button { width: 100%; max-width: 48px; aspect-ratio: 1; justify-self: center; border-radius: 50%; border: 2px solid var(--line); padding: 0; font-weight: 700; }
+.color-grid button.on { border-color: var(--gold); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--gold); }
+.color-text { min-height: 1.2em; }
+
+/* Keine Ausgrauung beim Speichern: das war das Flackern bei jedem Klick */
+.btn { transition: none; }

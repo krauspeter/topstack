@@ -391,5 +391,22 @@ async def cancel(db: AsyncSession, ctx: Context) -> None:
     await db.flush()
 
 
+async def delete(db: AsyncSession, ctx: Context) -> None:
+    """Abgebrochenes Turnier endgültig löschen, samt Gästen, die nur hier mitgespielt haben."""
+    check(Action.DELETE, ctx.status, ctx.actor)
+    guests = list(
+        await db.scalars(
+            select(Player)
+            .join(TournamentEntry, TournamentEntry.player_id == Player.id)
+            .where(TournamentEntry.tournament_id == ctx.tournament.id, Player.kind == "guest")
+        )
+    )
+    await db.delete(ctx.tournament)  # Einträge, Runden, Matches, Gästelinks per CASCADE
+    await db.flush()
+    for guest in guests:
+        await db.delete(guest)
+    await db.flush()
+
+
 def public_url(path: str) -> str:
     return f"{settings.public_origin}{path}"

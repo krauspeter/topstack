@@ -71,7 +71,7 @@ test('Turnier starten', async ({ page }) => {
   await page.route(`**/api/v1/groups/${GROUP}/tournaments`, async (route) => {
     if (route.request().method() === 'POST') {
       started = route.request().postDataJSON();
-      current = tournament('setup', [entry(ME_PLAYER, 'Peter', 'member')]);
+      current = { ...tournament('setup', [entry(ME_PLAYER, 'Peter', 'member')]), set_code: 'Mirrodin Besieged' };
       return json(route, 201, current);
     }
     return json(route, 200, []);
@@ -80,12 +80,12 @@ test('Turnier starten', async ({ page }) => {
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Turnier', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Turniere · Draft-Runde' })).toBeVisible();
-  await page.getByLabel(/Set-Kürzel/).fill('dsk');
+  await expect(page.getByRole('heading', { name: 'Turniere' })).toBeVisible();
+  await page.getByLabel(/Name des Drafts/).fill('Mirrodin Besieged');
   await page.getByRole('button', { name: 'Draft-Turnier starten' }).click();
-  await expect(page.getByRole('heading', { name: /Draft DSK/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Mirrodin Besieged' })).toBeVisible();
   await expect(page.getByText('Anmeldung offen')).toBeVisible();
-  expect(started).toEqual({ set_code: 'DSK' });
+  expect(started).toEqual({ set_code: 'Mirrodin Besieged' });
 });
 
 test('Spieler hinzufügen, Gäste-QR-Code, auslosen', async ({ page }) => {
@@ -178,6 +178,53 @@ test('Turnier abbrechen mit Bestätigung', async ({ page }) => {
   await page.getByRole('button', { name: 'Turnier abbrechen' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Ja, abbrechen' }).click();
   await expect(page.getByText('Dieses Turnier wurde abgebrochen und zählt nicht.')).toBeVisible();
+});
+
+test('Abgebrochenes Turnier löschen', async ({ page }) => {
+  await mockBase(page);
+  const state = { ...tournament('cancelled', [entry(ME_PLAYER, 'Peter', 'member')]), actions: ['delete'] };
+  let deleted = false;
+  await page.route(`**/api/v1/tournaments/${TID}`, async (route) => {
+    if (route.request().method() === 'DELETE') {
+      deleted = true;
+      return route.fulfill({ status: 204 });
+    }
+    return json(route, 200, state);
+  });
+  await page.route(`**/api/v1/groups/${GROUP}/tournaments`, (route) => json(route, 200, []));
+  await page.goto(`/turnier/${TID}`);
+  await page.getByRole('button', { name: 'Turnier löschen' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Ja, löschen' }).click();
+  await expect(page).toHaveURL(/\/turnier$/);
+  expect(deleted).toBe(true);
+});
+
+test('Farbzeilen sehen gleich aus, egal wie viele Farben, und nichts ist breiter als der Bildschirm', async ({ page }) => {
+  await mockBase(page);
+  const long = 'Maximilian-Alexander';
+  const state = tournament(
+    'seated',
+    [
+      { ...entry(ME_PLAYER, 'Peter', 'member', 1), colors: 'G' },
+      { ...entry('p-max', long, 'reserved', 2), colors: 'BRG' },
+      entry('p-sebastian', 'Sebastian', 'reserved', 3),
+    ],
+    { seating: { seed: 7, draw: 1 }, set_code: 'Mirrodin Besieged XL' },
+  );
+  await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, 200, state));
+  await page.goto(`/turnier/${TID}`);
+  const rows = page.getByRole('list', { name: 'Farben' }).getByRole('listitem');
+  await expect(rows).toHaveCount(3);
+  const heights = await rows.evaluateAll((items) => items.map((el) => Math.round(el.getBoundingClientRect().height)));
+  expect(new Set(heights).size).toBe(1); // eine, drei oder keine Farbe: gleiche Höhe
+  await expect(page.getByRole('heading', { name: 'Mirrodin Besieged XL' })).toBeVisible();
+  // Kein Element ragt über den rechten Rand hinaus (sonst lässt sich die Seite seitlich schieben)
+  const tooWide = await page.evaluate(() =>
+    [...document.querySelectorAll('main *')]
+      .filter((el) => el.getBoundingClientRect().right > window.innerWidth + 1)
+      .map((el) => el.tagName + '.' + el.className),
+  );
+  expect(tooWide).toEqual([]);
 });
 
 test('Gast meldet sich per QR-Code an', async ({ page }) => {

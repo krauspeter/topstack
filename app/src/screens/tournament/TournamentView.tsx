@@ -48,18 +48,21 @@ interface Props {
   id: string;
   me: Me;
   onBack(): void;
+  onDeleted(): void;
 }
 
 /** Ein Turnier vorbereiten: Teilnehmer, Gäste, Auslosung, Farben (UC-03 bis UC-07). */
-export function TournamentView({ id, me, onBack }: Props) {
+export function TournamentView({ id, me, onBack, onDeleted }: Props) {
   const [t, setT] = useState<Tournament | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [guestLink, setGuestLink] = useState<GuestLink | null>(null);
   const [adding, setAdding] = useState(false);
-  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [confirm, setConfirm] = useState<'cancel' | 'delete' | null>(null);
+  const busyRef = useRef(false);
 
   const load = useCallback(async () => {
+    if (busyRef.current) return; // keine alten Daten über eine laufende Änderung legen
     try {
       setT(await api<Tournament>(`/tournaments/${id}`));
     } catch (err) {
@@ -73,17 +76,24 @@ export function TournamentView({ id, me, onBack }: Props) {
     return () => window.clearInterval(timer);
   }, [load]);
 
-  const act = async (path: string, method: 'POST' | 'PUT' | 'DELETE' = 'POST', body?: unknown) => {
+  /** Eine Änderung zur Zeit; Knöpfe bleiben sichtbar gleich, damit nichts flackert. */
+  const run = async (action: () => Promise<void>) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setError(null);
     try {
-      setT(await api<Tournament>(`/tournaments/${id}${path}`, { method, body }));
+      await action();
     } catch (err) {
       setError(errorText(err));
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
+
+  const act = (path: string, method: 'POST' | 'PUT' | 'DELETE' = 'POST', body?: unknown) =>
+    run(async () => setT(await api<Tournament>(`/tournaments/${id}${path}`, { method, body })));
 
   if (!t) {
     return <main className="page center muted">{error ?? 'Lade Turnier …'}</main>;
@@ -95,32 +105,41 @@ export function TournamentView({ id, me, onBack }: Props) {
   const mine = t.entries.find((e) => e.is_me);
   const accepted = t.entries.filter((e) => e.status === 'accepted');
   const seated = [...accepted].filter((e) => e.seat_no !== null).sort((a, b) => (a.seat_no ?? 0) - (b.seat_no ?? 0));
+  const missingColors = seated.filter((e) => e.colors === null).length;
 
-  const makeGuestLink = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      setGuestLink(await api<GuestLink>(`/tournaments/${id}/guest-link`, { method: 'POST' }));
-    } catch (err) {
-      setError(errorText(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const makeGuestLink = () =>
+    run(async () => setGuestLink(await api<GuestLink>(`/tournaments/${id}/guest-link`, { method: 'POST' })));
 
   const canEditColors = (e: Entry) =>
     t.status !== 'setup' &&
     (e.is_me ? can('report_colors') : (isStarter || isAdmin) && (e.kind === 'guest' || e.kind === 'reserved'));
 
+  /** Farben sofort anzeigen, dann speichern; bei einem Fehler den alten Stand zurückholen. */
+  const setColors = (e: Entry, c: ColorChoice) => {
+    const current = e.colors;
+    const next = current === null ? (c === COLORLESS ? '' : c) : toggleColor(current, c);
+    const before = t;
+    setT({ ...t, entries: t.entries.map((x) => (x.player_id === e.player_id ? { ...x, colors: next } : x)) });
+    void run(async () => {
+      try {
+        setT(await api<Tournament>(`/tournaments/${id}/entries/${e.player_id}/colors`, { method: 'PUT', body: { colors: next } }));
+      } catch (err) {
+        setT(before);
+        throw err;
+      }
+    });
+  };
+
   return (
     <main className="page">
-      <header className="bar">
+      <header className="title-bar">
         <button className="btn ghost" onClick={onBack} aria-label="Zurück">
           ‹ Zurück
         </button>
-        <h2>
-          Draft {t.set_code} <span className="badge">{STATUS_TEXT[t.status]}</span>
-        </h2>
+        <div className="title">
+          <h2>{t.set_code}</h2>
+          <span className="badge">{STATUS_TEXT[t.status]}</span>
+        </div>
       </header>
 
       {t.status === 'cancelled' && <p className="muted">Dieses Turnier wurde abgebrochen und zählt nicht.</p>}
@@ -129,10 +148,10 @@ export function TournamentView({ id, me, onBack }: Props) {
         <section className="card">
           <h2>Du bist eingeladen</h2>
           <div className="row">
-            <button className="btn primary big" disabled={busy} onClick={() => act('/entries/me', 'PUT', { accept: true })}>
+            <button className="btn primary big" onClick={() => act('/entries/me', 'PUT', { accept: true })}>
               Zusagen
             </button>
-            <button className="btn big" disabled={busy} onClick={() => act('/entries/me', 'PUT', { accept: false })}>
+            <button className="btn big" onClick={() => act('/entries/me', 'PUT', { accept: false })}>
               Absagen
             </button>
           </div>
@@ -141,13 +160,11 @@ export function TournamentView({ id, me, onBack }: Props) {
 
       {t.status === 'setup' && (
         <section className="stack">
-          <h3>
-            Teilnehmer ({accepted.length} dabei)
-          </h3>
+          <h3>Teilnehmer ({accepted.length} dabei)</h3>
           <ul className="entry-list" aria-label="Teilnehmer">
             {t.entries.map((e) => (
               <li key={e.player_id}>
-                <span>
+                <span className="entry-name">
                   <strong>{e.display_name}</strong>
                   {KIND_TEXT[e.kind] && <span className="muted small"> · {KIND_TEXT[e.kind]}</span>}
                 </span>
@@ -156,7 +173,6 @@ export function TournamentView({ id, me, onBack }: Props) {
                   <button
                     className="btn ghost icon"
                     aria-label={`${e.display_name} entfernen`}
-                    disabled={busy}
                     onClick={() => act(`/entries/${e.player_id}`, 'DELETE')}
                   >
                     ×
@@ -195,32 +211,30 @@ export function TournamentView({ id, me, onBack }: Props) {
                 </button>
               </section>
             ) : (
-              <button className="btn big" onClick={makeGuestLink} disabled={busy}>
+              <button className="btn big" onClick={() => void makeGuestLink()}>
                 Gäste-QR-Code zeigen
               </button>
             ))}
 
           {can('seat') && (
-            <button className="btn primary big" onClick={() => act('/seating')} disabled={busy || accepted.length < 2}>
+            <button className="btn primary big" onClick={() => act('/seating')} disabled={accepted.length < 2}>
               Plätze auslosen
             </button>
           )}
         </section>
       )}
 
-      {t.status !== 'setup' && t.seating && seated.length > 0 && (
-        <SeatingView tournament={t} seated={seated} />
-      )}
+      {t.status !== 'setup' && t.seating && seated.length > 0 && <SeatingView tournament={t} seated={seated} />}
 
       {(t.status === 'seated' || t.status === 'drafting') && (
         <section className="stack">
           {can('seat') && (
-            <button className="btn big" onClick={() => act('/seating')} disabled={busy}>
+            <button className="btn big" onClick={() => act('/seating')}>
               Neu auslosen
             </button>
           )}
           {can('start_draft') && (
-            <button className="btn primary big" onClick={() => act('/draft')} disabled={busy}>
+            <button className="btn primary big" onClick={() => act('/draft')}>
               Draft beginnen
             </button>
           )}
@@ -230,15 +244,20 @@ export function TournamentView({ id, me, onBack }: Props) {
       {['seated', 'drafting', 'running'].includes(t.status) && (
         <section className="stack">
           <h3>Farben nach dem Deckbau</h3>
-          <ul className="entry-list colors" aria-label="Farben">
+          <p className="muted small" data-testid="colors-missing">
+            {missingColors === 0
+              ? 'Alle Farben gemeldet. Runde 1 kann starten, sobald es den Spielplan gibt (AP-5).'
+              : `Noch ${missingColors} von ${seated.length} offen. Runde 1 startet erst, wenn alle ihre Farben gemeldet haben.`}
+          </p>
+          <ul className="color-list" aria-label="Farben">
             {seated.map((e) => (
               <li key={e.player_id}>
-                <span>
-                  <strong>{e.display_name}</strong>{' '}
-                  {e.colors !== null ? <ManaPips colors={e.colors} /> : <span className="muted small">noch offen</span>}
-                </span>
+                <div className="color-head">
+                  <strong className="entry-name">{e.display_name}</strong>
+                  <span className="color-pips">{e.colors !== null && <ManaPips colors={e.colors} />}</span>
+                </div>
                 {canEditColors(e) && (
-                  <div className="swatches small-swatches" role="group" aria-label={`Farben für ${e.display_name}`}>
+                  <div className="color-grid" role="group" aria-label={`Farben für ${e.display_name}`}>
                     {CHOICES.map((c) => {
                       const surface = choiceSurface(c);
                       const current = e.colors;
@@ -251,12 +270,8 @@ export function TournamentView({ id, me, onBack }: Props) {
                           aria-label={choiceName(c)}
                           title={choiceName(c)}
                           className={on ? 'on' : ''}
-                          disabled={busy}
                           style={{ background: surface.value, color: surface.tokens?.['--text'] ?? 'var(--text)' }}
-                          onClick={() => {
-                            const next = current === null ? (c === COLORLESS ? '' : c) : toggleColor(current, c);
-                            void act(`/entries/${e.player_id}/colors`, 'PUT', { colors: next });
-                          }}
+                          onClick={() => setColors(e, c)}
                         >
                           {c}
                         </button>
@@ -264,7 +279,7 @@ export function TournamentView({ id, me, onBack }: Props) {
                     })}
                   </div>
                 )}
-                {e.colors !== null && <span className="muted small">{describeColors(e.colors)}</span>}
+                <span className="muted small color-text">{e.colors !== null ? describeColors(e.colors) : 'noch offen'}</span>
               </li>
             ))}
           </ul>
@@ -278,26 +293,42 @@ export function TournamentView({ id, me, onBack }: Props) {
       )}
 
       {can('cancel') && (
-        <button className="btn danger" onClick={() => setConfirmCancel(true)} disabled={busy}>
+        <button className="btn danger" onClick={() => setConfirm('cancel')}>
           Turnier abbrechen
         </button>
       )}
+      {can('delete') && (
+        <button className="btn danger" onClick={() => setConfirm('delete')}>
+          Turnier löschen
+        </button>
+      )}
 
-      {confirmCancel && (
-        <div className="overlay" role="dialog" aria-modal="true" aria-label="Turnier abbrechen">
+      {confirm && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-label={confirm === 'cancel' ? 'Turnier abbrechen' : 'Turnier löschen'}>
           <div className="sheet">
-            <p>Turnier wirklich abbrechen? Es zählt dann nicht für Rangliste und Statistik.</p>
+            <p>
+              {confirm === 'cancel'
+                ? 'Turnier wirklich abbrechen? Es zählt dann nicht für Rangliste und Statistik.'
+                : 'Turnier endgültig löschen? Teilnehmer, Plätze und Farben sind danach weg. Gäste aus diesem Turnier werden mit gelöscht.'}
+            </p>
             <button
               className="btn danger big"
+              disabled={busy}
               onClick={async () => {
-                setConfirmCancel(false);
-                await act('/cancel');
+                const kind = confirm;
+                setConfirm(null);
+                if (kind === 'cancel') await act('/cancel');
+                else
+                  await run(async () => {
+                    await api(`/tournaments/${id}`, { method: 'DELETE' });
+                    onDeleted();
+                  });
               }}
             >
-              Ja, abbrechen
+              {confirm === 'cancel' ? 'Ja, abbrechen' : 'Ja, löschen'}
             </button>
-            <button className="btn big" onClick={() => setConfirmCancel(false)}>
-              Weiterspielen
+            <button className="btn big" onClick={() => setConfirm(null)}>
+              Nein
             </button>
           </div>
         </div>

@@ -115,7 +115,9 @@ export function App() {
     if (url.pathname === '/turnier' || !id) {
       return <TournamentHome me={account.me} onOpen={(tid) => navigate(`/turnier/${tid}`)} onBack={home} />;
     }
-    return <TournamentView key={id} id={id} me={account.me} onBack={() => navigate('/turnier')} />;
+    return (
+      <TournamentView key={id} id={id} me={account.me} onBack={() => navigate('/turnier')} onDeleted={() => navigate('/turnier', true)} />
+    );
   }
 
   if (url.pathname === '/profil') {

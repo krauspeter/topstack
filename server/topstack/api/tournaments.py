@@ -254,6 +254,14 @@ async def report_colors(
         return await reload(db, tid, user)
 
 
+@router.delete("/tournaments/{tid}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_tournament(tid: uuid.UUID, user: CurrentUser, db: Db) -> None:
+    """Nur abgebrochene Turniere, durch Turnierstarter oder Gruppen-Admin."""
+    async with errors():
+        await svc.delete(db, await svc.load(db, tid, user, lock=True))
+    await db.commit()
+
+
 @router.post("/tournaments/{tid}/cancel")
 async def cancel(tid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
     async with errors():

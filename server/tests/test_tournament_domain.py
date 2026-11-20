@@ -11,6 +11,7 @@ from topstack.domain.tournament import (
     allowed_actions,
     check,
     next_status,
+    ready_for_round_one,
 )
 
 STARTER = Actor(is_starter=True, is_participant=True, is_member=True)
@@ -86,3 +87,21 @@ def test_allowed_actions_for_app():
     ]
     assert allowed_actions(Status.SEATED, PLAYER) == [Action.REPORT_COLORS]
     assert allowed_actions(Status.RUNNING, ADMIN) == [Action.CANCEL]
+
+
+def test_delete_only_cancelled_by_starter_or_admin():
+    check(Action.DELETE, Status.CANCELLED, STARTER)
+    check(Action.DELETE, Status.CANCELLED, ADMIN)
+    with pytest.raises(Forbidden):
+        check(Action.DELETE, Status.CANCELLED, PLAYER)
+    with pytest.raises(WrongStatus):
+        check(Action.DELETE, Status.SETUP, ADMIN)
+    with pytest.raises(WrongStatus):
+        check(Action.DELETE, Status.FINISHED, ADMIN)
+    assert allowed_actions(Status.CANCELLED, STARTER) == [Action.DELETE]
+
+
+def test_round_one_needs_all_colors():
+    assert ready_for_round_one(["WU", "", "R"])  # "" = farblos zählt als gemeldet
+    assert not ready_for_round_one(["WU", None, "R"])
+    assert not ready_for_round_one(["G"])
