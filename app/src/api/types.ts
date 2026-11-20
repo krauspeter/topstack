@@ -144,6 +144,57 @@ export interface Tournament {
   cancel_vote: CancelVote | null;
 }
 
+export interface TrackerPlayer {
+  id: string;
+  display_name: string;
+  colors: string | null;
+  kind: PlayerKind;
+}
+
+export interface TrackerMatch {
+  id: string;
+  status: 'scheduled' | 'running' | 'finished';
+  tracker_mode: 'shared' | 'dual' | 'none';
+  games_a: number;
+  games_b: number;
+  games_drawn: number;
+  version: number;
+}
+
+/** Ereignis im Format der API (snake_case), siehe `domain/remote.ts`. */
+export interface ApiEvent {
+  id: string;
+  game_id: string;
+  type: 'game_start' | 'die_roll' | 'life' | 'undo' | 'game_end';
+  player_id: string | null;
+  delta?: number | null;
+  value?: number | null;
+  undo_of?: string | null;
+  reason?: 'life_zero' | 'concede' | 'time' | 'manual' | null;
+  device_id: string;
+  seq: number;
+  client_ts: string;
+  source: 'app' | 'hardware' | 'table';
+}
+
+export interface TrackerInfo {
+  tournament_id: string;
+  match: TrackerMatch;
+  player_a: TrackerPlayer;
+  player_b: TrackerPlayer;
+  my_player_id: string | null;
+  starting_life: number;
+  time_limit_min: number | null;
+  events: ApiEvent[];
+}
+
+export interface EventBatchResult {
+  accepted: string[];
+  duplicates: string[];
+  rejected: { id: string; detail: string }[];
+  match: TrackerMatch;
+}
+
 export interface TournamentSummary {
   id: string;
   set_code: string;

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import type { GameEvent } from '../domain/lifeEvents';
+import type { EndReason, GameEvent } from '../domain/lifeEvents';
 import {
   EXTRA_TURNS,
   type MatchConfig,
   type MatchState,
+  controls,
   formatDelta,
   formatDuration,
   gameDuration,
@@ -15,6 +16,7 @@ import {
 } from '../domain/match';
 import { buzz, useHold, useNow } from '../hooks';
 import { halfStyle, playerColors } from '../theme';
+import type { SyncInfo } from '../store/useSync';
 import { ManaPips } from './ManaPips';
 
 interface Props {
@@ -24,8 +26,10 @@ interface Props {
   onChange(playerId: string, delta: number): void;
   onUndo(): void;
   /** `null` = Spiel endet unentschieden (nach Zeitablauf). */
-  onWin(winner: string | null): void;
+  onWin(winner: string | null, reason: EndReason): void;
   onAbort(): void;
+  /** Nur bei Turnier-Matches: Stand der Übertragung an den Server. */
+  sync?: SyncInfo;
 }
 
 function LifeButton({ label, sign, onStep }: { label: string; sign: 1 | -1; onStep(delta: number): void }) {
@@ -40,7 +44,7 @@ function LifeButton({ label, sign, onStep }: { label: string; sign: 1 | -1; onSt
   );
 }
 
-export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbort }: Props) {
+export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbort, sync }: Props) {
   const now = useNow(250);
   const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState<{ winner: string; reason: 'life' | 'concede' } | null>(null);
@@ -68,13 +72,15 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
     buzz();
   };
 
-  const finish = (winner: string | null) => {
+  const finish = (winner: string | null, reason: EndReason) => {
     setConfirm(null);
     setDrawConfirm(false);
     setMenu(false);
     setDismissed(null);
-    onWin(winner);
+    onWin(winner, reason);
   };
+  const mine = (id: string) => controls(config, id);
+  const remote = config.remote;
 
   return (
     <main className="table">
@@ -87,7 +93,11 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
             className={`half tracker ${i === 0 ? 'flipped' : ''} ${life <= 0 ? 'dead' : ''}`}
             style={halfStyle(playerColors(p, i === 0 ? 0 : 1))}
           >
-            <LifeButton label={`${p.name} −1`} sign={-1} onStep={(d) => step(p.id, d)} />
+            {mine(p.id) ? (
+              <LifeButton label={`${p.name} −1`} sign={-1} onStep={(d) => step(p.id, d)} />
+            ) : (
+              <span className="step off" aria-hidden="true" />
+            )}
             <div className="life">
               <span className={`delta ${change === null ? 'hidden' : change < 0 ? 'down' : 'up'}`} aria-live="polite">
                 {change === null ? ' ' : formatDelta(change)}
@@ -106,7 +116,11 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
                 ))}
               </span>
             </div>
-            <LifeButton label={`${p.name} +1`} sign={1} onStep={(d) => step(p.id, d)} />
+            {mine(p.id) ? (
+              <LifeButton label={`${p.name} +1`} sign={1} onStep={(d) => step(p.id, d)} />
+            ) : (
+              <span className="step off" aria-hidden="true" />
+            )}
           </section>
         );
       })}
@@ -117,6 +131,11 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
         </button>
         <div className="score" data-testid="score">
           <strong>Spiel {game.number}</strong>
+          {remote && sync && (
+            <span className={sync.online && sync.pending === 0 ? 'sync ok' : 'sync'} data-testid="sync">
+              {!sync.online ? 'offline · zählt weiter' : sync.pending > 0 ? `sendet ${sync.pending}` : 'gespeichert'}
+            </span>
+          )}
           <span>
             {state.wins[ids[0]]}:{state.wins[ids[1]]} ·{' '}
             {left === null ? (
@@ -143,7 +162,7 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
               <br />
               <strong>Sieg für {name(suggestion)}?</strong>
             </p>
-            <button className="btn primary big" onClick={() => finish(suggestion)}>
+            <button className="btn primary big" onClick={() => finish(suggestion, 'life_zero')}>
               Sieg bestätigen
             </button>
             <button className="btn" onClick={() => setDismissed(totalsKey)}>
@@ -156,7 +175,7 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
       {menu && !confirm && !abort && !drawConfirm && (
         <div className="overlay" role="dialog" aria-label="Menü" onClick={() => setMenu(false)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
-            {config.players.map((p) => (
+            {config.players.filter((p) => mine(p.id)).map((p) => (
               <button
                 key={p.id}
                 className="btn"
@@ -171,7 +190,7 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
               </button>
             )}
             <button className="btn danger" onClick={() => setAbort(true)}>
-              Match abbrechen
+              {remote ? 'Tracker schließen' : 'Match abbrechen'}
             </button>
             <button className="btn ghost" onClick={() => setMenu(false)}>
               Schließen
@@ -188,7 +207,7 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
               <br />
               <strong>Sieg für {name(confirm.winner)}?</strong>
             </p>
-            <button className="btn primary big" onClick={() => finish(confirm.winner)}>
+            <button className="btn primary big" onClick={() => finish(confirm.winner, 'concede')}>
               Ja, Spiel beenden
             </button>
             <button className="btn" onClick={() => setConfirm(null)}>
@@ -213,6 +232,18 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
         </div>
       )}
 
+      {sync?.notice && (
+        <div className="overlay" role="dialog" aria-label="Hinweis vom Server">
+          <div className="sheet">
+            <p>{sync.notice}</p>
+            <p className="muted small">Der Stand vom Server wurde übernommen.</p>
+            <button className="btn primary big" onClick={sync.dismiss}>
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       {drawConfirm && (
         <div className="overlay" role="dialog" aria-label="Unentschieden bestätigen">
           <div className="sheet">
@@ -221,7 +252,7 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
               <br />
               Das Match endet beim Stand {state.wins[ids[0]]}:{state.wins[ids[1]]}.
             </p>
-            <button className="btn primary big" onClick={() => finish(null)}>
+            <button className="btn primary big" onClick={() => finish(null, 'time')}>
               Ja, unentschieden
             </button>
             <button className="btn" onClick={() => setDrawConfirm(false)}>
@@ -232,15 +263,23 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
       )}
 
       {abort && (
-        <div className="overlay" role="dialog" aria-label="Match abbrechen">
+        <div className="overlay" role="dialog" aria-label={remote ? 'Tracker schließen' : 'Match abbrechen'}>
           <div className="sheet">
-            <p>
-              <strong>Match wirklich abbrechen?</strong>
-              <br />
-              Es wird nicht gewertet.
-            </p>
+            {remote ? (
+              <p>
+                <strong>Tracker auf diesem Handy schließen?</strong>
+                <br />
+                Das Match bleibt im Turnier offen. {sync && sync.pending > 0 ? `${sync.pending} Eingaben sind noch nicht gesendet und gehen später raus.` : ''}
+              </p>
+            ) : (
+              <p>
+                <strong>Match wirklich abbrechen?</strong>
+                <br />
+                Es wird nicht gewertet.
+              </p>
+            )}
             <button className="btn danger big" onClick={onAbort}>
-              Ja, abbrechen
+              {remote ? 'Ja, schließen' : 'Ja, abbrechen'}
             </button>
             <button className="btn" onClick={() => setAbort(false)}>
               Weiterspielen

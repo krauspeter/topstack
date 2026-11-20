@@ -1,6 +1,8 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api, errorText } from '../../api/client';
 import type { Entry, GroupPlayer, GuestLink, Me, Tournament } from '../../api/types';
+import type { GameEvent } from '../../domain/lifeEvents';
+import type { MatchConfig } from '../../domain/match';
 import { COLORLESS, type ColorChoice, MANA, choiceName, describeColors, toggleColor } from '../../domain/colors';
 import { BOOSTERS_PER_PLAYER, drawSeats, neighbour } from '../../domain/seating';
 import { buzz } from '../../hooks';
@@ -50,10 +52,12 @@ interface Props {
   me: Me;
   onBack(): void;
   onDeleted(): void;
+  /** Life-Tracker für ein Turnier-Match öffnen (AP-6). */
+  onPlay(config: MatchConfig, events: GameEvent[]): boolean;
 }
 
 /** Ein Turnier vorbereiten und spielen (UC-03 bis UC-17); der Ablauf ab Runde 1 steckt in TournamentPlay. */
-export function TournamentView({ id, me, onBack, onDeleted }: Props) {
+export function TournamentView({ id, me, onBack, onDeleted, onPlay }: Props) {
   const [t, setT] = useState<Tournament | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -274,6 +278,7 @@ export function TournamentView({ id, me, onBack, onDeleted }: Props) {
           can={can}
           onNextRound={() => void startRound()}
           onAct={act}
+          onPlay={onPlay}
         />
       )}
 

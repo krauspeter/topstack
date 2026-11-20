@@ -5,6 +5,8 @@
 
 export type EventType = 'game_start' | 'die_roll' | 'life' | 'undo' | 'game_end';
 export type EventSource = 'app' | 'hardware' | 'table';
+/** Grund für das Spielende (ADR-0012); Unentschieden ist immer `time`. */
+export type EndReason = 'life_zero' | 'concede' | 'time' | 'manual';
 
 export interface GameEvent {
   id: string;
@@ -18,6 +20,8 @@ export interface GameEvent {
   delta?: number;
   value?: number;
   undoOf?: string;
+  /** Nur bei `game_end`. */
+  reason?: EndReason;
 }
 
 /** UUIDv7: zeitlich sortierbar, auf dem Gerät erzeugt (RFC 9562). */
