@@ -314,8 +314,10 @@ async def test_colors(client, session):  # TC-18
     me = t["my_player_id"]
     url = f"/api/v1/tournaments/{t['id']}/entries/{me}/colors"
     assert is_problem(await client.put(url, json={"colors": "WU"}), 409)  # noch nicht ausgelost
-
     await client.post(f"/api/v1/tournaments/{t['id']}/seating")
+    assert is_problem(await client.put(url, json={"colors": "WU"}), 409)  # erst nach Draftbeginn
+
+    await client.post(f"/api/v1/tournaments/{t['id']}/draft")
     r = await client.put(url, json={"colors": "uw"})
     assert next(e for e in r.json()["entries"] if e["is_me"])["colors"] == "WU"
     r = await client.put(url, json={"colors": ""})
@@ -342,7 +344,8 @@ async def test_member_cannot_report_for_guest(client, session):
     await client.post(
         f"/api/v1/tournaments/{t['id']}/entries", json={"player_ids": [str(anna_player.id)]}
     )
-    t = (await client.post(f"/api/v1/tournaments/{t['id']}/seating")).json()
+    await client.post(f"/api/v1/tournaments/{t['id']}/seating")
+    t = (await client.post(f"/api/v1/tournaments/{t['id']}/draft")).json()
     gina = next(e for e in t["entries"] if e["display_name"] == "Gina")
     await as_user(client, session, anna)
     r = await client.put(

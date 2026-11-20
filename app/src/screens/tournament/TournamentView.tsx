@@ -241,13 +241,17 @@ export function TournamentView({ id, me, onBack, onDeleted }: Props) {
         </section>
       )}
 
-      {['seated', 'drafting', 'running'].includes(t.status) && (
+      {t.status === 'seated' && (
+        <p className="muted small">Die Farben trägt jeder nach dem Draft beim Deckbau ein.</p>
+      )}
+
+      {(t.status === 'drafting' || t.status === 'running') && (
         <section className="stack">
           <h3>Farben nach dem Deckbau</h3>
           <p className="muted small" data-testid="colors-missing">
             {missingColors === 0
-              ? 'Alle Farben gemeldet. Runde 1 kann starten, sobald es den Spielplan gibt (AP-5).'
-              : `Noch ${missingColors} von ${seated.length} offen. Runde 1 startet erst, wenn alle ihre Farben gemeldet haben.`}
+              ? 'Alle Farben gemeldet.'
+              : `Noch ${missingColors} von ${seated.length} offen. Fehlen beim Start von Runde 1 noch Farben, fragt die App nach; nachtragen geht auch später.`}
           </p>
           <ul className="color-list" aria-label="Farben">
             {seated.map((e) => (

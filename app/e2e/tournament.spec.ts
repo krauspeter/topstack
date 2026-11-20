@@ -29,7 +29,7 @@ type Entry = {
 
 function tournament(status: string, entries: Entry[], extra: Record<string, unknown> = {}) {
   const actions =
-    status === 'setup' ? ['invite', 'respond', 'seat', 'cancel'] : status === 'seated' ? ['seat', 'start_draft', 'report_colors', 'cancel'] : ['cancel'];
+    status === 'setup' ? ['invite', 'respond', 'seat', 'cancel'] : status === 'seated' ? ['seat', 'start_draft', 'cancel'] : ['cancel'];
   return {
     id: TID,
     group_id: GROUP,
@@ -138,13 +138,19 @@ test('Spieler hinzufügen, Gäste-QR-Code, auslosen', async ({ page }) => {
     'Ben gibt an Chris',
   ]);
   await expect(page.getByRole('button', { name: 'Draft beginnen' })).toBeVisible();
+  // Farben erst beim Deckbau, also nach Draftbeginn
+  await expect(page.getByRole('list', { name: 'Farben' })).toHaveCount(0);
+  await expect(page.getByText('Die Farben trägt jeder nach dem Draft beim Deckbau ein.')).toBeVisible();
 });
 
 test('Farben melden, auch für Spieler ohne Konto', async ({ page }) => {
   await mockBase(page);
-  let state = tournament('seated', [entry(ME_PLAYER, 'Peter', 'member', 1), entry('p-ben', 'Ben', 'reserved', 2)], {
-    seating: { seed: 1, draw: 1 },
-  });
+  let state = {
+    ...tournament('drafting', [entry(ME_PLAYER, 'Peter', 'member', 1), entry('p-ben', 'Ben', 'reserved', 2)], {
+      seating: { seed: 1, draw: 1 },
+    }),
+    actions: ['report_colors', 'cancel'],
+  };
   await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, 200, state));
   const reported: Record<string, unknown> = {};
   await page.route(`**/api/v1/tournaments/${TID}/entries/*/colors`, async (route) => {
@@ -203,13 +209,13 @@ test('Farbzeilen sehen gleich aus, egal wie viele Farben, und nichts ist breiter
   await mockBase(page);
   const long = 'Maximilian-Alexander';
   const state = tournament(
-    'seated',
+    'drafting',
     [
       { ...entry(ME_PLAYER, 'Peter', 'member', 1), colors: 'G' },
       { ...entry('p-max', long, 'reserved', 2), colors: 'BRG' },
       entry('p-sebastian', 'Sebastian', 'reserved', 3),
     ],
-    { seating: { seed: 7, draw: 1 }, set_code: 'Mirrodin Besieged XL' },
+    { seating: { seed: 7, draw: 1 }, set_code: 'Mirrodin Besieged XL', actions: ['report_colors', 'cancel'] },
   );
   await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, 200, state));
   await page.goto(`/turnier/${TID}`);

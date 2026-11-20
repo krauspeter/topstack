@@ -54,7 +54,8 @@ ALLOWED_STATUS: dict[Action, set[Status]] = {
     Action.RESPOND: {Status.SETUP},
     Action.SEAT: {Status.SETUP, Status.SEATED},
     Action.START_DRAFT: {Status.SEATED},
-    Action.REPORT_COLORS: {Status.SEATED, Status.DRAFTING, Status.RUNNING},
+    # Farben kommen beim Deckbau, also erst nach Draftbeginn (geändert am 20.11.2026)
+    Action.REPORT_COLORS: {Status.DRAFTING, Status.RUNNING},
     Action.CANCEL: OPEN,
     Action.DELETE: {Status.CANCELLED},
 }
@@ -113,9 +114,10 @@ def can_seat(accepted_players: int) -> bool:
     return accepted_players >= 2
 
 
-def ready_for_round_one(colors: list[str | None]) -> bool:
-    """Runde 1 startet erst, wenn alle Teilnehmer ihre Farben gemeldet haben ("" = farblos).
+def missing_colors(players: dict[str, str | None]) -> list[str]:
+    """Teilnehmer ohne gemeldete Farben ("" = farblos zählt als gemeldet), sortiert.
 
-    Festgelegt am 20.11.2026; der Server prüft das beim Start von Runde 1 (AP-5).
+    Beim Start von Runde 1 (AP-5) gibt es dann eine Warnung mit diesen Namen; mit
+    Bestätigung startet die Runde trotzdem (Entscheidung vom 20.11.2026).
     """
-    return len(colors) >= 2 and all(c is not None for c in colors)
+    return sorted(name for name, colors in players.items() if colors is None)

@@ -33,8 +33,8 @@ stateDiagram-v2
 | Einladen, Gäste zulassen, Teilnehmer entfernen | Turnierstarter | Status `setup` |
 | Plätze auslosen, neu auslosen | Turnierstarter | mindestens 2 zugesagte Teilnehmer; schließt die Anmeldung |
 | Draft beginnen | Turnierstarter | Status `seated` |
-| Farben melden | jeder Teilnehmer für sich | Status `seated`, `drafting` oder `running` |
-| Runde 1 starten | jeder Teilnehmer | alle Teilnehmer haben ihre Farben gemeldet, auch farblos (ergänzt am 20.11.2026) |
+| Farben melden | jeder Teilnehmer für sich; für Gäste und vorgemerkte Spieler auch Starter oder Admin | Status `drafting` oder `running`, also erst beim Deckbau (geändert am 20.11.2026) |
+| Runde 1 starten | jeder Teilnehmer | fehlen noch Farben, zeigt die App eine Warnung mit den Namen; mit Bestätigung startet die Runde trotzdem, Farben lassen sich nachtragen (geändert am 20.11.2026) |
 | Jede weitere Runde starten | jeder Teilnehmer | bei offenen Matches nur mit Bestätigung der Warnung (UC-15) |
 | Pausieren, fortsetzen | jeder Teilnehmer | – |
 | Ergebnis eintragen, korrigieren | die beiden Spieler des Matches, Gruppen-Admin | bis Status `finished`; jede Korrektur landet in `match_correction` |
