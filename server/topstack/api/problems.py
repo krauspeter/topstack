@@ -49,7 +49,9 @@ def install(app: FastAPI) -> None:
     async def http_problem(_: Request, exc: StarletteHTTPException) -> JSONResponse:
         return JSONResponse(
             _body(
-                exc.status_code, exc.detail if exc.detail != TITLES.get(exc.status_code) else None
+                exc.status_code,
+                exc.detail if exc.detail != TITLES.get(exc.status_code) else None,
+                **getattr(exc, "extra", {}),
             ),
             status_code=exc.status_code,
             media_type=PROBLEM_JSON,
