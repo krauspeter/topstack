@@ -148,24 +148,26 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 
 ### AP-5 · Turnierablauf und Ergebnisse (ca. 10 h) · Branch `feat/p3-rounds` · UC-08, UC-09, UC-12 bis UC-17
 
-- [ ] Runde 1 starten erzeugt den Spielplan mit `domain/schedule.py`; Pause bei ungerader Spielerzahl. Fehlen Farben, Warnung mit Namen, mit Bestätigung trotzdem.
-- [ ] Nächste Runde durch jeden Teilnehmer, bei offenen Matches mit Warnung.
-- [ ] Offenes Match vorziehen mit `domain/suggestions.py`, Restplan neu verteilen.
-- [ ] Ergebnis eintragen ohne Tracker, bestätigen, korrigieren bis Turnierende (`match_correction`). Die Nachricht an den Gegner kommt mit Push in AP-8.
-- [ ] Turniertabelle mit `domain/standings.py`; Gleichstand nach allen Tiebreakern fordert einen W20-Wurf an.
-- [ ] Pausieren und fortsetzen.
-- [ ] Abbrechen: vor Runde 1 durch Starter oder Admin, ab Runde 1 direkt durch den Admin oder per Abstimmung mit mehr als der Hälfte der Teilnehmer (ADR-0013); Starter und Admin bestätigen für Gäste und Spieler ohne Konto.
-- [ ] Turnierabschluss, sobald alle Matches gespielt sind: Endplätze und Ranglistenpunkte festschreiben (`domain/ranking.py`), Siegerehrung.
+- [x] Runde 1 starten erzeugt den Spielplan mit `domain/schedule.py`; Pause bei ungerader Spielerzahl. Fehlen Farben, Warnung mit Namen, mit Bestätigung trotzdem.
+- [x] Nächste Runde durch jeden Teilnehmer, bei offenen Matches mit Warnung.
+- [x] Offenes Match vorziehen mit `domain/suggestions.py`, Restplan neu verteilen.
+- [x] Ergebnis eintragen ohne Tracker, bestätigen, korrigieren bis Turnierende (`match_correction`). Die Nachricht an den Gegner kommt mit Push in AP-8.
+- [x] Turniertabelle mit `domain/standings.py`; Gleichstand nach allen Tiebreakern fordert einen W20-Wurf an.
+- [x] Pausieren und fortsetzen.
+- [x] Abbrechen: vor Runde 1 durch Starter oder Admin, ab Runde 1 direkt durch den Admin oder per Abstimmung mit mehr als der Hälfte der Teilnehmer (ADR-0013); Starter und Admin bestätigen für Gäste und Spieler ohne Konto.
+- [x] Turnierabschluss, sobald alle Matches gespielt sind: Endplätze und Ranglistenpunkte festschreiben (`domain/ranking.py`), Siegerehrung.
+
+- [x] Testturnier mit 5 Spielern auf dem Heimserver bis zur Siegerehrung (20.11.2026, PR #108, #109, #110).
 
 **Fertig, wenn:** Ein Turnier mit 5 Spielern ist von Runde 1 bis zur Siegerehrung durchspielbar, nur mit eingetragenen Ergebnissen.
 
 ### AP-6 · Life-Tracker am Server (ca. 8 h) · Branch `feat/p3-tracker-sync` · UC-10, UC-11, N-01
 
-- Match aus dem Turnier starten; Modus „ein gemeinsames Handy“ oder „jeder sein eigenes“.
-- Ereignisse aus der App über eine Outbox an den Server senden (ADR-0012), offline weiterzählen, danach nachsenden.
-- Zweites Handy koppeln: Es zählt nur den eigenen Spieler und sieht den Gegner live.
-- Spielende mit Grund (`life_zero`, `concede`, `time`) speichern; das Matchergebnis entsteht automatisch (F-11).
-- Lokale Matches ohne Turnier aus Phase 2 bleiben möglich und bleiben auf dem Gerät.
+- [ ] Match aus dem Turnier starten; Modus „ein gemeinsames Handy“ oder „jeder sein eigenes“.
+- [ ] Ereignisse aus der App über eine Outbox an den Server senden (ADR-0012), offline weiterzählen, danach nachsenden.
+- [ ] Zweites Handy koppeln: Es zählt nur den eigenen Spieler und sieht den Gegner (bis AP-7 alle 2 Sekunden nachgeladen). Wer kein Konto hat, für den zählt ein Handy, das „für ihn“ gewählt wurde.
+- [ ] Spielende mit Grund (`life_zero`, `concede`, `time`) speichern; das Matchergebnis entsteht automatisch (F-11), nach Zeitablauf ohne Entscheidung per Bestätigung.
+- [ ] Lokale Matches ohne Turnier aus Phase 2 bleiben möglich und bleiben auf dem Gerät.
 
 **Fertig, wenn:** Zwei Handys zählen dasselbe Match, eines geht kurz offline, danach stimmen Lebenspunkte und Ergebnis auf beiden und auf dem Server.
 

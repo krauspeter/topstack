@@ -36,6 +36,13 @@ Offene Punkte aus Phase 2:
 **Wiederverbinden**
 - Nach einem Abbruch lädt die App `GET /games/{gameId}/events?after_seq=` pro Gerät nach, führt die Ereignisse mit `mergeEvents` zusammen und abonniert neu.
 
+## Umsetzung in AP-6 (ergänzt am 20.11.2026)
+- **Ein Stapel pro Match statt pro Spiel:** `POST /tournaments/{tid}/matches/{mid}/events`. Jedes Ereignis trägt seine `game_id`; die Outbox schickt alle offenen Ereignisse eines Matches auf einmal, auch über mehrere Spiele. Ein eigenes `PUT …/games/{gameId}` entfällt: Der Server legt das Spiel beim `game_start` an und beendet es beim `game_end`.
+- **Abgelehnte Ereignisse** stehen in der Antwort unter `rejected` mit Grund; der Rest des Stapels wird gespeichert. Die App nimmt sie aus ihrem Protokoll und zeigt einen Hinweis. Das betrifft das widersprüchliche zweite Spielende und Lebenspunkte für den falschen Spieler.
+- **Zwei Handys ohne eigene Konten:** Im Modus `dual` zählt ein Gerät (`device_id`) im ganzen Match nur einen Spieler; der Server merkt sich das am ersten Lebenspunkte-Ereignis. So kann auch ein Handy für einen Spieler ohne Konto zählen.
+- **Nachladen:** Bis zum WebSocket in AP-7 fragt das Handy alle 2 Sekunden `GET /tournaments/{tid}/matches/{mid}/tracker` ab; die Antwort enthält alle Ereignisse des Matches (ein Match hat wenige Hundert), `mergeEvents` führt sie zusammen.
+- **Matchergebnis:** Der Server übernimmt die Spielsiege laufend und schließt das Match bei 2 Siegen oder einem unentschiedenen Spiel ab. Endet ein Match durch das Zeitlimit ohne Entscheidung (z. B. 1:0 oder 1:1), bestätigt ein Spieler das Ergebnis in der App (UC-12, `PUT …/result`).
+
 ## Alternativen
 - **Direkt an den Server schreiben, ohne lokale Kopie:** einfacher, aber bei Funkloch geht das Spiel verloren (verletzt N-01).
 - **Hintergrund-Sync per Service Worker (Background Sync API):** wird von Safari auf dem iPhone nicht unterstützt; die Outbox im Vordergrund funktioniert überall.

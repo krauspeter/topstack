@@ -72,10 +72,9 @@ Turnier-Antworten enthalten `actions`: was der angemeldete Nutzer im aktuellen S
 
 | Methode | Pfad | Zweck | UC |
 | --- | --- | --- | --- |
-| POST | `/matches/{mid}/start` | Match starten, `tracker_mode` = `shared` / `dual` | UC-10 |
-| PUT | `/matches/{mid}/games/{gameId}` | Spiel anlegen/abschließen (ID vom Gerät, idempotent) | – |
-| POST | `/games/{gameId}/events` | Stapel von Ereignissen hochladen (idempotent) | UC-10, UC-11 |
-| GET | `/games/{gameId}/events?after_seq=` | Ereignisse nachladen | UC-11 |
+| POST | `/tournaments/{tid}/matches/{mid}/tracker` | Match mit dem Life-Tracker starten (`{mode: "shared" \| "dual"}`), idempotent; Antwort wie `GET` | UC-10 |
+| GET | `/tournaments/{tid}/matches/{mid}/tracker` | Spieler, Startleben, Zeitlimit, Stand des Matches und alle Ereignisse; zum Koppeln des zweiten Handys und zum Nachladen | UC-11 |
+| POST | `/tournaments/{tid}/matches/{mid}/events` | Stapel aus der Outbox (idempotent, bis 500 Ereignisse, mehrere Spiele möglich); Spiele entstehen beim `game_start` | UC-10, UC-11 |
 | PUT | `/matches/{mid}/result` | Ergebnis bestätigen oder direkt eintragen | UC-12, UC-13 |
 | PATCH | `/matches/{mid}/result` | Ergebnis korrigieren (wird protokolliert) | UC-14 |
 
@@ -98,7 +97,9 @@ Turnier-Antworten enthalten `actions`: was der angemeldete Nutzer im aktuellen S
 }
 ```
 
-Antwort `200`: `{ "accepted": ["0193…"], "duplicates": [] }`. Bekannte IDs landen in `duplicates`, das ist kein Fehler.
+Jedes Ereignis trägt zusätzlich `game_id`; `game_end` trägt `reason` (`life_zero`, `concede`, `time`, `manual`).
+
+Antwort `200`: `{ "accepted": ["0193…"], "duplicates": [], "rejected": [{ "id": "…", "detail": "…" }], "match": { "status", "games_a", "games_b", "games_drawn", "version" } }`. Bekannte IDs landen in `duplicates`, das ist kein Fehler. Widersprüchliche Ereignisse landen in `rejected`, der Rest des Stapels wird trotzdem gespeichert (ADR-0012).
 
 Ereignisarten: `game_start`, `die_roll` (`value` 1–20), `life` (`delta` ≠ 0), `undo` (`undo_of`), `game_end`.
 
