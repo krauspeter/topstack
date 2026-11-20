@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { type GameEvent, lastUndoable, uuidv7 } from '../domain/lifeEvents';
-import { type MatchConfig, type MatchState, createEvent, matchState } from '../domain/match';
+import { type EndReason, type GameEvent, lastUndoable, mergeEvents, uuidv7 } from '../domain/lifeEvents';
+import { type MatchConfig, type MatchState, type RemoteStatus, controls, createEvent, matchState } from '../domain/match';
+import { freshEvents } from '../domain/remote';
 import { useNow } from '../hooks';
 import { type MatchRecord, loadActiveMatch, saveMatch } from './db';
 
@@ -20,7 +21,7 @@ export function deviceId(): string {
   }
 }
 
-type NewEvent = Pick<GameEvent, 'gameId' | 'playerId' | 'type'> & Partial<Pick<GameEvent, 'delta' | 'value' | 'undoOf'>>;
+type NewEvent = Pick<GameEvent, 'gameId' | 'playerId' | 'type'> & Partial<Pick<GameEvent, 'delta' | 'value' | 'undoOf' | 'reason'>>;
 
 function withEvents(record: MatchRecord, device: string, fresh: NewEvent[]): MatchRecord {
   let seq = record.events.reduce((max, e) => (e.deviceId === device ? Math.max(max, e.seq) : max), 0);
@@ -47,9 +48,13 @@ export interface MatchApi {
   changeLife(playerId: string, delta: number): void;
   undo(): void;
   /** `null` = Spiel endet unentschieden (nur nach Zeitablauf). */
-  endGame(winner: string | null): void;
+  endGame(winner: string | null, reason?: EndReason): void;
   startNextGame(starter: string): void;
   close(): void;
+  /** Turnier-Match vom Server öffnen; ersetzt ein laufendes lokales Match nicht. */
+  openRemote(config: MatchConfig, events: GameEvent[]): boolean;
+  /** Ereignisse vom Server übernehmen und abgelehnte eigene entfernen (ADR-0012). */
+  applyServer(matchId: string, incoming: GameEvent[], rejected: readonly string[], server?: RemoteStatus): void;
 }
 
 export function useMatch(): MatchApi {
@@ -59,11 +64,15 @@ export function useMatch(): MatchApi {
   // Aktueller Stand auch außerhalb des Renderns, damit schnelle Tipps nie einen alten Stand sehen.
   const current = useRef<MatchRecord | null>(null);
 
-  const commit = useCallback((next: MatchRecord | null, persist: MatchRecord | null = next) => {
-    current.current = next;
-    setRecordState(next);
-    if (persist) saveMatch(persist).catch((err: unknown) => console.error('Spielstand konnte nicht gespeichert werden', err));
-  }, []);
+  const commit = useCallback(
+    (next: MatchRecord | null, persist: MatchRecord | null = next, fresh: readonly GameEvent[] = []) => {
+      current.current = next;
+      setRecordState(next);
+      if (persist)
+        saveMatch(persist, fresh).catch((err: unknown) => console.error('Spielstand konnte nicht gespeichert werden', err));
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -84,7 +93,7 @@ export function useMatch(): MatchApi {
       const prev = current.current;
       if (!prev) return;
       const next = fn(prev);
-      if (next !== prev) commit(next);
+      if (next !== prev) commit(next, next, freshEvents(prev.events, next.events));
     },
     [commit],
   );
@@ -126,7 +135,7 @@ export function useMatch(): MatchApi {
     (playerId: string, delta: number) =>
       update((r) => {
         const s = matchState(r.config, r.events);
-        if (s.phase !== 'playing' || !s.current) return r;
+        if (s.phase !== 'playing' || !s.current || !controls(r.config, playerId)) return r;
         return withEvents(r, device, [{ gameId: s.current.gameId, playerId, type: 'life', delta }]);
       }),
     [device, update],
@@ -148,11 +157,11 @@ export function useMatch(): MatchApi {
   );
 
   const endGame = useCallback(
-    (winner: string | null) =>
+    (winner: string | null, reason: EndReason = winner === null ? 'time' : 'manual') =>
       update((r) => {
         const s = matchState(r.config, r.events);
         if (!s.current) return r;
-        return withEvents(r, device, [{ gameId: s.current.gameId, playerId: winner, type: 'game_end' }]);
+        return withEvents(r, device, [{ gameId: s.current.gameId, playerId: winner, type: 'game_end', reason }]);
       }),
     [device, update],
   );
@@ -172,5 +181,48 @@ export function useMatch(): MatchApi {
     commit(null, prev ? { ...prev, status: 'closed', updatedAt: new Date().toISOString() } : null);
   }, [commit]);
 
-  return { loaded, record, state, start, beginFirstGame, changeLife, undo, endGame, startNextGame, close };
+  const openRemote = useCallback(
+    (config: MatchConfig, events: GameEvent[]): boolean => {
+      const prev = current.current;
+      if (prev && prev.id !== config.id && !prev.config.remote) return false; // lokales Match läuft noch
+      const now = new Date().toISOString();
+      const known = prev?.id === config.id ? prev.events : [];
+      commit({ id: config.id, config, events: mergeEvents(known, events), status: 'active', updatedAt: now });
+      return true;
+    },
+    [commit],
+  );
+
+  const applyServer = useCallback(
+    (matchId: string, incoming: GameEvent[], rejected: readonly string[], server?: RemoteStatus) => {
+      const prev = current.current;
+      if (!prev || prev.id !== matchId || !prev.config.remote) return;
+      const drop = new Set(rejected);
+      const events = mergeEvents(
+        prev.events.filter((e) => !drop.has(e.id)),
+        incoming.filter((e) => !drop.has(e.id)),
+      );
+      const changed = events.length !== prev.events.length || drop.size > 0;
+      const remote = server ? { ...prev.config.remote, server } : prev.config.remote;
+      const statusChanged = JSON.stringify(remote.server) !== JSON.stringify(prev.config.remote.server);
+      if (!changed && !statusChanged) return;
+      commit({ ...prev, config: { ...prev.config, remote }, events, updatedAt: new Date().toISOString() });
+    },
+    [commit],
+  );
+
+  return {
+    loaded,
+    record,
+    state,
+    start,
+    beginFirstGame,
+    changeLife,
+    undo,
+    endGame,
+    startNextGame,
+    close,
+    openRemote,
+    applyServer,
+  };
 }

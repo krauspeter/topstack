@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { type MatchConfig, type MatchState, formatDuration, gameDuration, isDrawn, opponentOf } from '../domain/match';
 
 interface ChooseProps {
@@ -41,9 +42,15 @@ interface EndProps {
   state: MatchState;
   onRematch(): void;
   onDone(): void;
+  /** Turnier-Match: Ergebnis bestätigen, falls der Server es nicht schon selbst abgeschlossen hat. */
+  onConfirm?(): Promise<void>;
 }
 
-export function MatchEnd({ config, state, onRematch, onDone }: EndProps) {
+export function MatchEnd({ config, state, onRematch, onDone, onConfirm }: EndProps) {
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const remote = config.remote;
+  const serverDone = remote?.server?.status === 'finished';
   const ids = config.players.map((p) => p.id);
   const name = (id: string | null) => config.players.find((p) => p.id === id)?.name ?? '–';
   const winner = state.winner;
@@ -84,14 +91,52 @@ export function MatchEnd({ config, state, onRematch, onDone }: EndProps) {
             ))}
           </tbody>
         </table>
-        <div className="stack">
-          <button className="btn primary big" onClick={onRematch}>
-            Rückspiel
-          </button>
-          <button className="btn big" onClick={onDone}>
-            Fertig
-          </button>
-        </div>
+        {remote ? (
+          <div className="stack">
+            {serverDone ? (
+              <p className="ok small" data-testid="result-saved">
+                Ergebnis ist im Turnier eingetragen.
+              </p>
+            ) : (
+              onConfirm && (
+                <button
+                  className="btn primary big"
+                  disabled={sending}
+                  onClick={async () => {
+                    setSending(true);
+                    setError(null);
+                    try {
+                      await onConfirm();
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : 'Fehler beim Speichern');
+                    } finally {
+                      setSending(false);
+                    }
+                  }}
+                >
+                  Ergebnis ins Turnier übernehmen
+                </button>
+              )
+            )}
+            {error && (
+              <p className="warn" role="alert">
+                {error}
+              </p>
+            )}
+            <button className={serverDone ? 'btn primary big' : 'btn big'} onClick={onDone}>
+              Zurück zum Turnier
+            </button>
+          </div>
+        ) : (
+          <div className="stack">
+            <button className="btn primary big" onClick={onRematch}>
+              Rückspiel
+            </button>
+            <button className="btn big" onClick={onDone}>
+              Fertig
+            </button>
+          </div>
+        )}
       </div>
     </main>
   );

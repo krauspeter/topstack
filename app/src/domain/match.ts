@@ -10,7 +10,7 @@
  * Der Zustand wird nie gespeichert, sondern immer neu berechnet. So lässt sich später
  * jedes Ereignis an den Server schicken (Phase 3) und für Statistiken auswerten (Phase 8).
  */
-import { type EventSource, type GameEvent, lifeTotals } from './lifeEvents';
+import { type EndReason, type EventSource, type GameEvent, lifeTotals } from './lifeEvents';
 
 export interface MatchPlayer {
   id: string;
@@ -29,6 +29,33 @@ export interface MatchConfig {
   /** Zeitlimit für das ganze Match in Minuten ab Beginn von Spiel 1, `null` = aus (F-12). */
   timeLimitMin?: number | null;
   createdAt: string;
+  /** Turnier-Match auf dem Server (ADR-0012); fehlt bei lokalen Matches, die nie hochgeladen werden. */
+  remote?: RemoteMatch;
+}
+
+/** Stand des Matches laut Server; die App rechnet trotzdem immer selbst. */
+export interface RemoteStatus {
+  status: 'scheduled' | 'running' | 'finished';
+  gamesA: number;
+  gamesB: number;
+  gamesDrawn: number;
+  version: number;
+}
+
+export interface RemoteMatch {
+  tournamentId: string;
+  matchId: string;
+  /** `shared`: ein Handy zählt beide; `dual`: jedes Handy nur einen Spieler (UC-11). */
+  mode: 'shared' | 'dual';
+  /** Im Modus `dual` der Spieler, den dieses Handy zählt. */
+  myPlayer: string | null;
+  server?: RemoteStatus;
+}
+
+/** Darf dieses Handy die Lebenspunkte dieses Spielers ändern? */
+export function controls(config: MatchConfig, playerId: string): boolean {
+  const r = config.remote;
+  return !r || r.mode === 'shared' || r.myPlayer === playerId;
 }
 
 /** Nach Ablauf des Zeitlimits folgen noch so viele Extra-Züge (Festlegung „Zeitlimit“). */
@@ -196,7 +223,7 @@ export function formatDelta(delta: number): string {
 /** Baut ein Ereignis mit allen Pflichtfeldern. */
 export function createEvent(
   fields: Pick<GameEvent, 'id' | 'gameId' | 'playerId' | 'type' | 'deviceId' | 'seq'> &
-    Partial<Pick<GameEvent, 'delta' | 'value' | 'undoOf'>> & { source?: EventSource },
+    Partial<Pick<GameEvent, 'delta' | 'value' | 'undoOf'>> & { source?: EventSource; reason?: EndReason },
   now: number = Date.now(),
 ): GameEvent {
   return { source: 'app', clientTs: new Date(now).toISOString(), ...fields };

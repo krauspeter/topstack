@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { api } from './api/client';
 import { useWakeLock } from './hooks';
 import { useLocation } from './router';
 import { Invitation } from './screens/account/Invitation';
@@ -16,6 +17,7 @@ import { Setup } from './screens/Setup';
 import { Tracker } from './screens/Tracker';
 import { useAccount } from './store/useAccount';
 import { useMatch } from './store/useMatch';
+import { useSync } from './store/useSync';
 import { playerColors } from './theme';
 
 type Screen = 'home' | 'setup' | 'seating';
@@ -26,6 +28,7 @@ type Screen = 'home' | 'setup' | 'seating';
  */
 export function App() {
   const match = useMatch();
+  const sync = useSync(match);
   const { account, signedIn, signOut, refresh } = useAccount();
   const { url, navigate } = useLocation();
   const [screen, setScreen] = useState<Screen>('home');
@@ -116,7 +119,18 @@ export function App() {
       return <TournamentHome me={account.me} onOpen={(tid) => navigate(`/turnier/${tid}`)} onBack={home} />;
     }
     return (
-      <TournamentView key={id} id={id} me={account.me} onBack={() => navigate('/turnier')} onDeleted={() => navigate('/turnier', true)} />
+      <TournamentView
+        key={id}
+        id={id}
+        me={account.me}
+        onBack={() => navigate('/turnier')}
+        onDeleted={() => navigate('/turnier', true)}
+        onPlay={(config, events) => {
+          if (!match.openRemote(config, events)) return false;
+          navigate('/');
+          return true;
+        }}
+      />
     );
   }
 
@@ -162,9 +176,19 @@ export function App() {
 
   if (record && state) {
     const { config } = record;
+    const remote = config.remote;
     switch (state.phase) {
       case 'roll':
-        return <Roll players={config.players} onStart={match.beginFirstGame} onCancel={match.close} />;
+        return (
+          <Roll
+            players={config.players}
+            onStart={match.beginFirstGame}
+            onCancel={() => {
+              match.close();
+              if (remote) navigate(`/turnier/${remote.tournamentId}`);
+            }}
+          />
+        );
       case 'playing':
         return (
           <Tracker
@@ -174,7 +198,11 @@ export function App() {
             onChange={match.changeLife}
             onUndo={match.undo}
             onWin={match.endGame}
-            onAbort={match.close}
+            onAbort={() => {
+              match.close();
+              if (config.remote) navigate(`/turnier/${config.remote.tournamentId}`);
+            }}
+            sync={config.remote ? sync : undefined}
           />
         );
       case 'choose':
@@ -196,7 +224,26 @@ export function App() {
             onDone={() => {
               match.close();
               setScreen('home');
+              if (config.remote) navigate(`/turnier/${config.remote.tournamentId}`);
             }}
+            onConfirm={
+              remote
+                ? async () => {
+                    const r = remote;
+                    const ids = config.players.map((p) => p.id);
+                    await api(`/tournaments/${r.tournamentId}/matches/${r.matchId}/result`, {
+                      method: 'PUT',
+                      body: {
+                        games_a: state.wins[ids[0]],
+                        games_b: state.wins[ids[1]],
+                        games_drawn: state.games.filter((g) => g.endedAt !== null && g.winner === null).length,
+                      },
+                    });
+                    match.close();
+                    navigate(`/turnier/${r.tournamentId}`);
+                  }
+                : undefined
+            }
           />
         );
     }

@@ -1,5 +1,9 @@
-import { useState } from 'react';
-import type { MatchInfo, Standing, Tournament } from '../../api/types';
+import { useEffect, useState } from 'react';
+import { api, errorText } from '../../api/client';
+import type { MatchInfo, Standing, Tournament, TrackerInfo } from '../../api/types';
+import type { GameEvent } from '../../domain/lifeEvents';
+import type { MatchConfig } from '../../domain/match';
+import { configFromTracker, defaultSide, fromApi } from '../../domain/remote';
 
 /** Ergebnisse eines Best-of-3, auch nach Zeitablauf; aus Sicht von Spieler A. */
 const RESULTS: readonly [number, number][] = [
@@ -21,14 +25,17 @@ interface Props {
   /** Startet die nächste Runde; Warnungen fragt die Turnierseite ab. */
   onNextRound(): void;
   onAct(path: string, method?: 'POST' | 'PUT' | 'DELETE', body?: unknown): Promise<void>;
+  /** Life-Tracker für ein Turnier-Match öffnen; `false`, wenn noch ein freies Match läuft. */
+  onPlay(config: MatchConfig, events: GameEvent[]): boolean;
 }
 
 const score = (m: MatchInfo) =>
   m.games_drawn ? `${m.games_a}:${m.games_b} (+${m.games_drawn})` : `${m.games_a}:${m.games_b}`;
 
 /** Turnier spielen: Runden, Ergebnisse, Tabelle, Abschluss (UC-08 bis UC-17). */
-export function TournamentPlay({ t, busy, helper, can, onNextRound, onAct }: Props) {
+export function TournamentPlay({ t, busy, helper, can, onNextRound, onAct, onPlay }: Props) {
   const [editing, setEditing] = useState<MatchInfo | null>(null);
+  const [playing_, setPlaying] = useState<MatchInfo | null>(null);
   const [showPlan, setShowPlan] = useState(false);
 
   const current = t.rounds.find((r) => r.number === t.current_round) ?? null;
@@ -114,7 +121,7 @@ export function TournamentPlay({ t, busy, helper, can, onNextRound, onAct }: Pro
           <h3>
             Runde {current.number} von {t.rounds.length}
           </h3>
-          <MatchList matches={[...current.matches, ...pulled, ...leftovers]} onEdit={setEditing} />
+          <MatchList matches={[...current.matches, ...pulled, ...leftovers]} onEdit={setEditing} onPlay={setPlaying} />
           {current.bye && <p className="muted small">Pause: {current.bye}</p>}
 
           {suggestion && suggestion.status === 'scheduled' && (
@@ -180,6 +187,10 @@ export function TournamentPlay({ t, busy, helper, can, onNextRound, onAct }: Pro
         </section>
       )}
 
+      {playing_ && (
+        <PlaySheet tournamentId={t.id} match={playing_} onPlay={onPlay} onClose={() => setPlaying(null)} />
+      )}
+
       {editing && (
         <ResultSheet
           match={editing}
@@ -204,10 +215,12 @@ export function TournamentPlay({ t, busy, helper, can, onNextRound, onAct }: Pro
 function MatchList({
   matches,
   onEdit,
+  onPlay,
   later = false,
 }: {
   matches: MatchInfo[];
   onEdit?: (m: MatchInfo) => void;
+  onPlay?: (m: MatchInfo) => void;
   /** Runde ist noch nicht gestartet: offene Matches erst vorziehen. */
   later?: boolean;
 }) {
@@ -222,14 +235,121 @@ function MatchList({
             </span>
             <span className="match-score">{m.status === 'finished' ? score(m) : m.status === 'running' ? 'läuft' : '–'}</span>
             {editable && (
-              <button className="btn" onClick={() => onEdit(m)}>
-                {m.status === 'finished' ? 'Ändern' : 'Ergebnis'}
-              </button>
+              <span className="match-actions">
+                {onPlay && m.status !== 'finished' && (
+                  <button className="btn primary" onClick={() => onPlay(m)}>
+                    {m.status === 'running' ? 'Tracker' : 'Spielen'}
+                  </button>
+                )}
+                <button className="btn" onClick={() => onEdit(m)}>
+                  {m.status === 'finished' ? 'Ändern' : 'Ergebnis'}
+                </button>
+              </span>
             )}
           </li>
         );
       })}
     </ul>
+  );
+}
+
+/**
+ * Match mit dem Life-Tracker spielen (UC-10, UC-11): Modus wählen, im Modus „jeder sein
+ * Handy“ wählen, wen dieses Handy zählt. Läuft das Match schon, koppelt das Handy dazu.
+ */
+function PlaySheet({
+  tournamentId,
+  match,
+  onPlay,
+  onClose,
+}: {
+  tournamentId: string;
+  match: MatchInfo;
+  onPlay(config: MatchConfig, events: GameEvent[]): boolean;
+  onClose(): void;
+}) {
+  const [info, setInfo] = useState<TrackerInfo | null>(null);
+  const [step, setStep] = useState<'load' | 'mode' | 'side'>('load');
+  const [error, setError] = useState<string | null>(null);
+  const base = `/tournaments/${tournamentId}/matches/${match.id}/tracker`;
+
+  const open = (i: TrackerInfo, side: string | null) => {
+    if (!onPlay(configFromTracker(i, side), i.events.map(fromApi))) {
+      setError('Auf diesem Handy läuft noch ein freies Match. Beende es zuerst.');
+    }
+  };
+
+  const proceed = (i: TrackerInfo) => {
+    setInfo(i);
+    if (i.match.tracker_mode === 'dual' && defaultSide(i) === null) setStep('side');
+    else open(i, defaultSide(i));
+  };
+
+
+  const choose = async (mode: 'shared' | 'dual') => {
+    setError(null);
+    try {
+      proceed(await api<TrackerInfo>(base, { method: 'POST', body: { mode } }));
+    } catch (err) {
+      setError(errorText(err));
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    api<TrackerInfo>(base)
+      .then((i) => {
+        if (!active) return;
+        setInfo(i);
+        // Noch kein Spiel: Modus wählen; sonst gleich dazukoppeln
+        if (i.events.length === 0) setStep('mode');
+        else proceed(i);
+      })
+      .catch((err: unknown) => active && setError(errorText(err)));
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nur beim Öffnen laden
+  }, [base]);
+
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-label="Match spielen">
+      <div className="sheet">
+        <h2>
+          {match.player_a} <span className="muted">gegen</span> {match.player_b}
+        </h2>
+        {step === 'load' && !error && <p className="muted">Lade Match …</p>}
+        {step === 'mode' && (
+          <>
+            <p className="muted small">Wie zählt ihr die Lebenspunkte?</p>
+            <button className="btn primary big" onClick={() => void choose('shared')}>
+              Ein Handy für beide
+            </button>
+            <button className="btn big" onClick={() => void choose('dual')}>
+              Jeder sein eigenes Handy
+            </button>
+          </>
+        )}
+        {step === 'side' && info && (
+          <>
+            <p className="muted small">Für wen zählt dieses Handy?</p>
+            {[info.player_a, info.player_b].map((p) => (
+              <button key={p.id} className="btn big" onClick={() => open(info, p.id)}>
+                {p.display_name}
+              </button>
+            ))}
+          </>
+        )}
+        {error && (
+          <p className="warn" role="alert">
+            {error}
+          </p>
+        )}
+        <button className="btn" onClick={onClose}>
+          Abbrechen
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -266,7 +266,7 @@ input { min-width: 0; max-width: 100%; }
 
 /* ---------- Turnier spielen (AP-5) ---------- */
 .match-list { list-style: none; padding: 0; display: grid; gap: 8px; }
-.match-list li { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+.match-list li { display: grid; grid-template-columns: 1fr auto; grid-template-areas: 'names score' 'actions actions'; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
 .match-list li.mine { border-color: var(--gold); }
 .match-names { min-width: 0; overflow-wrap: anywhere; }
 .match-score { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 3ch; text-align: center; }
@@ -276,3 +276,11 @@ input { min-width: 0; max-width: 100%; }
 .standings td, .standings th { text-align: center; }
 .standings .left { text-align: left; }
 .podium { list-style: none; padding: 0; display: grid; gap: 6px; font-size: 1.15rem; }
+
+/* ---------- Tracker am Server (AP-6) ---------- */
+.step.off { visibility: hidden; }
+.sync { font-size: 0.75rem; color: var(--gold); }
+.sync.ok { color: var(--muted); }
+.match-names { grid-area: names; }
+.match-score { grid-area: score; }
+.match-actions { grid-area: actions; display: flex; gap: 8px; justify-content: flex-end; }
