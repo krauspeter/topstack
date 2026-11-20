@@ -108,6 +108,8 @@ export interface CancelVote {
   required: number;
   participants: number;
   i_voted: boolean;
+  /** Spieler-IDs, die schon bestätigt haben. */
+  voters: string[];
 }
 
 export interface Entry {

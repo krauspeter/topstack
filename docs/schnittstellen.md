@@ -170,7 +170,8 @@ Aus der Planung von [Phase 3](phase3/README.md) und ADR-0012 und ADR-0013. Sie w
 | POST | `/tournaments/{tid}/cancel` | Turnier abbrechen (`cancelled`, ADR-0013): vor Runde 1 durch Starter oder Admin, ab Runde 1 direkt nur durch den Admin | AP-5 |
 | POST | `/tournaments/{tid}/cancel-request` | Abbruch per Abstimmung beantragen (Starter oder Admin, ab Runde 1); `409`, wenn schon ein Antrag offen ist | AP-5 |
 | DELETE | `/tournaments/{tid}/cancel-request` | Antrag zurückziehen (Antragsteller oder Admin) | AP-5 |
-| PUT, DELETE | `/tournaments/{tid}/cancel-request/vote` | Eigene Bestätigung abgeben oder zurücknehmen; Antwort enthält `cancel_vote` mit `confirmed`, `required`, `participants`, `i_voted` | AP-5 |
+| PUT, DELETE | `/tournaments/{tid}/cancel-request/vote` | Eigene Bestätigung abgeben oder zurücknehmen; Antwort enthält `cancel_vote` mit `confirmed`, `required`, `participants`, `i_voted`, `voters` | AP-5 |
+| PUT, DELETE | `/tournaments/{tid}/cancel-request/votes/{pid}` | Starter oder Admin bestätigen für Gäste und Spieler ohne Konto (wie bei den Farben) | AP-5 |
 | GET | `/tournaments/{tid}/live` | Kompletter Live-Stand in einem Aufruf: Runden, Matches, Lebenspunkte, Tabelle. Für das Nachladen nach einem Verbindungsabbruch | AP-7 |
 | POST | `/tournaments/{tid}/tiebreak-roll` | W20-Wurf bei Gleichstand nach allen Tiebreakern | AP-5 |
 

@@ -30,13 +30,20 @@ from topstack.domain.standings import MatchPoints, MatchResult, StandingRow, com
 from topstack.domain.suggestions import suggest_open_match
 from topstack.domain.tournament import (
     Action,
+    Actor,
     Status,
     cancel_majority,
     check,
     missing_colors,
     valid_result,
 )
-from topstack.services.tournaments import Conflict, Context, Forbidden, NotFound
+from topstack.services.tournaments import (
+    FOR_OTHERS_KINDS,
+    Conflict,
+    Context,
+    Forbidden,
+    NotFound,
+)
 
 
 class MissingColors(Exception):
@@ -379,6 +386,7 @@ async def finish(db: AsyncSession, ctx: Context) -> None:
         entry.ranking_points = ranking_points(count, row.rank, rules.placement_bonus)
     for rnd in ov.rounds:
         rnd.status = "finished"
+    await _clear_request(db, ctx)  # ein offener Abbruchantrag endet mit dem Turnier
     ctx.tournament.status = Status.FINISHED
     ctx.tournament.finished_at = now()
     await db.flush()
@@ -396,6 +404,7 @@ class CancelVote:
     required: int
     participants: int
     i_voted: bool
+    voters: list[uuid.UUID]
 
 
 async def cancel_vote_state(db: AsyncSession, ctx: Context) -> CancelVote | None:
@@ -416,6 +425,7 @@ async def cancel_vote_state(db: AsyncSession, ctx: Context) -> CancelVote | None
         required=participants // 2 + 1,
         participants=participants,
         i_voted=me in votes,
+        voters=votes,
     )
 
 
@@ -466,15 +476,35 @@ async def withdraw_cancel(db: AsyncSession, ctx: Context) -> None:
     await db.flush()
 
 
-async def vote_cancel(db: AsyncSession, ctx: Context, *, yes: bool) -> None:
-    check(Action.VOTE_CANCEL, ctx.status, ctx.actor)
+async def vote_cancel(
+    db: AsyncSession, ctx: Context, *, yes: bool, player_id: uuid.UUID | None = None
+) -> None:
+    """Abbruch bestätigen oder zurücknehmen.
+
+    Jeder für sich; für Gäste und Spieler ohne Konto auch Starter oder Admin,
+    wie beim Melden der Farben (Entscheidung vom 20.11.2026).
+    """
     t = ctx.tournament
+    me = ctx.my_player.id if ctx.my_player else None
+    voter = player_id or me
+    if voter is None:
+        raise Forbidden
+    if voter == me:
+        check(Action.VOTE_CANCEL, ctx.status, ctx.actor)
+    else:
+        entry = await db.get(TournamentEntry, (t.id, voter))
+        if entry is None or entry.status != "accepted":
+            raise NotFound
+        target = await db.get(Player, voter)
+        helper = ctx.actor.is_starter or ctx.actor.is_admin
+        if target is None or target.kind not in FOR_OTHERS_KINDS or not helper:
+            raise Forbidden
+        check(Action.VOTE_CANCEL, ctx.status, Actor(is_participant=True))
     if t.cancel_requested_by is None:
         raise NotFound
-    assert ctx.my_player is not None
-    existing = await db.get(TournamentCancelVote, (t.id, ctx.my_player.id))
+    existing = await db.get(TournamentCancelVote, (t.id, voter))
     if yes and existing is None:
-        db.add(TournamentCancelVote(tournament_id=t.id, player_id=ctx.my_player.id))
+        db.add(TournamentCancelVote(tournament_id=t.id, player_id=voter))
     elif not yes and existing is not None:
         await db.delete(existing)
     await db.flush()

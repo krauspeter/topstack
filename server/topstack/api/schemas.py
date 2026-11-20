@@ -199,6 +199,7 @@ class CancelVoteOut(BaseModel):
     required: int
     participants: int
     i_voted: bool
+    voters: list[uuid.UUID]  # wer schon bestätigt hat (Spieler-IDs)
 
 
 class TournamentOut(BaseModel):

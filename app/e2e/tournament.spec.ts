@@ -424,12 +424,12 @@ test('Abbruch per Abstimmung bestätigen', async ({ page }) => {
   let state: Record<string, unknown> = {
     ...runningState(),
     actions: ['report_result', 'next_round', 'pause', 'finish', 'vote_cancel'],
-    cancel_vote: { requested_by: 'Anna', confirmed: 1, required: 3, participants: 4, i_voted: false },
+    cancel_vote: { requested_by: 'Anna', confirmed: 1, required: 3, participants: 4, i_voted: false, voters: ['p-anna'] },
   };
   await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, 200, state));
   await page.route(`**/api/v1/tournaments/${TID}/cancel-request/vote`, async (route) => {
     expect(route.request().method()).toBe('PUT');
-    state = { ...state, cancel_vote: { requested_by: 'Anna', confirmed: 2, required: 3, participants: 4, i_voted: true } };
+    state = { ...state, cancel_vote: { requested_by: 'Anna', confirmed: 2, required: 3, participants: 4, i_voted: true, voters: ['p-anna', ME_PLAYER] } };
     return json(route, 200, state);
   });
   await page.goto(`/turnier/${TID}`);
@@ -438,4 +438,23 @@ test('Abbruch per Abstimmung bestätigen', async ({ page }) => {
   await vote.getByRole('button', { name: 'Abbruch bestätigen' }).click();
   await expect(vote).toContainText('2 von 4');
   await expect(vote.getByRole('button', { name: 'Bestätigung zurücknehmen' })).toBeVisible();
+});
+
+test('Starter bestätigt den Abbruch für Spieler ohne Konto', async ({ page }) => {
+  await mockBase(page);
+  const vote = (voters: string[]) => ({ requested_by: 'Peter', confirmed: voters.length, required: 2, participants: 3, i_voted: true, voters });
+  let state: Record<string, unknown> = { ...runningState(), cancel_vote: vote([ME_PLAYER]) };
+  await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, 200, state));
+  const calls: string[] = [];
+  await page.route(`**/api/v1/tournaments/${TID}/cancel-request/votes/*`, async (route) => {
+    calls.push(`${route.request().method()} ${route.request().url().split('/votes/')[1]}`);
+    state = { ...state, status: 'cancelled', cancel_vote: null, rounds: [], actions: ['delete'] };
+    return json(route, 200, state);
+  });
+  await page.goto(`/turnier/${TID}`);
+  const group = page.getByRole('group', { name: 'Bestätigen für' });
+  await expect(group.getByRole('button')).toHaveText(['Ben', 'Chris']); // Peter stimmt selbst ab
+  await group.getByRole('button', { name: 'Ben' }).click();
+  await expect(page.getByText('Dieses Turnier wurde abgebrochen und zählt nicht.')).toBeVisible();
+  expect(calls).toEqual(['PUT p-ben']);
 });

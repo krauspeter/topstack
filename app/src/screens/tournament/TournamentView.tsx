@@ -267,7 +267,14 @@ export function TournamentView({ id, me, onBack, onDeleted }: Props) {
       )}
 
       {t.rounds.length > 0 && (
-        <TournamentPlay t={t} busy={busy} can={can} onNextRound={() => void startRound()} onAct={act} />
+        <TournamentPlay
+          t={t}
+          busy={busy}
+          helper={isStarter || isAdmin}
+          can={can}
+          onNextRound={() => void startRound()}
+          onAct={act}
+        />
       )}
 
       {t.status === 'seated' && (
