@@ -14,6 +14,9 @@ from topstack.api.schemas import (
     ColorsBody,
     ConfirmBody,
     EntryOut,
+    EventBatch,
+    EventBatchResult,
+    EventBody,
     GuestInfo,
     GuestJoin,
     GuestJoined,
@@ -21,6 +24,7 @@ from topstack.api.schemas import (
     InviteBody,
     MatchOut,
     PlayerOut,
+    RejectedEvent,
     ReservedCreate,
     RespondBody,
     ResultBody,
@@ -30,11 +34,15 @@ from topstack.api.schemas import (
     TournamentCreate,
     TournamentOut,
     TournamentSummary,
+    TrackerMatch,
+    TrackerOut,
+    TrackerPlayer,
+    TrackerStart,
 )
 from topstack.config import settings
 from topstack.db.models import AppUser, Match, Tournament, TournamentEntry
 from topstack.domain.tournament import Status, allowed_actions
-from topstack.services import rounds
+from topstack.services import rounds, tracker
 from topstack.services import tournaments as svc
 
 router = APIRouter(tags=["Turniere"])
@@ -486,3 +494,98 @@ async def unvote_cancel_for(
         ctx = await svc.load(db, tid, user, lock=True)
         await rounds.vote_cancel(db, ctx, yes=False, player_id=pid)
         return await reload(db, tid, user)
+
+
+# ---------------------------------------------------------------------------
+# Life-Tracker am Server (UC-10, UC-11, ADR-0012)
+# ---------------------------------------------------------------------------
+
+
+def tracker_match(m: Match) -> TrackerMatch:
+    return TrackerMatch(
+        id=m.id,
+        status=m.status,
+        tracker_mode=m.tracker_mode,
+        games_a=m.games_a,
+        games_b=m.games_b,
+        games_drawn=m.games_drawn,
+        version=m.version,
+    )
+
+
+async def tracker_out(db: Db, ctx: svc.Context, mid: uuid.UUID) -> TrackerOut:
+    st = await tracker.state(db, ctx, mid)
+    reasons = {g.id: g.end_reason for g in st.games}
+    (pa, ea), (pb, eb) = st.players
+    return TrackerOut(
+        tournament_id=ctx.tournament.id,
+        match=tracker_match(st.match),
+        player_a=TrackerPlayer(
+            id=pa.id, display_name=pa.display_name, colors=ea.colors if ea else None, kind=pa.kind
+        ),
+        player_b=TrackerPlayer(
+            id=pb.id, display_name=pb.display_name, colors=eb.colors if eb else None, kind=pb.kind
+        ),
+        my_player_id=ctx.my_player.id if ctx.my_player else None,
+        starting_life=st.starting_life,
+        time_limit_min=st.match.time_limit_min,
+        events=[
+            EventBody(
+                id=e.id,
+                game_id=e.game_id,
+                type=e.type,
+                player_id=e.player_id,
+                delta=e.delta,
+                value=e.value,
+                undo_of=e.undo_of,
+                reason=reasons.get(e.game_id) if e.type == "game_end" else None,
+                device_id=e.device_id,
+                seq=e.seq,
+                client_ts=e.client_ts,
+                source=e.source,
+            )
+            for e in st.events
+        ],
+    )
+
+
+@router.post("/tournaments/{tid}/matches/{mid}/tracker")
+async def start_tracker(
+    tid: uuid.UUID, mid: uuid.UUID, body: TrackerStart, user: CurrentUser, db: Db
+) -> TrackerOut:
+    """Match mit dem Life-Tracker starten, ``shared`` oder ``dual`` (UC-10)."""
+    async with errors():
+        await tracker.start(db, await svc.load(db, tid, user, lock=True), mid, body.mode)
+        await db.commit()
+        return await tracker_out(db, await svc.load(db, tid, user), mid)
+
+
+@router.get("/tournaments/{tid}/matches/{mid}/tracker")
+async def get_tracker(tid: uuid.UUID, mid: uuid.UUID, user: CurrentUser, db: Db) -> TrackerOut:
+    """Match mit allen Ereignissen; zum Koppeln des zweiten Handys und zum Nachladen (UC-11)."""
+    async with errors():
+        return await tracker_out(db, await svc.load(db, tid, user), mid)
+
+
+@router.post("/tournaments/{tid}/matches/{mid}/events")
+async def push_events(
+    tid: uuid.UUID, mid: uuid.UUID, body: EventBatch, user: CurrentUser, db: Db
+) -> EventBatchResult:
+    """Ereignis-Stapel aus der Outbox, idempotent (ADR-0012)."""
+    async with errors():
+        ctx = await svc.load(db, tid, user, lock=True)
+        res = await tracker.push(
+            db,
+            ctx,
+            mid,
+            [tracker.EventIn(**e.model_dump()) for e in body.events],
+        )
+        await db.commit()
+        match = await db.get(Match, mid)
+        assert match is not None
+        return EventBatchResult(
+            accepted=res.accepted,
+            duplicates=res.duplicates,
+            rejected=[RejectedEvent(id=i, detail=d) for i, d in res.rejected],
+            match=tracker_match(match),
+        )

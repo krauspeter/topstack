@@ -3,7 +3,7 @@
 import re
 import uuid
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -290,3 +290,73 @@ class ResultBody(BaseModel):
     games_b: int = Field(ge=0, le=2)
     games_drawn: int = Field(default=0, ge=0, le=3)
     version: int | None = None  # bei Korrektur Pflicht: zuletzt gesehene Version
+
+
+# ---------------------------------------------------------------------------
+# Life-Tracker am Server (AP-6, ADR-0012)
+# ---------------------------------------------------------------------------
+
+
+class TrackerStart(BaseModel):
+    mode: Literal["shared", "dual"]
+
+
+class TrackerPlayer(BaseModel):
+    id: uuid.UUID
+    display_name: str
+    colors: str | None
+    kind: str
+
+
+class TrackerMatch(BaseModel):
+    """Stand des Matches aus Sicht des Servers; die App zeigt ihn, rechnet aber selbst."""
+
+    id: uuid.UUID
+    status: str
+    tracker_mode: str
+    games_a: int
+    games_b: int
+    games_drawn: int
+    version: int
+
+
+class EventBody(BaseModel):
+    id: uuid.UUID
+    game_id: uuid.UUID
+    type: Literal["game_start", "die_roll", "life", "undo", "game_end"]
+    player_id: uuid.UUID | None = None
+    delta: int | None = None
+    value: int | None = None
+    undo_of: uuid.UUID | None = None
+    reason: Literal["life_zero", "concede", "time", "manual"] | None = None
+    device_id: str = Field(min_length=1, max_length=80)
+    seq: int = Field(ge=1)
+    client_ts: datetime
+    source: Literal["app", "hardware", "table"] = "app"
+
+
+class EventBatch(BaseModel):
+    events: list[EventBody] = Field(max_length=500)
+
+
+class RejectedEvent(BaseModel):
+    id: uuid.UUID
+    detail: str
+
+
+class EventBatchResult(BaseModel):
+    accepted: list[uuid.UUID]
+    duplicates: list[uuid.UUID]
+    rejected: list[RejectedEvent]
+    match: TrackerMatch
+
+
+class TrackerOut(BaseModel):
+    tournament_id: uuid.UUID
+    match: TrackerMatch
+    player_a: TrackerPlayer
+    player_b: TrackerPlayer
+    my_player_id: uuid.UUID | None
+    starting_life: int
+    time_limit_min: int | None
+    events: list[EventBody]
