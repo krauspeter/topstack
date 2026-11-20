@@ -438,3 +438,28 @@ async def test_no_proxy_vote_for_members(client, session):
     ben = next(e for e in t["entries"] if e["display_name"] == "Ben")
     r = await client.put(f"/api/v1/tournaments/{tid}/cancel-request/votes/{ben['player_id']}")
     assert is_problem(r, 403)  # Ben hat ein Konto und stimmt selbst ab
+
+
+async def test_admin_deletes_finished_tournament(client, session):  # TC-31b
+    _, _, t = await running(client, session)
+    t = await play_all(client, t)
+    t = (await client.post(f"/api/v1/tournaments/{t['id']}/tiebreak-roll")).json()
+    t = (await client.post(f"/api/v1/tournaments/{t['id']}/finish")).json()
+    assert t["status"] == "finished" and "delete" in t["actions"]
+    r = await client.delete(f"/api/v1/tournaments/{t['id']}")
+    assert r.status_code in (200, 204), r.text
+    assert is_problem(await client.get(f"/api/v1/tournaments/{t['id']}"), 404)
+    kinds = {p.kind for p in (await session.scalars(select(Player))).all()}
+    assert "guest" not in kinds  # Gast Gina ist mit weg
+    assert "reserved" in kinds  # Spieler ohne Konto bleiben in der Gruppe
+
+
+async def test_starter_cannot_delete_finished_tournament(client, session):
+    _, peter, (t, users) = await four_member_tournament(client, session)
+    t = await play_all(client, t)
+    t = (await client.post(f"/api/v1/tournaments/{t['id']}/tiebreak-roll")).json()
+    t = (await client.post(f"/api/v1/tournaments/{t['id']}/finish")).json()
+    assert "delete" not in t["actions"]
+    assert is_problem(await client.delete(f"/api/v1/tournaments/{t['id']}"), 403)
+    await as_user(client, session, peter)
+    assert (await client.delete(f"/api/v1/tournaments/{t['id']}")).status_code in (200, 204)

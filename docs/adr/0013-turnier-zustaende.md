@@ -42,7 +42,7 @@ stateDiagram-v2
 | Abbrechen ab Runde 1, direkt | Gruppen-Admin | Status `running` oder `paused`; sofort, mit Bestätigung |
 | Abbrechen ab Runde 1, per Abstimmung | Turnierstarter oder Gruppen-Admin beantragt, Teilnehmer bestätigen | Status `running` oder `paused`; abgebrochen, sobald **mehr als die Hälfte** der Teilnehmer bestätigt hat (siehe unten) |
 
-Ein abgebrochenes Turnier zählt nicht für Rangliste und Statistik. Turnierstarter und Gruppen-Admin können es danach endgültig löschen; Gäste, die nur dort mitgespielt haben, werden mit gelöscht (ergänzt am 20.11.2026).
+Ein abgebrochenes Turnier zählt nicht für Rangliste und Statistik. Turnierstarter und Gruppen-Admin können es danach endgültig löschen; Gäste, die nur dort mitgespielt haben, werden mit gelöscht (ergänzt am 20.11.2026). Ein abgeschlossenes Turnier, das fehlerhaft erfasst wurde, kann nur der Gruppen-Admin löschen, nach einer Warnung; Ergebnisse, Spiele, Lebenspunkte und Ranglistenpunkte verschwinden mit (ergänzt am 20.11.2026).
 
 **Abbruch per Abstimmung (ergänzt am 18.11.2026)**
 - Ab Runde 1 können Turnierstarter und Gruppen-Admin einen Abbruch beantragen. Alle Teilnehmer bekommen eine Nachricht in der App und per Push.
