@@ -3,10 +3,18 @@
  * Fehler kommen als RFC 9457 Problem Details; ApiError trägt Status und Text weiter.
  */
 
+/** Zusatzfelder aus Problem Details, z. B. `code: "missing_colors"` mit `names`. */
+export interface ProblemExtra {
+  code?: string;
+  names?: string[];
+  count?: number;
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    readonly extra: ProblemExtra = {},
   ) {
     super(message);
     this.name = 'ApiError';
@@ -29,14 +37,16 @@ export async function api<T>(path: string, { method = 'GET', body }: Options = {
   });
   if (!response.ok) {
     let detail = '';
+    let extra: ProblemExtra = {};
     try {
-      const problem = (await response.json()) as { detail?: unknown; title?: unknown };
+      const problem = (await response.json()) as { detail?: unknown; title?: unknown } & ProblemExtra;
       if (typeof problem.detail === 'string') detail = problem.detail;
       else if (typeof problem.title === 'string') detail = problem.title;
+      extra = { code: problem.code, names: problem.names, count: problem.count };
     } catch {
       // keine JSON-Antwort, z. B. Server nicht erreichbar
     }
-    throw new ApiError(response.status, detail || `Fehler ${response.status}`);
+    throw new ApiError(response.status, detail || `Fehler ${response.status}`, extra);
   }
   if (response.status === 204 || response.status === 202) {
     return undefined as T;

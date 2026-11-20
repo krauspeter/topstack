@@ -263,3 +263,16 @@ input { min-width: 0; max-width: 100%; }
 
 /* Keine Ausgrauung beim Speichern: das war das Flackern bei jedem Klick */
 .btn { transition: none; }
+
+/* ---------- Turnier spielen (AP-5) ---------- */
+.match-list { list-style: none; padding: 0; display: grid; gap: 8px; }
+.match-list li { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+.match-list li.mine { border-color: var(--gold); }
+.match-names { min-width: 0; overflow-wrap: anywhere; }
+.match-score { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 3ch; text-align: center; }
+.result-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.result-grid .chip { padding: 0; font-variant-numeric: tabular-nums; font-size: 1.1rem; }
+.table-scroll { overflow-x: auto; }
+.standings td, .standings th { text-align: center; }
+.standings .left { text-align: left; }
+.podium { list-style: none; padding: 0; display: grid; gap: 6px; font-size: 1.15rem; }

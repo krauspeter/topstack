@@ -1,5 +1,5 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { api, errorText } from '../../api/client';
+import { ApiError, api, errorText } from '../../api/client';
 import type { Entry, GroupPlayer, GuestLink, Me, Tournament } from '../../api/types';
 import { COLORLESS, type ColorChoice, MANA, choiceName, describeColors, toggleColor } from '../../domain/colors';
 import { BOOSTERS_PER_PLAYER, drawSeats, neighbour } from '../../domain/seating';
@@ -8,6 +8,7 @@ import { choiceSurface } from '../../theme';
 import { DraftTable } from '../DraftTable';
 import { ManaPips } from '../ManaPips';
 import { QrCode } from '../QrCode';
+import { TournamentPlay } from './TournamentPlay';
 
 const POLL_MS = 5000;
 const SHUFFLE_MS = 1600;
@@ -51,14 +52,16 @@ interface Props {
   onDeleted(): void;
 }
 
-/** Ein Turnier vorbereiten: Teilnehmer, Gäste, Auslosung, Farben (UC-03 bis UC-07). */
+/** Ein Turnier vorbereiten und spielen (UC-03 bis UC-17); der Ablauf ab Runde 1 steckt in TournamentPlay. */
 export function TournamentView({ id, me, onBack, onDeleted }: Props) {
   const [t, setT] = useState<Tournament | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [guestLink, setGuestLink] = useState<GuestLink | null>(null);
   const [adding, setAdding] = useState(false);
-  const [confirm, setConfirm] = useState<'cancel' | 'delete' | null>(null);
+  const [confirm, setConfirm] = useState<'cancel' | 'delete' | 'request_cancel' | null>(null);
+  /** Warnung vor dem Rundenstart (fehlende Farben, offene Matches), mit „trotzdem“. */
+  const [warning, setWarning] = useState<string | null>(null);
   const busyRef = useRef(false);
 
   const load = useCallback(async () => {
@@ -94,6 +97,21 @@ export function TournamentView({ id, me, onBack, onDeleted }: Props) {
 
   const act = (path: string, method: 'POST' | 'PUT' | 'DELETE' = 'POST', body?: unknown) =>
     run(async () => setT(await api<Tournament>(`/tournaments/${id}${path}`, { method, body })));
+
+  /** Runde starten; Warnungen des Servers fragen nach, mit Bestätigung geht es trotzdem. */
+  const startRound = () =>
+    run(async () => {
+      try {
+        setT(await api<Tournament>(`/tournaments/${id}/rounds/next`, { method: 'POST', body: { confirm: false } }));
+      } catch (err) {
+        const code = err instanceof ApiError ? err.extra.code : undefined;
+        if (code === 'missing_colors' || code === 'open_matches') {
+          setWarning((err as ApiError).message);
+          return;
+        }
+        throw err;
+      }
+    });
 
   if (!t) {
     return <main className="page center muted">{error ?? 'Lade Turnier …'}</main>;
@@ -224,7 +242,9 @@ export function TournamentView({ id, me, onBack, onDeleted }: Props) {
         </section>
       )}
 
-      {t.status !== 'setup' && t.seating && seated.length > 0 && <SeatingView tournament={t} seated={seated} />}
+      {(t.status === 'seated' || t.status === 'drafting') && t.seating && seated.length > 0 && (
+        <SeatingView tournament={t} seated={seated} />
+      )}
 
       {(t.status === 'seated' || t.status === 'drafting') && (
         <section className="stack">
@@ -238,7 +258,16 @@ export function TournamentView({ id, me, onBack, onDeleted }: Props) {
               Draft beginnen
             </button>
           )}
+          {can('start_round') && (
+            <button className="btn primary big" onClick={() => void startRound()}>
+              Runde 1 starten
+            </button>
+          )}
         </section>
+      )}
+
+      {t.rounds.length > 0 && (
+        <TournamentPlay t={t} busy={busy} can={can} onNextRound={() => void startRound()} onAct={act} />
       )}
 
       {t.status === 'seated' && (
@@ -247,7 +276,7 @@ export function TournamentView({ id, me, onBack, onDeleted }: Props) {
 
       {(t.status === 'drafting' || t.status === 'running') && (
         <section className="stack">
-          <h3>Farben nach dem Deckbau</h3>
+          <h3>{t.status === 'running' ? 'Farben' : 'Farben nach dem Deckbau'}</h3>
           <p className="muted small" data-testid="colors-missing">
             {missingColors === 0
               ? 'Alle Farben gemeldet.'
@@ -301,6 +330,32 @@ export function TournamentView({ id, me, onBack, onDeleted }: Props) {
           Turnier abbrechen
         </button>
       )}
+      {can('request_cancel') && !can('cancel') && !t.cancel_vote && (
+        <button className="btn danger" onClick={() => setConfirm('request_cancel')}>
+          Abbruch beantragen
+        </button>
+      )}
+
+      {warning && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-label="Warnung">
+          <div className="sheet">
+            <p>{warning}</p>
+            <button
+              className="btn primary big"
+              disabled={busy}
+              onClick={async () => {
+                setWarning(null);
+                await act('/rounds/next', 'POST', { confirm: true });
+              }}
+            >
+              Trotzdem starten
+            </button>
+            <button className="btn big" onClick={() => setWarning(null)}>
+              Zurück
+            </button>
+          </div>
+        </div>
+      )}
       {can('delete') && (
         <button className="btn danger" onClick={() => setConfirm('delete')}>
           Turnier löschen
@@ -308,12 +363,14 @@ export function TournamentView({ id, me, onBack, onDeleted }: Props) {
       )}
 
       {confirm && (
-        <div className="overlay" role="dialog" aria-modal="true" aria-label={confirm === 'cancel' ? 'Turnier abbrechen' : 'Turnier löschen'}>
+        <div className="overlay" role="dialog" aria-modal="true" aria-label={confirm === 'delete' ? 'Turnier löschen' : 'Turnier abbrechen'}>
           <div className="sheet">
             <p>
               {confirm === 'cancel'
                 ? 'Turnier wirklich abbrechen? Es zählt dann nicht für Rangliste und Statistik.'
-                : 'Turnier endgültig löschen? Teilnehmer, Plätze und Farben sind danach weg. Gäste aus diesem Turnier werden mit gelöscht.'}
+                : confirm === 'request_cancel'
+                  ? 'Abbruch beantragen? Bestätigen mehr als die Hälfte der Teilnehmer, ist das Turnier abgebrochen und zählt nicht.'
+                  : 'Turnier endgültig löschen? Teilnehmer, Plätze und Farben sind danach weg. Gäste aus diesem Turnier werden mit gelöscht.'}
             </p>
             <button
               className="btn danger big"
@@ -322,6 +379,7 @@ export function TournamentView({ id, me, onBack, onDeleted }: Props) {
                 const kind = confirm;
                 setConfirm(null);
                 if (kind === 'cancel') await act('/cancel');
+                else if (kind === 'request_cancel') await act('/cancel-request');
                 else
                   await run(async () => {
                     await api(`/tournaments/${id}`, { method: 'DELETE' });
@@ -329,7 +387,7 @@ export function TournamentView({ id, me, onBack, onDeleted }: Props) {
                   });
               }}
             >
-              {confirm === 'cancel' ? 'Ja, abbrechen' : 'Ja, löschen'}
+              {confirm === 'delete' ? 'Ja, löschen' : confirm === 'cancel' ? 'Ja, abbrechen' : 'Ja, beantragen'}
             </button>
             <button className="btn big" onClick={() => setConfirm(null)}>
               Nein
