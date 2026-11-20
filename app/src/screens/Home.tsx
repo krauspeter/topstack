@@ -5,10 +5,11 @@ interface Props {
   onNewMatch(): void;
   onSeating(): void;
   onLogin(): void;
+  onTournaments(): void;
   onProfile(): void;
 }
 
-export function Home({ account, onNewMatch, onSeating, onLogin, onProfile }: Props) {
+export function Home({ account, onNewMatch, onSeating, onLogin, onProfile, onTournaments }: Props) {
   return (
     <main className="page home">
       <header className="brand">
@@ -25,6 +26,11 @@ export function Home({ account, onNewMatch, onSeating, onLogin, onProfile }: Pro
         <button className="btn primary big" onClick={onNewMatch}>
           Neues Match
         </button>
+        {account.status === 'signed-in' && account.me.groups.length > 0 && (
+          <button className="btn big" onClick={onTournaments}>
+            Turnier
+          </button>
+        )}
         <button className="btn big" onClick={onSeating}>
           Draftplätze auslosen
         </button>

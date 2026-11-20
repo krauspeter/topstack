@@ -133,11 +133,13 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 
 ### AP-4 · Turnier vorbereiten (ca. 8 h) · Branch `feat/p3-tournament-setup` · UC-03 bis UC-07
 
-- Turnier starten mit Pflichtfeld Set-Kürzel; nur ein offenes Turnier pro Gruppe.
-- Mitglieder einladen (mit Zusage), Gäste per QR-Code oder Link mit Namen, Entfernen vor der Auslosung.
-- Auslosung mit `domain/seating.py`; der Server schickt einen Seed, damit alle Handys dieselbe Animation zeigen; neu auslosen möglich.
-- Farben melden mit der Farbauswahl aus Phase 2 (WUBRG, farblos).
-- App: Turnier-Startseite, Einladen, QR-Code, Tischgrafik aus Phase 2 mit Serverdaten.
+- [x] Turnier starten mit Pflichtfeld Set-Kürzel; nur ein offenes Turnier pro Gruppe. (PR #61)
+- [x] Mitglieder einladen (mit Zusage), Gäste per QR-Code oder Link mit Namen, Entfernen vor der Auslosung. (PR #61)
+- [x] Vorgemerkte Spieler ohne Konto (ADR-0015, Migration 0003), persönlicher Einladungslink zum Übernehmen. (PR #61)
+- [x] Auslosung mit `domain/seating.py`; der Server schickt einen Seed, damit alle Handys dieselbe Animation zeigen; neu auslosen möglich. (PR #61)
+- [x] Farben melden mit der Farbauswahl aus Phase 2 (WUBRG, farblos); Starter und Admin melden für Gäste und vorgemerkte Spieler. (PR #61)
+- [x] App: Turnier-Startseite (`/turnier`), Turnierseite (`/turnier/<id>`) mit Spielerauswahl, QR-Code (eigener Erzeuger ohne Bibliothek, `src/domain/qr.ts`), Tischgrafik aus Phase 2 mit Serverdaten, Farben, Abbruch; Gästeseite (`/gast/<token>`). Aktualisierung alle 5 Sekunden, live ab AP-7.
+- [ ] Auf dem Heimserver ein Testturnier mit 5 Spielern inklusive einem Gast anlegen.
 
 **Fertig, wenn:** Ein Turnier mit 5 Spielern inklusive einem Gast ist angelegt, ausgelost und alle Farben sind gemeldet.
 

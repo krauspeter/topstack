@@ -34,3 +34,66 @@ export interface InvitationAccepted {
   player_id: string;
   joined: boolean;
 }
+
+export type PlayerKind = 'member' | 'reserved' | 'guest' | 'former';
+
+export interface GroupPlayer {
+  id: string;
+  display_name: string;
+  kind: PlayerKind;
+  is_me: boolean;
+}
+
+export type TournamentStatus = 'setup' | 'seated' | 'drafting' | 'running' | 'paused' | 'finished' | 'cancelled';
+export type TournamentAction = 'invite' | 'respond' | 'seat' | 'start_draft' | 'report_colors' | 'cancel';
+
+export interface Entry {
+  player_id: string;
+  display_name: string;
+  kind: PlayerKind;
+  status: 'invited' | 'accepted' | 'declined' | 'removed';
+  seat_no: number | null;
+  colors: string | null;
+  is_me: boolean;
+}
+
+export interface Tournament {
+  id: string;
+  group_id: string;
+  group_name: string;
+  set_code: string;
+  status: TournamentStatus;
+  held_on: string;
+  location: string | null;
+  started_by: string | null;
+  seating: { seed: number; draw: number } | null;
+  entries: Entry[];
+  my_player_id: string | null;
+  actions: TournamentAction[];
+}
+
+export interface TournamentSummary {
+  id: string;
+  set_code: string;
+  status: TournamentStatus;
+  held_on: string;
+  players: number;
+}
+
+export interface GuestLink {
+  token: string;
+  url: string;
+  expires_at: string;
+}
+
+export interface GuestInfo {
+  group_name: string;
+  set_code: string;
+  open: boolean;
+}
+
+export interface GuestJoined {
+  tournament_id: string;
+  player_id: string;
+  display_name: string;
+}
