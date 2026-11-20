@@ -81,8 +81,8 @@ Pflicht in Phase 3: alle Fälle mit Priorität **hoch**. Jeder Fall hängt an ei
 | TC-41 | Zweites Handy koppeln (UC-11) | jedes Handy zählt nur den eigenen Spieler, beide sehen alles | hoch |
 | TC-42 | Handy A im Flugmodus, 10 Änderungen, wieder online | alle 10 Ereignisse kommen an, Stand überall gleich (N-01) | hoch |
 | TC-43 | Dasselbe Ereignis dreimal senden | einmal gespeichert, zweimal `duplicates` | hoch |
-| TC-44 | Handy B sendet Lebenspunkte für Spieler A im Modus `dual` | `403` | hoch |
-| TC-45 | Beide Handys melden widersprüchliches Spielende | erstes gilt, zweites `409`, Hinweis in der App | mittel |
+| TC-44 | Handy B sendet Lebenspunkte für Spieler A im Modus `dual` | Ereignis im Stapel abgelehnt (`rejected` mit Grund), der Rest wird gespeichert | hoch |
+| TC-45 | Beide Handys melden widersprüchliches Spielende | erstes gilt, zweites `rejected`, Hinweis in der App | mittel |
 | TC-46 | Spielende mit Grund `concede` und `time` | `game.end_reason` gespeichert | mittel |
 | TC-47 | Lokales Match ohne Turnier | bleibt lokal, kein Upload | mittel |
 
