@@ -153,6 +153,54 @@ class Seating(BaseModel):
     draw: int  # zählt Neuauslosungen, damit die App die Animation neu startet
 
 
+class MatchOut(BaseModel):
+    id: uuid.UUID
+    player_a_id: uuid.UUID
+    player_b_id: uuid.UUID
+    player_a: str
+    player_b: str
+    status: str  # scheduled, running (vorgezogen oder mit Tracker), finished
+    games_a: int
+    games_b: int
+    games_drawn: int
+    version: int
+    mine: bool
+    can_report: bool
+
+
+class RoundOut(BaseModel):
+    number: int
+    status: str  # planned, running, finished
+    bye: str | None
+    matches: list[MatchOut]
+
+
+class StandingOut(BaseModel):
+    player_id: uuid.UUID
+    display_name: str
+    rank: int
+    played: int
+    wins: int
+    draws: int
+    losses: int
+    match_points: int
+    games_won: int
+    games_lost: int
+    game_diff: int
+    needs_roll: bool
+    roll: int | None
+    final_place: int | None
+    ranking_points: int | None
+
+
+class CancelVoteOut(BaseModel):
+    requested_by: str
+    confirmed: int
+    required: int
+    participants: int
+    i_voted: bool
+
+
 class TournamentOut(BaseModel):
     id: uuid.UUID
     group_id: uuid.UUID
@@ -166,6 +214,13 @@ class TournamentOut(BaseModel):
     entries: list[EntryOut]
     my_player_id: uuid.UUID | None
     actions: list[str]  # was der angemeldete Nutzer gerade darf
+    rounds: list[RoundOut] = []
+    current_round: int | None = None
+    open_in_current: int = 0  # offene Matches der laufenden Runde (Warnung bei „nächste Runde“)
+    rounds_left: int = 0
+    standings: list[StandingOut] = []
+    suggestion: uuid.UUID | None = None  # Match, das freie Spieler vorziehen können
+    cancel_vote: CancelVoteOut | None = None
 
 
 class TournamentSummary(BaseModel):
@@ -221,3 +276,16 @@ class GuestJoined(BaseModel):
     tournament_id: uuid.UUID
     player_id: uuid.UUID
     display_name: str
+
+
+class ConfirmBody(BaseModel):
+    """Warnungen bestätigen: fehlende Farben (Runde 1) oder offene Matches (nächste Runde)."""
+
+    confirm: bool = False
+
+
+class ResultBody(BaseModel):
+    games_a: int = Field(ge=0, le=2)
+    games_b: int = Field(ge=0, le=2)
+    games_drawn: int = Field(default=0, ge=0, le=3)
+    version: int | None = None  # bei Korrektur Pflicht: zuletzt gesehene Version

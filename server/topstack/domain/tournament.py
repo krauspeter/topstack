@@ -26,6 +26,14 @@ class Action(StrEnum):
     REPORT_COLORS = "report_colors"
     CANCEL = "cancel"
     DELETE = "delete"  # nur abgebrochene Turniere
+    START_ROUND = "start_round"  # Runde 1 starten, erzeugt den Spielplan
+    NEXT_ROUND = "next_round"
+    REPORT_RESULT = "report_result"
+    PAUSE = "pause"
+    RESUME = "resume"
+    FINISH = "finish"
+    REQUEST_CANCEL = "request_cancel"  # Abbruch per Abstimmung beantragen
+    VOTE_CANCEL = "vote_cancel"
 
 
 class Forbidden(Exception):
@@ -58,12 +66,24 @@ ALLOWED_STATUS: dict[Action, set[Status]] = {
     Action.REPORT_COLORS: {Status.DRAFTING, Status.RUNNING},
     Action.CANCEL: OPEN,
     Action.DELETE: {Status.CANCELLED},
+    Action.START_ROUND: {Status.DRAFTING},
+    Action.NEXT_ROUND: {Status.RUNNING},
+    Action.REPORT_RESULT: {Status.RUNNING, Status.PAUSED},
+    Action.PAUSE: {Status.RUNNING},
+    Action.RESUME: {Status.PAUSED},
+    Action.FINISH: {Status.RUNNING, Status.PAUSED},
+    Action.REQUEST_CANCEL: {Status.RUNNING, Status.PAUSED},
+    Action.VOTE_CANCEL: {Status.RUNNING, Status.PAUSED},
 }
 
 NEXT_STATUS: dict[Action, Status] = {
     Action.SEAT: Status.SEATED,
     Action.START_DRAFT: Status.DRAFTING,
     Action.CANCEL: Status.CANCELLED,
+    Action.START_ROUND: Status.RUNNING,
+    Action.PAUSE: Status.PAUSED,
+    Action.RESUME: Status.RUNNING,
+    Action.FINISH: Status.FINISHED,
 }
 
 STATUS_TEXT = {
@@ -83,8 +103,20 @@ def role_allows(action: Action, status: Status, actor: Actor) -> bool:
             return actor.is_starter
         case Action.RESPOND | Action.REPORT_COLORS:
             return actor.is_participant
-        case Action.DELETE:
+        case Action.DELETE | Action.REQUEST_CANCEL:
             return actor.is_starter or actor.is_admin
+        case (
+            Action.START_ROUND
+            | Action.NEXT_ROUND
+            | Action.PAUSE
+            | Action.RESUME
+            | Action.FINISH
+            | Action.VOTE_CANCEL
+        ):
+            return actor.is_participant
+        case Action.REPORT_RESULT:
+            # eigene Matches; Starter und Admin auch für Gäste und Spieler ohne Konto
+            return actor.is_participant or actor.is_starter or actor.is_admin
         case Action.CANCEL:
             # vor Runde 1 Starter oder Admin, danach nur der Admin direkt
             if status in BEFORE_ROUND_1:
@@ -121,3 +153,26 @@ def missing_colors(players: dict[str, str | None]) -> list[str]:
     Bestätigung startet die Runde trotzdem (Entscheidung vom 20.11.2026).
     """
     return sorted(name for name, colors in players.items() if colors is None)
+
+
+GAMES_TO_WIN = 2  # Best-of-3
+
+
+def valid_result(games_a: int, games_b: int, games_drawn: int = 0) -> bool:
+    """Gültiger Stand eines Best-of-3, auch nach Zeitablauf (z. B. 1:0 oder 1:1).
+
+    Höchstens 3 Spiele, niemand mehr als 2 Siege, nicht beide 2.
+    """
+    values = (games_a, games_b, games_drawn)
+    if any(v < 0 for v in values):
+        return False
+    if games_a > GAMES_TO_WIN or games_b > GAMES_TO_WIN:
+        return False
+    if games_a == GAMES_TO_WIN and games_b == GAMES_TO_WIN:
+        return False
+    return sum(values) <= 2 * GAMES_TO_WIN - 1
+
+
+def cancel_majority(confirmed: int, participants: int) -> bool:
+    """Abbruch per Abstimmung gilt bei mehr als der Hälfte der Teilnehmer (ADR-0013)."""
+    return participants > 0 and confirmed * 2 > participants

@@ -60,11 +60,13 @@ Turnier-Antworten enthalten `actions`: was der angemeldete Nutzer im aktuellen S
 | PUT | `/tournaments/{tid}/entries/{pid}/colors` | Farben melden, z. B. `"UB"`, farblos `""`; für Gäste und vorgemerkte Spieler auch durch Starter oder Admin | UC-07 |
 | POST | `/tournaments/{tid}/cancel` | Abbrechen: vor Runde 1 Starter oder Admin, danach nur Admin (ADR-0013) | – |
 | DELETE | `/tournaments/{tid}` | Abgebrochenes Turnier löschen, Starter oder Admin; Gäste des Turniers werden mit gelöscht | – |
-| POST | `/tournaments/{tid}/rounds/next` | Nächste Runde starten (bei Runde 1 wird der Spielplan erzeugt) | UC-08, UC-15 |
-| GET | `/tournaments/{tid}/suggestions` | Offene Matches für freie Spieler | UC-09 |
+| POST | `/tournaments/{tid}/rounds/next` | Runde 1 starten (erzeugt den ganzen Spielplan jeder gegen jeden, Pause bei ungerader Zahl) oder nächste Runde; jeder Teilnehmer. Fehlende Farben oder offene Matches: `409` mit `code` `missing_colors` (`names`) bzw. `open_matches` (`count`), mit `{ "confirm": true }` trotzdem | UC-08, UC-15 |
+| POST | `/tournaments/{tid}/matches/{mid}/start` | Match aus einer späteren Runde vorziehen, wenn beide frei sind; der Vorschlag steht in `GET /tournaments/{tid}` als `suggestion` | UC-09 |
+| PUT | `/tournaments/{tid}/matches/{mid}/result` | Ergebnis ohne Tracker eintragen (`{games_a, games_b, games_drawn}`), Best-of-3, Unentschieden erlaubt; mit `version` korrigieren bis Turnierende, Protokoll in `match_correction` | UC-12 bis UC-14 |
+| POST | `/tournaments/{tid}/finish` | Abschluss, wenn alle Matches gespielt sind; schreibt Endplätze und Ranglistenpunkte. `409` mit `code` `open_matches` oder `needs_roll` | UC-17 |
 | POST | `/matches/{mid}/pull-forward` | Match vorziehen | UC-09 |
 | POST | `/tournaments/{tid}/pause` · `/resume` | Pausieren und fortsetzen | UC-16 |
-| GET | `/tournaments/{tid}/standings` | Turniertabelle | – |
+| – | Turniertabelle | steht in `GET /tournaments/{tid}` als `standings` (mit `needs_roll`, `roll`, `final_place`, `ranking_points`) | – |
 
 ### Matches, Spiele, Ereignisse
 
@@ -167,8 +169,8 @@ Aus der Planung von [Phase 3](phase3/README.md) und ADR-0012 und ADR-0013. Sie w
 | POST | `/tournaments/{tid}/draft` | Draft beginnen (`seated` → `drafting`) | AP-4 |
 | POST | `/tournaments/{tid}/cancel` | Turnier abbrechen (`cancelled`, ADR-0013): vor Runde 1 durch Starter oder Admin, ab Runde 1 direkt nur durch den Admin | AP-5 |
 | POST | `/tournaments/{tid}/cancel-request` | Abbruch per Abstimmung beantragen (Starter oder Admin, ab Runde 1); `409`, wenn schon ein Antrag offen ist | AP-5 |
-| DELETE | `/tournaments/{tid}/cancel-request` | Antrag zurückziehen (nur Antragsteller) | AP-5 |
-| PUT, DELETE | `/tournaments/{tid}/cancel-request/vote` | Eigene Bestätigung abgeben oder zurücknehmen; Antwort enthält `confirmed`, `required`, `participants` | AP-5 |
+| DELETE | `/tournaments/{tid}/cancel-request` | Antrag zurückziehen (Antragsteller oder Admin) | AP-5 |
+| PUT, DELETE | `/tournaments/{tid}/cancel-request/vote` | Eigene Bestätigung abgeben oder zurücknehmen; Antwort enthält `cancel_vote` mit `confirmed`, `required`, `participants`, `i_voted` | AP-5 |
 | GET | `/tournaments/{tid}/live` | Kompletter Live-Stand in einem Aufruf: Runden, Matches, Lebenspunkte, Tabelle. Für das Nachladen nach einem Verbindungsabbruch | AP-7 |
 | POST | `/tournaments/{tid}/tiebreak-roll` | W20-Wurf bei Gleichstand nach allen Tiebreakern | AP-5 |
 
@@ -177,5 +179,5 @@ Aus der Planung von [Phase 3](phase3/README.md) und ADR-0012 und ADR-0013. Sie w
 - `PUT /matches/{mid}/games/{gameId}` nimmt `{ "number", "starting_player_id", "starting_life" }` beim Anlegen und `{ "winner_player_id", "end_reason" }` beim Abschluss. `end_reason` ist `life_zero`, `concede`, `time` oder `manual`; Unentschieden = `winner_player_id: null` mit `end_reason: "time"`.
 - `game_end` im Ereignis-Stapel trägt `reason` mit denselben Werten (ADR-0012).
 - `PUT` und `PATCH /matches/{mid}/result` verlangen die bekannte `version` des Matches. Passt sie nicht, antwortet der Server mit `409 Conflict` und dem aktuellen Match (ADR-0013).
-- `POST /tournaments/{tid}/rounds/next` mit offenen Matches antwortet `409` und einer Liste der offenen Matches; mit `{ "confirm_open_matches": true }` wird die Runde trotzdem gestartet (UC-15).
+- `POST /tournaments/{tid}/rounds/next` mit offenen Matches antwortet `409` mit `code: "open_matches"` und der Anzahl (`count`); mit `{ "confirm": true }` wird die Runde trotzdem gestartet (UC-15).
 - Der WebSocket sendet alle 25 Sekunden `{ "type": "ping" }`; die App antwortet mit `pong`. Bleibt der Ping aus, baut die App neu auf.

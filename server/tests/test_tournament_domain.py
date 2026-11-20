@@ -9,9 +9,11 @@ from topstack.domain.tournament import (
     Status,
     WrongStatus,
     allowed_actions,
+    cancel_majority,
     check,
     missing_colors,
     next_status,
+    valid_result,
 )
 
 STARTER = Actor(is_starter=True, is_participant=True, is_member=True)
@@ -87,8 +89,20 @@ def test_allowed_actions_for_app():
         Action.CANCEL,
     ]
     assert allowed_actions(Status.SEATED, PLAYER) == []
-    assert allowed_actions(Status.DRAFTING, PLAYER) == [Action.REPORT_COLORS]
-    assert allowed_actions(Status.RUNNING, ADMIN) == [Action.CANCEL]
+    assert allowed_actions(Status.DRAFTING, PLAYER) == [Action.REPORT_COLORS, Action.START_ROUND]
+    assert allowed_actions(Status.RUNNING, ADMIN) == [
+        Action.CANCEL,
+        Action.REPORT_RESULT,
+        Action.REQUEST_CANCEL,
+    ]
+    assert allowed_actions(Status.RUNNING, PLAYER) == [
+        Action.REPORT_COLORS,
+        Action.NEXT_ROUND,
+        Action.REPORT_RESULT,
+        Action.PAUSE,
+        Action.FINISH,
+        Action.VOTE_CANCEL,
+    ]
 
 
 def test_delete_only_cancelled_by_starter_or_admin():
@@ -106,3 +120,41 @@ def test_delete_only_cancelled_by_starter_or_admin():
 def test_missing_colors_for_round_one_warning():
     assert missing_colors({"Anna": "WU", "Ben": "", "Chris": "R"}) == []  # "" = farblos
     assert missing_colors({"Max": None, "Anna": "WU", "Ben": None}) == ["Ben", "Max"]
+
+
+def test_round_flow_transitions():
+    assert next_status(Action.START_ROUND, Status.DRAFTING) is Status.RUNNING
+    assert next_status(Action.PAUSE, Status.RUNNING) is Status.PAUSED
+    assert next_status(Action.RESUME, Status.PAUSED) is Status.RUNNING
+    assert next_status(Action.FINISH, Status.RUNNING) is Status.FINISHED
+    with pytest.raises(WrongStatus):
+        check(Action.NEXT_ROUND, Status.PAUSED, PLAYER)
+    with pytest.raises(Forbidden):
+        check(Action.START_ROUND, Status.DRAFTING, MEMBER)
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "drawn", "ok"),
+    [
+        (2, 0, 0, True),
+        (2, 1, 0, True),
+        (1, 0, 0, True),  # Zeitablauf
+        (1, 1, 0, True),  # Unentschieden
+        (1, 1, 1, True),
+        (0, 0, 0, True),
+        (2, 2, 0, False),
+        (3, 0, 0, False),
+        (2, 1, 1, False),  # mehr als 3 Spiele
+        (-1, 0, 0, False),
+    ],
+)
+def test_valid_result(a, b, drawn, ok):
+    assert valid_result(a, b, drawn) is ok
+
+
+def test_cancel_majority():
+    assert not cancel_majority(2, 4)
+    assert cancel_majority(3, 4)
+    assert cancel_majority(3, 5)
+    assert not cancel_majority(2, 5)
+    assert not cancel_majority(0, 0)
