@@ -10,8 +10,8 @@ from topstack.domain.tournament import (
     WrongStatus,
     allowed_actions,
     check,
+    missing_colors,
     next_status,
-    ready_for_round_one,
 )
 
 STARTER = Actor(is_starter=True, is_participant=True, is_member=True)
@@ -40,11 +40,12 @@ def test_reseat_allowed_until_draft():
         check(Action.SEAT, Status.DRAFTING, STARTER)
 
 
-def test_colors_by_participants_from_seating_to_running():
-    for status in (Status.SEATED, Status.DRAFTING, Status.RUNNING):
+def test_colors_by_participants_after_draft_start():
+    for status in (Status.DRAFTING, Status.RUNNING):
         check(Action.REPORT_COLORS, status, PLAYER)
-    with pytest.raises(WrongStatus):
-        check(Action.REPORT_COLORS, Status.SETUP, PLAYER)
+    for status in (Status.SETUP, Status.SEATED):
+        with pytest.raises(WrongStatus):
+            check(Action.REPORT_COLORS, status, PLAYER)
     with pytest.raises(Forbidden):
         check(Action.REPORT_COLORS, Status.SEATED, MEMBER)
 
@@ -85,7 +86,8 @@ def test_allowed_actions_for_app():
         Action.SEAT,
         Action.CANCEL,
     ]
-    assert allowed_actions(Status.SEATED, PLAYER) == [Action.REPORT_COLORS]
+    assert allowed_actions(Status.SEATED, PLAYER) == []
+    assert allowed_actions(Status.DRAFTING, PLAYER) == [Action.REPORT_COLORS]
     assert allowed_actions(Status.RUNNING, ADMIN) == [Action.CANCEL]
 
 
@@ -101,7 +103,6 @@ def test_delete_only_cancelled_by_starter_or_admin():
     assert allowed_actions(Status.CANCELLED, STARTER) == [Action.DELETE]
 
 
-def test_round_one_needs_all_colors():
-    assert ready_for_round_one(["WU", "", "R"])  # "" = farblos zählt als gemeldet
-    assert not ready_for_round_one(["WU", None, "R"])
-    assert not ready_for_round_one(["G"])
+def test_missing_colors_for_round_one_warning():
+    assert missing_colors({"Anna": "WU", "Ben": "", "Chris": "R"}) == []  # "" = farblos
+    assert missing_colors({"Max": None, "Anna": "WU", "Ben": None}) == ["Ben", "Max"]
