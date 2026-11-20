@@ -40,7 +40,7 @@ Weitere Unterlagen zu dieser Phase:
 
 - Backups, Monitoring, automatisches Deployment, Changelog → **Phase 4**
 - **Test auf dem iPhone** → letzter Schritt vor v1.0 (Phase 4), Entscheidung vom 18.11.2026
-- **Freunde mit eigenem Konto** → erst zum Release von v1.0 (Phase 4); bis dahin hat nur Peter ein Konto, Entscheidung vom 20.11.2026
+- **Freunde mit eigenem Konto** → erst zum Release von v1.0 (Phase 4); bis dahin hat nur Peter ein Konto, Entscheidung vom 20.11.2026. Damit sie trotzdem in der Rangliste stehen, legt der Admin sie als vorgemerkte Spieler ohne Konto an (ADR-0015, Umsetzung in AP-4)
 - Mehrere Gruppen in der Oberfläche, Zuschauer-Link, Elo, Awards, Head-to-Head als eigene Ansicht, Google-Login → **v1.1**
 - Steuergerät, MQTT im Betrieb → **Phase 6**
 
