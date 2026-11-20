@@ -141,6 +141,7 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 - [x] Auslosung mit `domain/seating.py`; der Server schickt einen Seed, damit alle Handys dieselbe Animation zeigen; neu auslosen möglich. (PR #61)
 - [x] Farben melden mit der Farbauswahl aus Phase 2 (WUBRG, farblos); Starter und Admin melden für Gäste und vorgemerkte Spieler. (PR #61)
 - [x] App: Turnier-Startseite (`/turnier`), Turnierseite (`/turnier/<id>`) mit Spielerauswahl, QR-Code (eigener Erzeuger ohne Bibliothek, `src/domain/qr.ts`), Tischgrafik aus Phase 2 mit Serverdaten, Farben, Abbruch; Gästeseite (`/gast/<token>`). Aktualisierung alle 5 Sekunden, live ab AP-7.
+- [x] Anpassungen nach dem ersten Test (20.11.2026): Name des Drafts statt Set-Kürzel (2 bis 20 Zeichen), abgebrochene Turniere löschbar, Farbzeilen mit festem Aufbau, kein Flackern beim Speichern, nichts breiter als der Bildschirm, Titel bricht um statt abgeschnitten zu werden. Regel für AP-5: Runde 1 startet erst, wenn alle ihre Farben gemeldet haben.
 - [ ] Auf dem Heimserver ein Testturnier mit 5 Spielern inklusive einem Gast anlegen.
 
 **Fertig, wenn:** Ein Turnier mit 5 Spielern inklusive einem Gast ist angelegt, ausgelost und alle Farben sind gemeldet.

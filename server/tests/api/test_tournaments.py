@@ -1,5 +1,6 @@
 """Turnier vorbereiten (UC-03 bis UC-07, TC-10 bis TC-19)."""
 
+import uuid
 from datetime import date
 
 import pytest
@@ -75,7 +76,7 @@ async def test_start_tournament(client, session):
     r = await start(client, group)
     assert r.status_code == 201, r.text
     t = r.json()
-    assert t["set_code"] == "DSK"
+    assert t["set_code"] == "dsk"  # Schreibweise bleibt (Name des Drafts)
     assert t["status"] == "setup"
     assert t["group_name"] == "Draft-Runde"
     assert [(e["display_name"], e["status"], e["is_me"]) for e in t["entries"]] == [
@@ -90,7 +91,6 @@ async def test_set_code_required_and_validated(client, session):  # TC-10
     group, _, _ = await admin_group(client, session)
     assert is_problem(await client.post(f"/api/v1/groups/{group.id}/tournaments", json={}), 422)
     assert is_problem(await start(client, group, "D"), 422)
-    assert is_problem(await start(client, group, "DS K"), 422)
 
 
 async def test_only_one_open_tournament(client, session):  # TC-11
@@ -197,7 +197,7 @@ async def test_guest_joins_with_link(client, session):  # TC-13
 
     client.cookies.clear()
     info = (await client.get(f"/api/v1/guest/{link['token']}")).json()
-    assert info == {"group_name": "Draft-Runde", "set_code": "DSK", "open": True}
+    assert info == {"group_name": "Draft-Runde", "set_code": "dsk", "open": True}
     r = await client.post(f"/api/v1/guest/{link['token']}", json={"display_name": " Gast Gina "})
     assert r.status_code == 201, r.text
     assert r.json()["display_name"] == "Gast Gina"
@@ -369,3 +369,53 @@ async def test_participant_cannot_cancel(client, session):
     assert is_problem(await client.post(f"/api/v1/tournaments/{t['id']}/cancel"), 403)
     stored = await session.scalar(select(Tournament).where(Tournament.id == t["id"]))
     assert stored.status == "setup"
+
+
+# ---------------------------------------------------------------------------
+# Name des Drafts, Löschen (Anpassungen vom 20.11.2026)
+# ---------------------------------------------------------------------------
+
+
+async def test_draft_name_up_to_20_chars(client, session):
+    group, _, _ = await admin_group(client, session)
+    r = await start(client, group, "  Mirrodin   Besieged ")
+    assert r.status_code == 201, r.text
+    assert r.json()["set_code"] == "Mirrodin Besieged"  # Schreibweise bleibt
+    await client.post(f"/api/v1/tournaments/{r.json()['id']}/cancel")
+    assert is_problem(await start(client, group, "x" * 21), 422)
+    assert is_problem(await start(client, group, "A"), 422)
+    assert is_problem(await start(client, group, "<script>"), 422)
+
+
+async def test_delete_cancelled_tournament_with_guests(client, session):
+    group, _, (ben,) = await admin_group(client, session, reserved=("Ben",))
+    t = (await start(client, group)).json()
+    await client.post(f"/api/v1/tournaments/{t['id']}/entries", json={"player_ids": [ben]})
+    link = (await client.post(f"/api/v1/tournaments/{t['id']}/guest-link")).json()
+    guest = (
+        await client.post(f"/api/v1/guest/{link['token']}", json={"display_name": "Gina"})
+    ).json()
+
+    assert is_problem(await client.delete(f"/api/v1/tournaments/{t['id']}"), 409)  # erst abbrechen
+    cancelled = (await client.post(f"/api/v1/tournaments/{t['id']}/cancel")).json()
+    assert cancelled["actions"] == ["delete"]
+    r = await client.delete(f"/api/v1/tournaments/{t['id']}")
+    assert r.status_code == 204
+
+    assert await session.get(Tournament, uuid.UUID(t["id"])) is None
+    assert await session.get(Player, uuid.UUID(guest["player_id"])) is None  # Gast weg
+    assert await session.get(Player, uuid.UUID(ben)) is not None  # Spieler der Gruppe bleibt
+    assert (await client.get(f"/api/v1/groups/{group.id}/tournaments")).json() == []
+
+
+async def test_participant_cannot_delete(client, session):
+    group, _, _ = await admin_group(client, session)
+    t = (await start(client, group)).json()
+    anna = await make_user(session, "Anna")
+    anna_player = await groups.add_member(session, group_id=group.id, user=anna)
+    await client.post(
+        f"/api/v1/tournaments/{t['id']}/entries", json={"player_ids": [str(anna_player.id)]}
+    )
+    await client.post(f"/api/v1/tournaments/{t['id']}/cancel")
+    await as_user(client, session, anna)
+    assert is_problem(await client.delete(f"/api/v1/tournaments/{t['id']}"), 403)

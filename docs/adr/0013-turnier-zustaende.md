@@ -34,14 +34,15 @@ stateDiagram-v2
 | Plätze auslosen, neu auslosen | Turnierstarter | mindestens 2 zugesagte Teilnehmer; schließt die Anmeldung |
 | Draft beginnen | Turnierstarter | Status `seated` |
 | Farben melden | jeder Teilnehmer für sich | Status `seated`, `drafting` oder `running` |
-| Runde 1 und jede weitere Runde starten | jeder Teilnehmer | bei offenen Matches nur mit Bestätigung der Warnung (UC-15) |
+| Runde 1 starten | jeder Teilnehmer | alle Teilnehmer haben ihre Farben gemeldet, auch farblos (ergänzt am 20.11.2026) |
+| Jede weitere Runde starten | jeder Teilnehmer | bei offenen Matches nur mit Bestätigung der Warnung (UC-15) |
 | Pausieren, fortsetzen | jeder Teilnehmer | – |
 | Ergebnis eintragen, korrigieren | die beiden Spieler des Matches, Gruppen-Admin | bis Status `finished`; jede Korrektur landet in `match_correction` |
 | Abbrechen vor Runde 1 | Turnierstarter, Gruppen-Admin | Status `setup`, `seated` oder `drafting`; sofort, mit Bestätigung |
 | Abbrechen ab Runde 1, direkt | Gruppen-Admin | Status `running` oder `paused`; sofort, mit Bestätigung |
 | Abbrechen ab Runde 1, per Abstimmung | Turnierstarter oder Gruppen-Admin beantragt, Teilnehmer bestätigen | Status `running` oder `paused`; abgebrochen, sobald **mehr als die Hälfte** der Teilnehmer bestätigt hat (siehe unten) |
 
-Ein abgebrochenes Turnier zählt nicht für Rangliste und Statistik.
+Ein abgebrochenes Turnier zählt nicht für Rangliste und Statistik. Turnierstarter und Gruppen-Admin können es danach endgültig löschen; Gäste, die nur dort mitgespielt haben, werden mit gelöscht (ergänzt am 20.11.2026).
 
 **Abbruch per Abstimmung (ergänzt am 18.11.2026)**
 - Ab Runde 1 können Turnierstarter und Gruppen-Admin einen Abbruch beantragen. Alle Teilnehmer bekommen eine Nachricht in der App und per Push.

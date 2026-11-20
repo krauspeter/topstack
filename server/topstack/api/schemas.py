@@ -1,5 +1,6 @@
 """Ein- und Ausgabeformate der API."""
 
+import re
 import uuid
 from datetime import date, datetime
 from typing import Annotated
@@ -101,8 +102,6 @@ class InvitationAccepted(BaseModel):
 # Spieler und Turniere (AP-4)
 # ---------------------------------------------------------------------------
 
-SetCode = Annotated[str, Field(min_length=2, max_length=6, pattern=r"^[A-Za-z0-9]+$")]
-
 
 class PlayerOut(BaseModel):
     id: uuid.UUID
@@ -124,13 +123,19 @@ class ReservedCreate(BaseModel):
 
 
 class TournamentCreate(BaseModel):
-    set_code: SetCode
+    # Name des Drafts oder Set-Kürzel, 2 bis 20 Zeichen (geändert am 20.11.2026)
+    set_code: str = Field(max_length=40)
     location: str | None = Field(default=None, max_length=80)
 
     @field_validator("set_code")
     @classmethod
-    def upper(cls, value: str) -> str:
-        return value.upper()
+    def draft_name(cls, value: str) -> str:
+        value = " ".join(value.split())
+        if not 2 <= len(value) <= 20:
+            raise ValueError("2 bis 20 Zeichen")
+        if not re.fullmatch(r"[\w .,'&:+\-]+", value):
+            raise ValueError("nur Buchstaben, Ziffern, Leerzeichen und . , ' & : + -")
+        return value
 
 
 class EntryOut(BaseModel):

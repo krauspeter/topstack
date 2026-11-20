@@ -25,6 +25,7 @@ class Action(StrEnum):
     START_DRAFT = "start_draft"
     REPORT_COLORS = "report_colors"
     CANCEL = "cancel"
+    DELETE = "delete"  # nur abgebrochene Turniere
 
 
 class Forbidden(Exception):
@@ -55,6 +56,7 @@ ALLOWED_STATUS: dict[Action, set[Status]] = {
     Action.START_DRAFT: {Status.SEATED},
     Action.REPORT_COLORS: {Status.SEATED, Status.DRAFTING, Status.RUNNING},
     Action.CANCEL: OPEN,
+    Action.DELETE: {Status.CANCELLED},
 }
 
 NEXT_STATUS: dict[Action, Status] = {
@@ -80,6 +82,8 @@ def role_allows(action: Action, status: Status, actor: Actor) -> bool:
             return actor.is_starter
         case Action.RESPOND | Action.REPORT_COLORS:
             return actor.is_participant
+        case Action.DELETE:
+            return actor.is_starter or actor.is_admin
         case Action.CANCEL:
             # vor Runde 1 Starter oder Admin, danach nur der Admin direkt
             if status in BEFORE_ROUND_1:
@@ -107,3 +111,11 @@ def allowed_actions(status: Status, actor: Actor) -> list[Action]:
 
 def can_seat(accepted_players: int) -> bool:
     return accepted_players >= 2
+
+
+def ready_for_round_one(colors: list[str | None]) -> bool:
+    """Runde 1 startet erst, wenn alle Teilnehmer ihre Farben gemeldet haben ("" = farblos).
+
+    Festgelegt am 20.11.2026; der Server prüft das beim Start von Runde 1 (AP-5).
+    """
+    return len(colors) >= 2 and all(c is not None for c in colors)

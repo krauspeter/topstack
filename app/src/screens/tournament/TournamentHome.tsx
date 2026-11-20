@@ -71,11 +71,14 @@ export function TournamentHome({ me, onOpen, onBack }: Props) {
 
   return (
     <main className="page">
-      <header className="bar">
+      <header className="title-bar">
         <button className="btn ghost" onClick={onBack} aria-label="Zurück">
           ‹ Zurück
         </button>
-        <h2>Turniere · {group.name}</h2>
+        <div className="title">
+          <h2>Turniere</h2>
+          <span className="muted small">{group.name}</span>
+        </div>
       </header>
 
       {list === null && !error && <p className="muted">Lade Turniere …</p>}
@@ -94,18 +97,17 @@ export function TournamentHome({ me, onOpen, onBack }: Props) {
         list !== null && (
           <form className="stack" onSubmit={start}>
             <label className="field">
-              <span>Set-Kürzel, z. B. DSK oder FDN</span>
+              <span>Name des Drafts, z. B. Mirrodin oder DSK</span>
               <input
                 value={setCode}
-                onChange={(e) => setSetCode(e.target.value.toUpperCase())}
+                onChange={(e) => setSetCode(e.target.value)}
                 required
                 minLength={2}
-                maxLength={6}
-                pattern="[A-Za-z0-9]{2,6}"
-                autoCapitalize="characters"
+                maxLength={20}
                 autoComplete="off"
                 enterKeyHint="go"
               />
+              <small className="muted">{setCode.trim().length}/20 Zeichen</small>
             </label>
             <button type="submit" className="btn primary big" disabled={busy || setCode.trim().length < 2}>
               Draft-Turnier starten
