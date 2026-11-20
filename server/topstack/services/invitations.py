@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from topstack.config import settings
-from topstack.db.models import AppUser, Invitation, Player, PlayGroup
+from topstack.db.models import AppUser, Invitation, Membership, Player, PlayGroup
 from topstack.db.repo import groups
 from topstack.services.tokens import hash_token, new_token
 
@@ -23,14 +23,17 @@ async def create(
     created_by: uuid.UUID,
     days: int | None = None,
     max_uses: int | None = None,
+    player_id: uuid.UUID | None = None,
 ) -> tuple[str, Invitation]:
+    """Gruppen-Einladung; mit ``player_id`` übernimmt sie einen vorgemerkten Spieler (ADR-0015)."""
     token = new_token()
     invitation = Invitation(
         token_hash=hash_token(token),
         group_id=group_id,
         created_by=created_by,
         expires_at=now() + timedelta(days=days or settings.invitation_days),
-        max_uses=max_uses,
+        max_uses=1 if player_id else max_uses,
+        player_id=player_id,
     )
     db.add(invitation)
     await db.flush()
@@ -55,14 +58,30 @@ async def group_name(db: AsyncSession, invitation: Invitation) -> str:
     return group.name if group else ""
 
 
+class ReservedTaken(Exception):
+    """Der vorgemerkte Spieler gehört schon einem Konto."""
+
+
 async def accept(db: AsyncSession, invitation: Invitation, user: AppUser) -> tuple[Player, bool]:
-    """Macht das Konto zum Mitglied. Schon Mitglied: nichts ändern, Einladung nicht verbrauchen."""
+    """Macht das Konto zum Mitglied. Schon Mitglied: nichts ändern, Einladung nicht verbrauchen.
+
+    Ist die Einladung an einen vorgemerkten Spieler gebunden, übernimmt das Konto diesen
+    Spieler samt allen Ergebnissen (ADR-0015).
+    """
     existing = await db.scalar(
         select(Player).where(Player.group_id == invitation.group_id, Player.app_user_id == user.id)
     )
     if existing is not None:
         return existing, False
-    player = await groups.add_member(db, group_id=invitation.group_id, user=user)
+    if invitation.player_id is not None:
+        player = await db.get(Player, invitation.player_id, with_for_update=True)
+        if player is None or player.kind != "reserved":
+            raise ReservedTaken
+        player.kind = "member"
+        player.app_user_id = user.id
+        db.add(Membership(group_id=invitation.group_id, app_user_id=user.id, role="member"))
+    else:
+        player = await groups.add_member(db, group_id=invitation.group_id, user=user)
     invitation.uses += 1
     await db.flush()
     return player, True
