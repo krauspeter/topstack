@@ -45,7 +45,70 @@ export interface GroupPlayer {
 }
 
 export type TournamentStatus = 'setup' | 'seated' | 'drafting' | 'running' | 'paused' | 'finished' | 'cancelled';
-export type TournamentAction = 'invite' | 'respond' | 'seat' | 'start_draft' | 'report_colors' | 'cancel' | 'delete';
+export type TournamentAction =
+  | 'invite'
+  | 'respond'
+  | 'seat'
+  | 'start_draft'
+  | 'report_colors'
+  | 'cancel'
+  | 'delete'
+  | 'start_round'
+  | 'next_round'
+  | 'report_result'
+  | 'pause'
+  | 'resume'
+  | 'finish'
+  | 'request_cancel'
+  | 'vote_cancel';
+
+export interface MatchInfo {
+  id: string;
+  player_a_id: string;
+  player_b_id: string;
+  player_a: string;
+  player_b: string;
+  status: 'scheduled' | 'running' | 'finished';
+  games_a: number;
+  games_b: number;
+  games_drawn: number;
+  version: number;
+  mine: boolean;
+  can_report: boolean;
+}
+
+export interface RoundInfo {
+  number: number;
+  status: 'planned' | 'running' | 'finished';
+  bye: string | null;
+  matches: MatchInfo[];
+}
+
+export interface Standing {
+  player_id: string;
+  display_name: string;
+  rank: number;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  match_points: number;
+  games_won: number;
+  games_lost: number;
+  game_diff: number;
+  needs_roll: boolean;
+  roll: number | null;
+  final_place: number | null;
+  ranking_points: number | null;
+}
+
+export interface CancelVote {
+  requested_by: string;
+  confirmed: number;
+  required: number;
+  participants: number;
+  i_voted: boolean;
+}
 
 export interface Entry {
   player_id: string;
@@ -70,6 +133,13 @@ export interface Tournament {
   entries: Entry[];
   my_player_id: string | null;
   actions: TournamentAction[];
+  rounds: RoundInfo[];
+  current_round: number | null;
+  open_in_current: number;
+  rounds_left: number;
+  standings: Standing[];
+  suggestion: string | null;
+  cancel_vote: CancelVote | null;
 }
 
 export interface TournamentSummary {

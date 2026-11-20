@@ -43,6 +43,13 @@ function tournament(status: string, entries: Entry[], extra: Record<string, unkn
     entries,
     my_player_id: ME_PLAYER,
     actions,
+    rounds: [],
+    current_round: null,
+    open_in_current: 0,
+    rounds_left: 0,
+    standings: [],
+    suggestion: null,
+    cancel_vote: null,
     ...extra,
   };
 }
@@ -247,4 +254,188 @@ test('Gast meldet sich per QR-Code an', async ({ page }) => {
   await page.getByLabel('Dein Name').fill('Gina');
   await page.getByRole('button', { name: 'Als Gast mitspielen' }).click();
   await expect(page.getByRole('status')).toContainText('Du bist dabei, Gina!');
+});
+
+// ---------------------------------------------------------------------------
+// Turnier spielen (AP-5)
+// ---------------------------------------------------------------------------
+
+const PLAYERS = [
+  { ...entry(ME_PLAYER, 'Peter', 'member', 1), colors: 'G' },
+  entry('p-ben', 'Ben', 'reserved', 2),
+  { ...entry('p-chris', 'Chris', 'reserved', 3), colors: 'UB' },
+];
+
+const match = (id: string, a: [string, string], b: [string, string], extra: Record<string, unknown> = {}) => ({
+  id,
+  player_a_id: a[0],
+  player_a: a[1],
+  player_b_id: b[0],
+  player_b: b[1],
+  status: 'scheduled',
+  games_a: 0,
+  games_b: 0,
+  games_drawn: 0,
+  version: 0,
+  mine: a[0] === ME_PLAYER || b[0] === ME_PLAYER,
+  can_report: true,
+  ...extra,
+});
+
+const standing = (id: string, name: string, rank: number, extra: Record<string, unknown> = {}) => ({
+  player_id: id,
+  display_name: name,
+  rank,
+  played: 0,
+  wins: 0,
+  draws: 0,
+  losses: 0,
+  match_points: 0,
+  games_won: 0,
+  games_lost: 0,
+  game_diff: 0,
+  needs_roll: false,
+  roll: null,
+  final_place: null,
+  ranking_points: null,
+  ...extra,
+});
+
+const PETER: [string, string] = [ME_PLAYER, 'Peter'];
+const BEN: [string, string] = ['p-ben', 'Ben'];
+const CHRIS: [string, string] = ['p-chris', 'Chris'];
+
+function runningState(first: Record<string, unknown> = {}, standings = [standing(ME_PLAYER, 'Peter', 1), standing('p-ben', 'Ben', 1), standing('p-chris', 'Chris', 1)]) {
+  return tournament('running', PLAYERS, {
+    seating: { seed: 1, draw: 1 },
+    actions: ['report_colors', 'next_round', 'report_result', 'pause', 'finish', 'cancel', 'request_cancel'],
+    rounds: [
+      { number: 1, status: 'running', bye: 'Chris', matches: [match('m1', PETER, BEN, first)] },
+      { number: 2, status: 'planned', bye: 'Ben', matches: [match('m2', PETER, CHRIS)] },
+      { number: 3, status: 'planned', bye: 'Peter', matches: [match('m3', BEN, CHRIS)] },
+    ],
+    current_round: 1,
+    open_in_current: first.status === 'finished' ? 0 : 1,
+    rounds_left: 2,
+    standings,
+  });
+}
+
+test('Runde 1 mit Warnung starten und Ergebnis eintragen', async ({ page }) => {
+  await mockBase(page);
+  let state: Record<string, unknown> = tournament('drafting', PLAYERS, {
+    seating: { seed: 1, draw: 1 },
+    actions: ['report_colors', 'start_round', 'cancel'],
+  });
+  await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, 200, state));
+  const starts: unknown[] = [];
+  await page.route(`**/api/v1/tournaments/${TID}/rounds/next`, async (route) => {
+    const body = route.request().postDataJSON() as { confirm: boolean };
+    starts.push(body);
+    if (!body.confirm) {
+      return route.fulfill({
+        status: 409,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          type: 'about:blank',
+          title: 'Konflikt',
+          status: 409,
+          detail: 'Noch nicht alle haben ihre Farben eingetragen: Ben',
+          code: 'missing_colors',
+          names: ['Ben'],
+        }),
+      });
+    }
+    state = runningState();
+    return json(route, 200, state);
+  });
+  let reported: unknown = null;
+  await page.route(`**/api/v1/tournaments/${TID}/matches/m1/result`, async (route) => {
+    reported = route.request().postDataJSON();
+    state = runningState({ status: 'finished', games_a: 2, games_b: 1, version: 1 }, [
+      standing(ME_PLAYER, 'Peter', 1, { played: 1, wins: 1, match_points: 3, games_won: 2, games_lost: 1 }),
+      standing('p-chris', 'Chris', 2),
+      standing('p-ben', 'Ben', 3, { played: 1, losses: 1, games_won: 1, games_lost: 2 }),
+    ]);
+    return json(route, 200, state);
+  });
+
+  await page.goto(`/turnier/${TID}`);
+  await page.getByRole('button', { name: 'Runde 1 starten' }).click();
+  const warning = page.getByRole('dialog', { name: 'Warnung' });
+  await expect(warning).toContainText('Ben');
+  await warning.getByRole('button', { name: 'Trotzdem starten' }).click();
+  await expect(page.getByRole('heading', { name: 'Runde 1 von 3' })).toBeVisible();
+  await expect(page.getByText('Pause: Chris')).toBeVisible();
+  expect(starts).toEqual([{ confirm: false }, { confirm: true }]);
+
+  await page.getByTestId('match').getByRole('button', { name: 'Ergebnis' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Ergebnis eintragen' });
+  await sheet.getByRole('button', { name: '2:1' }).click();
+  await expect(sheet.getByTestId('verdict')).toHaveText('Peter gewinnt');
+  await sheet.getByRole('button', { name: 'Ergebnis bestätigen' }).click();
+  expect(reported).toEqual({ games_a: 2, games_b: 1, games_drawn: 0 });
+  await expect(page.getByTestId('match').first()).toContainText('2:1');
+  const table = page.getByRole('table', { name: 'Turniertabelle' });
+  await expect(table.getByRole('row').nth(1)).toContainText('Peter');
+  await expect(page.getByRole('button', { name: 'Runde 2 starten' })).toBeVisible();
+});
+
+test('Ergebnis korrigieren schickt die Version mit', async ({ page }) => {
+  await mockBase(page);
+  const state = runningState({ status: 'finished', games_a: 2, games_b: 0, version: 3 });
+  await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, 200, state));
+  let body: unknown = null;
+  await page.route(`**/api/v1/tournaments/${TID}/matches/m1/result`, async (route) => {
+    body = route.request().postDataJSON();
+    return json(route, 200, state);
+  });
+  await page.goto(`/turnier/${TID}`);
+  await page.getByTestId('match').getByRole('button', { name: 'Ändern' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Ergebnis eintragen' });
+  await expect(sheet.getByRole('button', { name: 'Korrektur speichern' })).toBeDisabled();
+  await sheet.getByRole('button', { name: '1:1' }).click();
+  await expect(sheet.getByTestId('verdict')).toHaveText('Unentschieden');
+  await sheet.getByRole('button', { name: 'Korrektur speichern' }).click();
+  await expect.poll(() => body).toEqual({ games_a: 1, games_b: 1, games_drawn: 0, version: 3 });
+});
+
+test('Siegerehrung nach dem Abschluss', async ({ page }) => {
+  await mockBase(page);
+  const done = (id: string, name: string, place: number, points: number, rp: number) =>
+    standing(id, name, place, { final_place: place, match_points: points, ranking_points: rp, played: 2 });
+  const state = tournament('finished', PLAYERS, {
+    actions: [],
+    rounds: [{ number: 1, status: 'finished', bye: null, matches: [match('m1', PETER, BEN, { status: 'finished', games_a: 2 })] }],
+    standings: [done(ME_PLAYER, 'Peter', 1, 6, 5), done('p-chris', 'Chris', 2, 3, 3), done('p-ben', 'Ben', 3, 0, 1)],
+  });
+  await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, 200, state));
+  await page.goto(`/turnier/${TID}`);
+  const ceremony = page.getByTestId('ceremony');
+  await expect(ceremony.getByRole('heading', { name: 'Siegerehrung' })).toBeVisible();
+  await expect(ceremony.getByRole('listitem')).toHaveCount(3);
+  await expect(ceremony.getByRole('listitem').first()).toContainText('Peter');
+  await expect(page.getByRole('heading', { name: 'Endstand' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ergebnis' })).toHaveCount(0);
+});
+
+test('Abbruch per Abstimmung bestätigen', async ({ page }) => {
+  await mockBase(page);
+  let state: Record<string, unknown> = {
+    ...runningState(),
+    actions: ['report_result', 'next_round', 'pause', 'finish', 'vote_cancel'],
+    cancel_vote: { requested_by: 'Anna', confirmed: 1, required: 3, participants: 4, i_voted: false },
+  };
+  await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, 200, state));
+  await page.route(`**/api/v1/tournaments/${TID}/cancel-request/vote`, async (route) => {
+    expect(route.request().method()).toBe('PUT');
+    state = { ...state, cancel_vote: { requested_by: 'Anna', confirmed: 2, required: 3, participants: 4, i_voted: true } };
+    return json(route, 200, state);
+  });
+  await page.goto(`/turnier/${TID}`);
+  const vote = page.getByTestId('cancel-vote');
+  await expect(vote).toContainText('Anna möchte das Turnier abbrechen. 1 von 4 haben bestätigt, nötig sind 3.');
+  await vote.getByRole('button', { name: 'Abbruch bestätigen' }).click();
+  await expect(vote).toContainText('2 von 4');
+  await expect(vote.getByRole('button', { name: 'Bestätigung zurücknehmen' })).toBeVisible();
 });
