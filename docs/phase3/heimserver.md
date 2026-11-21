@@ -118,11 +118,11 @@ Die Schlüssel entstehen auf dem Heimserver und bleiben dort. Auf dem **Heimserv
 
 ```bash
 cd ~/topstack/infra
-docker compose exec api python -m topstack.scripts.vapid_keys >> .env
-grep -c '^VAPID_' .env        # muss 4 sein, wenn die leeren Zeilen aus .env.example noch drin sind
+docker compose exec -T api python -m topstack.scripts.vapid_keys >> .env
+grep -c '^VAPID_' .env        # muss 2 sein
 ```
 
-Stehen `VAPID_PUBLIC_KEY=` und `VAPID_PRIVATE_KEY=` doppelt in der `.env`, die beiden **leeren** Zeilen mit `nano .env` löschen, sodass `grep -c '^VAPID_' .env` danach `2` zeigt. Dann neu starten:
+`-T` ist wichtig: Ohne hängt Docker unsichtbare Zeilenende-Zeichen an, und die Schlüssel funktionieren nicht. Zeigt `grep` `4`, standen schon leere `VAPID_`-Zeilen in der `.env`: die beiden **leeren** mit `nano .env` löschen. Dann neu starten:
 
 ```bash
 docker compose up -d
