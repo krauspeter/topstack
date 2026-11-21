@@ -25,9 +25,10 @@ interface Props {
 export function DualRoll({ config, device, onInfo, onStart, onCancel }: Props) {
   const remote = config.remote;
   const me = remote?.myPlayer ?? config.players[1].id;
-  const meIndex = config.players.findIndex((p) => p.id === me);
+  const meIndex: 0 | 1 = config.players[0].id === me ? 0 : 1;
+  const oppIndex: 0 | 1 = meIndex === 0 ? 1 : 0;
   const mine = config.players[meIndex];
-  const opp = config.players[1 - meIndex];
+  const opp = config.players[oppIndex];
   const lobby = remote?.lobby ?? { seats: {}, rolls: {}, tie: null };
   const base = `/tournaments/${remote?.tournamentId}/matches/${remote?.matchId}/tracker/seats`;
 
@@ -81,7 +82,7 @@ export function DualRoll({ config, device, onInfo, onStart, onCancel }: Props) {
 
   return (
     <main className="table dual">
-      <section className="half roll" style={halfStyle(playerColors(opp, 1 - meIndex))} data-testid="half-opponent">
+      <section className="half roll" style={halfStyle(playerColors(opp, oppIndex))} data-testid="half-opponent">
         <div className={`die ${winner === opp.id ? "won" : ""}`} role="img" aria-label={`W20 von ${opp.name}`}>
           <svg viewBox="0 0 100 100" aria-hidden="true">
             <polygon points="50,4 93,28 93,72 50,96 7,72 7,28" />
