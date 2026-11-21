@@ -76,7 +76,7 @@ AP-1 kommt zuerst, weil das automatische Deployment (AP-3) vor jeder Migration e
 - [x] Plan `docs/phase4/README.md`
 - [x] Entscheidungen E1 bis E4 getroffen (21.11.2026)
 - [x] ADR-0016 Backups, Monitoring und Deployment angenommen
-- [ ] Roadmap aktualisiert
+- [x] Roadmap aktualisiert (21.11.2026)
 
 **Fertig, wenn:** Der Plan ist gemergt.
 
@@ -93,9 +93,10 @@ Grundsatz: Ein Backup gilt erst als vorhanden, wenn es sich wiederherstellen lie
 - [ ] Skript `infra/backup/restore-test.sh`: neuestes Backup aus R2 holen, in einem Wegwerf-PostgreSQL wiederherstellen, prüfen (Alembic-Version gleich `head`, Anzahl Spieler, Turniere und Ereignisse größer 0 und gleich der Live-Datenbank zum Zeitpunkt des Backups), Ergebnis melden
 - [ ] Timer `topstack-restore-test.timer`, monatlich am 1. um 04:30
 - [ ] `infra/backup/restore.sh` für den Ernstfall, ersetzt den Abschnitt „Nur im Notfall zurückspielen“ in `heimserver.md`
-- [ ] Wiederherstellung einmal echt geprobt: Stack auf einem anderen Rechner (Ryzen-PC) aus dem R2-Backup aufgebaut
+- [ ] Wiederherstellung einmal echt geprobt auf dem Windows-PC mit Docker Desktop (Entscheidung vom 21.11.2026, der Ryzen-PC ist vorerst nicht in Betrieb): Repo frisch von GitHub klonen, neuestes Backup aus R2 laden, mit dem privaten Schlüssel aus dem Passwort-Manager entschlüsseln, Stack **ohne** Cloudflare Tunnel starten, einspielen, unter `http://localhost` Turniere und Rangliste prüfen; danach Stack und Daten wieder löschen. Backup und Klon liegen dabei **nicht** im OneDrive-Ordner, damit keine Spielerdaten in die Cloud synchronisiert werden. Nichts vom Mini-PC darf dafür nötig sein
+- [ ] Anleitung dazu in `heimserver.md`, Abschnitt „Ernstfall: auf einem anderen Rechner wiederherstellen“. Ausweichlösung, falls Docker Desktop nicht geht: auf dem Heimserver in einem frischen Klon mit eigenem Compose-Projekt, ohne die bestehende `.env` und ohne `~/topstack-backups`
 
-**Fertig, wenn:** Ein nächtliches Backup liegt in R2, der Wiederherstellungstest läuft grün, und die Probe auf dem zweiten Rechner hat geklappt (Teil von G4).
+**Fertig, wenn:** Ein nächtliches Backup liegt in R2, der Wiederherstellungstest läuft grün, und die Probe auf dem Windows-PC hat geklappt (Teil von G4).
 
 ### AP-2 · Monitoring (ca. 3 h) · Branch `feat/p4-monitoring`
 
@@ -191,11 +192,17 @@ Letzter Schritt vor v1.0. Dafür braucht es ein geliehenes iPhone mit aktuellem 
 **Danach**
 
 - [ ] Deploy-Sperre aufheben
-- [ ] Wiederherstellung des Backups vom Abend auf dem zweiten Rechner, Rangliste stimmt überein
+- [ ] Wiederherstellung des Backups vom Abend auf dem Windows-PC, Rangliste stimmt überein
 - [ ] Feedback des Abends gesichtet, Fehler für v1.0.1 eingeplant
 - [ ] Roadmap aktualisiert, Phase 4 abgeschlossen
 
 **Fertig, wenn:** G3 und G4 sind abgenommen.
+
+### Eingeschoben
+
+Kleine Wünsche aus der Beta, die nicht bis v1.1 warten müssen:
+
+- [ ] Profil zeigt je Gruppe, wer dazugehört: Mitglieder und vorgemerkte Spieler ohne Konto, Gäste nicht (Branch `feat/profil-mitglieder`, 21.11.2026)
 
 ---
 
@@ -207,7 +214,7 @@ Letzter Schritt vor v1.0. Dafür braucht es ein geliehenes iPhone mit aktuellem 
 | TC-91 | Backup ohne R2 | Lokale Datei bleibt, Alarm über ntfy | AP-1 | hoch |
 | TC-92 | Aufbewahrung | Nach simulierten 40 Tagen liegen 7 tägliche, 4 wöchentliche, bis zu 6 monatliche Backups | AP-1 | mittel |
 | TC-93 | Wiederherstellungstest | Wegwerf-Datenbank aus R2, Zahlen stimmen, Erfolg gemeldet | AP-1 | hoch |
-| TC-94 | Wiederherstellung auf zweitem Rechner | App läuft dort mit allen Turnieren und der Rangliste | AP-1 | hoch |
+| TC-94 | Wiederherstellung auf dem Windows-PC | Nur mit Repo, R2 und Schlüssel: App läuft unter `http://localhost` mit allen Turnieren und der Rangliste | AP-1 | hoch |
 | TC-95 | Backup ohne privaten Schlüssel | Datei in R2 lässt sich ohne Schlüssel aus dem Passwort-Manager nicht öffnen | AP-1 | mittel |
 | TC-100 | Health mit Datenbank | Datenbank gestoppt → `/api/v1/health` antwortet 503 | AP-2 | hoch |
 | TC-101 | Stack gestoppt | Push über ntfy innerhalb von 5 Minuten | AP-2 | hoch |
@@ -273,7 +280,7 @@ Alle Entscheidungen wurden am 21.11.2026 getroffen und in [ADR-0016](../adr/0016
 
 | Risiko | Auswirkung | Gegenmaßnahme |
 | --- | --- | --- |
-| Backup läuft, lässt sich aber nicht wiederherstellen | Daten im Ernstfall weg | Monatlicher automatischer Wiederherstellungstest, einmal echte Probe auf dem zweiten Rechner |
+| Backup läuft, lässt sich aber nicht wiederherstellen | Daten im Ernstfall weg | Monatlicher automatischer Wiederherstellungstest, einmal echte Probe auf dem Windows-PC |
 | Privater `age`-Schlüssel geht verloren | Backups in R2 unbrauchbar | Schlüssel im Passwort-Manager plus Ausdruck an einem sicheren Ort; lokale Backups bleiben unverschlüsselt auf dem Server |
 | R2-Token gelangt nach außen | Backups könnten gelöscht werden | Token nur für einen Bucket, lokale Kopien bleiben, Token im Passwort-Manager und nur in der `.env` |
 | Update kommt mitten im Turnier | Abbruch der Verbindung, Ärger am Tisch | Deploy-Sperre am Spieleabend; Outbox der App fängt kurze Ausfälle ab (ADR-0012) |
