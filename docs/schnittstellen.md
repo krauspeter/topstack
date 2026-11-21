@@ -118,9 +118,14 @@ Ereignisarten: `game_start`, `die_roll` (`value` 1–20), `life` (`delta` ≠ 0)
 
 | Methode | Pfad | Zweck |
 | --- | --- | --- |
-| GET | `/push/vapid-key` | Öffentlicher VAPID-Schlüssel |
-| POST | `/push/subscriptions` | Abo speichern |
-| PUT | `/me/notifications/{event}` | Ereignis ein-/ausschalten |
+| GET | `/push/vapid-key` | Öffentlicher VAPID-Schlüssel (`{key}`, `null` = Push nicht eingerichtet) |
+| POST | `/push/subscriptions` | Abo speichern, Format wie `PushSubscription.toJSON()`; gleicher Endpunkt = kein zweites Abo |
+| DELETE | `/push/subscriptions?endpoint=` | Abo dieses Geräts löschen |
+| GET | `/me/notifications` | Anzahl Geräte mit Abo und alle Ereignisse mit `enabled` |
+| PUT | `/me/notifications/{event}` | Ereignis ein-/ausschalten (`{enabled}`): `your_turn`, `new_round`, `tournament_end`, `invitation`, `result_corrected`, `cancel_requested` |
+| POST | `/push/test` | Testnachricht an alle eigenen Geräte; `503`, wenn VAPID fehlt |
+
+Wer etwas selbst auslöst, bekommt dazu keine Nachricht. Bei einer neuen Runde bekommt jeder Spieler mit Match „Du bist dran“ (mit Gegner), wer Pause hat „Neue Runde“. Abgelaufene Abos (404/410 vom Push-Dienst) werden beim Senden gelöscht.
 
 ## 2. WebSocket
 

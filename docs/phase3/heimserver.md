@@ -66,7 +66,7 @@ Ausfüllen:
 | `POSTGRES_PASSWORD` | wird oben per `sed` gesetzt |
 | `CF_TUNNEL_TOKEN` | Token aus Schritt 4 |
 
-Ab AP-3 und AP-8 kommen weitere Werte dazu: der API-Schlüssel von Resend für die Magic-Link-Mails (Entscheidung E2) und die VAPID-Schlüssel für Push. Sie werden dann in `.env.example` ergänzt.
+Ab AP-3 und AP-8 kommen weitere Werte dazu: der API-Schlüssel von Resend für die Magic-Link-Mails (Entscheidung E2) und die VAPID-Schlüssel für Push (siehe „Push einrichten“ unter Abschnitt 5).
 
 Passwortdatei für den MQTT-Broker anlegen (wird erst in Phase 6 genutzt, muss aber existieren):
 
@@ -111,6 +111,24 @@ docker compose --env-file .env exec api python -m topstack.scripts.seed_group \
 ```
 
 Legt die Gruppe mit Standardregeln, dich als Admin und die Saison 2027 an. Ein zweiter Aufruf ändert nichts.
+
+### Push einrichten (AP-8, einmalig)
+
+Die Schlüssel entstehen auf dem Heimserver und bleiben dort. Auf dem **Heimserver (SSH)**:
+
+```bash
+cd ~/topstack/infra
+docker compose exec api python -m topstack.scripts.vapid_keys >> .env
+grep -c '^VAPID_' .env        # muss 4 sein, wenn die leeren Zeilen aus .env.example noch drin sind
+```
+
+Stehen `VAPID_PUBLIC_KEY=` und `VAPID_PRIVATE_KEY=` doppelt in der `.env`, die beiden **leeren** Zeilen mit `nano .env` löschen, sodass `grep -c '^VAPID_' .env` danach `2` zeigt. Dann neu starten:
+
+```bash
+docker compose up -d
+```
+
+Den privaten Schlüssel nie in den Chat, ein Ticket oder ein Bildschirmfoto geben. Geht er verloren oder wird er bekannt: neue Schlüssel erzeugen, alte Zeilen ersetzen, neu starten. Alle müssen Push dann im Profil einmal neu aktivieren.
 
 ## 6. Prüfen
 

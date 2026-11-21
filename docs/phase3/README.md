@@ -169,26 +169,28 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 - [x] Spielende mit Grund (`life_zero`, `concede`, `time`) speichern; das Matchergebnis entsteht automatisch (F-11), nach Zeitablauf ohne Entscheidung per Bestätigung.
 - [x] Lokale Matches ohne Turnier aus Phase 2 bleiben möglich und bleiben auf dem Gerät.
 - [x] Nachgezogen am 21.11.2026: Warteraum, bis beide Handys da sind; jeder würfelt nur seinen eigenen W20; Gegner oben und richtig herum, eigene Lebenspunkte unten.
-- [ ] Abnahmetest auf dem Heimserver mit zwei Geräten und kurzem Offline (PR #111, #112 gemergt).
+- [x] Abnahmetest auf dem Heimserver mit zwei Geräten und kurzem Offline (21.11.2026).
 
 **Fertig, wenn:** Zwei Handys zählen dasselbe Match, eines geht kurz offline, danach stimmen Lebenspunkte und Ergebnis auf beiden und auf dem Server.
 
 ### AP-7 · Live-Ansicht (ca. 6 h) · Branch `feat/p3-live` · F-15, N-04
 
-- [ ] WebSocket `/ws` mit dem Thema `tournament:<id>` (siehe Schnittstellen, ADR-0006); nur Mitglieder der Gruppe.
-- [ ] Nach einem Abbruch Stand per REST nachladen und neu abonnieren.
-- [ ] App: Live-Ansicht mit laufenden Matches, Pausen, offenen Matches, Tabelle, Lebenspunkten.
-- [ ] Pause-Ansicht: Lebenspunkte der anderen Matches, Tabelle, eigene Bilanz gegen den nächsten Gegner.
-- [ ] Tracker: Eingaben vom zweiten Handy kommen per WebSocket statt alle 2 Sekunden.
+- [x] WebSocket `/ws` mit dem Thema `tournament:<id>` (siehe Schnittstellen, ADR-0006); nur Mitglieder der Gruppe.
+- [x] Nach einem Abbruch Stand per REST nachladen und neu abonnieren.
+- [x] App: Live-Ansicht mit laufenden Matches, Pausen, offenen Matches, Tabelle, Lebenspunkten.
+- [x] Pause-Ansicht: Lebenspunkte der anderen Matches, Tabelle, eigene Bilanz gegen den nächsten Gegner.
+- [x] Abnahme auf dem Heimserver: Lebenspunkte erscheinen auf dem zweiten Gerät in unter 2 Sekunden (21.11.2026).
+- [x] Tracker: Eingaben vom zweiten Handy kommen per WebSocket statt alle 2 Sekunden.
 
 **Fertig, wenn:** Eine Lebenspunkt-Änderung erscheint bei allen Eingeladenen in unter 2 Sekunden.
 
 ### AP-8 · Push-Benachrichtigungen (ca. 4 h) · Branch `feat/p3-push` · F-17
 
-- Web Push mit VAPID-Schlüsseln (aus der `.env`, nicht im Repo).
-- Ereignisse: Du bist dran, neue Runde, Turnierende, Einladung, Ergebnis korrigiert, Abbruch beantragt.
-- Jedes Ereignis einzeln abschaltbar.
-- Auf dem iPhone kommt Push nur bei installierter App an; das wird beim iPhone-Test in Phase 4 geprüft.
+- [x] Web Push mit VAPID-Schlüsseln (aus der `.env`, nicht im Repo; erzeugen mit `python -m topstack.scripts.vapid_keys`, siehe `heimserver.md`).
+- [x] Ereignisse: Du bist dran, neue Runde, Turnierende, Einladung, Ergebnis korrigiert, Abbruch beantragt.
+- [x] Jedes Ereignis einzeln abschaltbar (Profil), Test-Knopf, abgelaufene Abos werden entfernt.
+- [ ] Auf dem iPhone kommt Push nur bei installierter App an; das wird beim iPhone-Test in Phase 4 geprüft.
+- [ ] Abnahme: VAPID-Schlüssel auf dem Heimserver, Android bekommt „Du bist dran“ bei geschlossener App.
 
 **Fertig, wenn:** Ein Android-Handy bekommt „Du bist dran“ bei geschlossener App.
 
