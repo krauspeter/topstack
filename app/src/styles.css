@@ -216,8 +216,11 @@ input {
 .account strong { color: var(--text); }
 h3 { font-size: 1.05rem; }
 .group-list { list-style: none; padding: 0; display: grid; gap: 12px; }
-.group-list li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 10px; }
+.group-list > li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 10px; }
 .group-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.member-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.member-list li { display: flex; align-items: baseline; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.member-list li:first-child { border-top: none; }
 .card p { line-height: 1.5; }
 
 /* ---------- Turnier (Phase 3, AP-4) ---------- */
@@ -243,7 +246,7 @@ input { min-width: 0; max-width: 100%; }
 /* Rasterspalten nie breiter als der Bildschirm: ohne minmax(0, 1fr) wächst die Spalte auf die
    Mindestbreite des breitesten Inhalts (z. B. Eingabefeld + „Anlegen“) und alles rechts wird
    abgeschnitten (21.11.2026) */
-.stack, .card, .sheet, .field, .seating, .player-setup, .group-list li, .entry-list { grid-template-columns: minmax(0, 1fr); }
+.stack, .card, .sheet, .field, .seating, .player-setup, .group-list > li, .entry-list { grid-template-columns: minmax(0, 1fr); }
 .stack > *, .card > *, .sheet > * { min-width: 0; }
 .row > button { flex-shrink: 0; }
 .chip { max-width: 100%; }

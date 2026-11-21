@@ -130,7 +130,7 @@ test('Ungültige Einladung', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('abgelaufen oder ungültig');
 });
 
-test('Profil: Name und Lieblingsfarben speichern, Einladungslink erstellen', async ({ page }) => {
+test('Profil: Mitglieder der Gruppe, Name und Lieblingsfarben speichern, Einladungslink erstellen', async ({ page }) => {
   await mockMe(page, ME);
   let patch: unknown = null;
   page.on('request', (request) => {
@@ -145,9 +145,21 @@ test('Profil: Name und Lieblingsfarben speichern, Einladungslink erstellen', asy
     }),
   );
 
+  await page.route(`**/api/v1/groups/${ME.groups[0].id}/players`, (route) =>
+    json(route, 200, [
+      { id: ME.groups[0].player_id, display_name: 'Anna', kind: 'member', is_me: true },
+      { id: '0193a000-0000-7000-8000-0000000000cc', display_name: 'Ben', kind: 'member', is_me: false },
+      { id: '0193a000-0000-7000-8000-0000000000dd', display_name: 'Chris', kind: 'reserved', is_me: false },
+    ]),
+  );
+
   await page.goto('/');
   await page.getByRole('button', { name: /Angemeldet als Anna/ }).click();
   await expect(page.getByRole('heading', { name: 'Profil' })).toBeVisible();
+
+  const members = page.getByRole('list', { name: 'Mitglieder von Draft-Runde' });
+  await expect(members.getByRole('listitem')).toHaveText([/^Anna\s*du$/, 'Ben', /^Chris\s*ohne Konto$/]);
+  await expect(page.getByText('3 Spieler, davon 1 ohne Konto')).toBeVisible();
 
   await page.getByLabel('Anzeigename').fill('Anni');
   await page.getByRole('group', { name: 'Lieblingsfarben' }).getByRole('button', { name: 'Rot' }).click();

@@ -1,3 +1,4 @@
+import { GroupMembers } from './GroupMembers';
 import { Notifications } from './Notifications';
 import { type FormEvent, useState } from 'react';
 import { api, errorText } from '../../api/client';
@@ -156,6 +157,7 @@ export function Profile({ me, onChange, onSignOut, onBack }: Props) {
                 <strong>{g.name}</strong>
                 <span className="badge">{ROLES[g.role]}</span>
               </div>
+              <GroupMembers groupId={g.id} groupName={g.name} />
               {g.role === 'admin' &&
                 (invites[g.id] ? (
                   <div className="stack">
