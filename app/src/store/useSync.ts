@@ -4,14 +4,16 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api } from '../api/client';
+import { useLive } from '../api/live';
 import type { EventBatchResult, TrackerInfo } from '../api/types';
 import { fromApi, remoteStatus, toApi } from '../domain/remote';
 import { allPending, confirmEvents, pendingEvents } from './db';
 import type { MatchApi } from './useMatch';
 
 const DEBOUNCE_MS = 300;
-/** Bis AP-7 (WebSocket) fragt das Handy regelmäßig nach den Eingaben des Gegners. */
+/** Ohne WebSocket fragt das Handy alle 2 s nach den Eingaben des Gegners, mit nur zur Sicherheit. */
 const POLL_MS = 2000;
+const POLL_LIVE_MS = 10_000;
 /** Reste aus geschlossenen Trackern gehen im Hintergrund raus. */
 const DRAIN_MS = 15000;
 
@@ -74,10 +76,13 @@ export function useSync(match: MatchApi): SyncInfo {
     return () => window.clearTimeout(timer);
   }, [base, count, flush]);
 
+  // Live: Eingaben vom anderen Handy kommen per WebSocket-Hinweis (AP-7)
+  const live = useLive(tournamentId, () => void flush(), 50);
+
   // Regelmäßig nachladen, beim Wiederverbinden und beim Zurückkehren in die App sofort
   useEffect(() => {
     if (!base) return;
-    const timer = window.setInterval(() => void flush(), POLL_MS);
+    const timer = window.setInterval(() => void flush(), live ? POLL_LIVE_MS : POLL_MS);
     const now = () => void flush();
     const visible = () => document.visibilityState === 'visible' && void flush();
     window.addEventListener('online', now);
@@ -87,7 +92,7 @@ export function useSync(match: MatchApi): SyncInfo {
       window.removeEventListener('online', now);
       document.removeEventListener('visibilitychange', visible);
     };
-  }, [base, flush]);
+  }, [base, flush, live]);
 
   // Outbox anderer Matches leeren, z. B. nachdem der Tracker offline geschlossen wurde
   useEffect(() => {

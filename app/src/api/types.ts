@@ -75,6 +75,21 @@ export interface MatchInfo {
   version: number;
   mine: boolean;
   can_report: boolean;
+  tracker_mode: 'none' | 'shared' | 'dual';
+  /** Live (AP-7): laufendes Spiel und Lebenspunkte, sonst `null`. */
+  game_no: number | null;
+  life_a: number | null;
+  life_b: number | null;
+}
+
+/** Pause-Ansicht: nächster Gegner und meine Bilanz gegen ihn in der Gruppe. */
+export interface NextOpponent {
+  player_id: string;
+  display_name: string;
+  round: number;
+  wins: number;
+  draws: number;
+  losses: number;
 }
 
 export interface RoundInfo {
@@ -142,6 +157,7 @@ export interface Tournament {
   standings: Standing[];
   suggestion: string | null;
   cancel_vote: CancelVote | null;
+  next_opponent: NextOpponent | null;
 }
 
 export interface TrackerPlayer {

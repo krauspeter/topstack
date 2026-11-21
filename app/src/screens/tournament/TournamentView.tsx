@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api, errorText } from '../../api/client';
+import { useLive } from '../../api/live';
 import type { Entry, GroupPlayer, GuestLink, Me, Tournament } from '../../api/types';
 import type { GameEvent } from '../../domain/lifeEvents';
 import type { MatchConfig } from '../../domain/match';
@@ -12,7 +13,9 @@ import { ManaPips } from '../ManaPips';
 import { QrCode } from '../QrCode';
 import { TournamentPlay } from './TournamentPlay';
 
+/** Ohne WebSocket alle 5 s nachladen, mit WebSocket nur zur Sicherheit alle 30 s. */
 const POLL_MS = 5000;
+const POLL_LIVE_MS = 30_000;
 const SHUFFLE_MS = 1600;
 const CHOICES: readonly ColorChoice[] = [...MANA, COLORLESS];
 
@@ -77,11 +80,13 @@ export function TournamentView({ id, me, onBack, onDeleted, onPlay }: Props) {
     }
   }, [id]);
 
+  const connected = useLive(id, () => void load());
+
   useEffect(() => {
     void load();
-    const timer = window.setInterval(() => void load(), POLL_MS);
+    const timer = window.setInterval(() => void load(), connected ? POLL_LIVE_MS : POLL_MS);
     return () => window.clearInterval(timer);
-  }, [load]);
+  }, [load, connected]);
 
   /** Eine Änderung zur Zeit; Knöpfe bleiben sichtbar gleich, damit nichts flackert. */
   const run = async (action: () => Promise<void>) => {
