@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { api, errorText } from '../../api/client';
-import type { Leaderboard as Board, Me, PlayerStats, SeasonInfo } from '../../api/types';
+import type { Leaderboard as Board, Me, PlayerStats, SeasonInfo, WinRecord } from '../../api/types';
+import { describeColors } from '../../domain/colors';
 import { ManaPips } from '../ManaPips';
 
 interface Props {
@@ -190,10 +191,64 @@ export function Leaderboard({ me, onBack }: Props) {
   );
 }
 
+type StatsView = 'opponents' | 'with' | 'vs';
+
+const VIEWS: { id: StatsView; label: string }[] = [
+  { id: 'opponents', label: 'Gegner' },
+  { id: 'with', label: 'Meine Farben' },
+  { id: 'vs', label: 'Gegen Farben' },
+];
+
+const VIEW_KEY = 'topstack.statsView';
+
+/** Zuletzt gewählte Ansicht, damit sie beim nächsten Öffnen wieder da ist. */
+function loadView(): StatsView {
+  try {
+    const v = localStorage.getItem(VIEW_KEY);
+    return VIEWS.some((x) => x.id === v) ? (v as StatsView) : 'opponents';
+  } catch {
+    return 'opponents';
+  }
+}
+
+function saveView(v: StatsView) {
+  try {
+    localStorage.setItem(VIEW_KEY, v);
+  } catch {
+    // ohne Speicher gilt die Auswahl nur bis zum Schließen
+  }
+}
+
+const record = (r: WinRecord) => `${r.wins}-${r.draws}-${r.losses}`;
+/** Siegquote wie auf dem Server: Unentschieden zählen als nicht gewonnen. */
+const winRate = (r: WinRecord) => {
+  const n = r.wins + r.draws + r.losses;
+  return n ? Math.round((1000 * r.wins) / n) / 10 : 0;
+};
+/** „C“ steht für farblos und wird als C-Symbol gezeigt. */
+const Pips = ({ k }: { k: string }) => <ManaPips colors={k === 'C' ? '' : k} />;
+const colorName = (k: string) => describeColors(k === 'C' ? '' : k);
+
+/** Eine Zeile mit Name links und Zahlen in festen, rechtsbündigen Spalten. */
+function RecordRow({ label, r, rate, aria }: { label: ReactNode; r: WinRecord; rate: number; aria: string }) {
+  return (
+    <li aria-label={aria}>
+      <span className="name">{label}</span>
+      <span className="num">{record(r)}</span>
+      <span className="num muted">{pct(rate)}</span>
+    </li>
+  );
+}
+
 function StatsCard({ stats: s, onClose }: { stats: PlayerStats; onClose(): void }) {
+  const [view, setView] = useState<StatsView>(loadView);
   const placesText = Object.entries(s.places)
     .map(([place, n]) => `${n}× Platz ${place}`)
     .join(', ');
+  const choose = (v: StatsView) => {
+    setView(v);
+    saveView(v);
+  };
   return (
     <section className="card left" data-testid="player-stats" aria-label={`Statistik von ${s.display_name}`}>
       <div className="group-head">
@@ -207,18 +262,21 @@ function StatsCard({ stats: s, onClose }: { stats: PlayerStats; onClose(): void 
         <dd>
           {s.tournaments} · {s.tournament_wins} {s.tournament_wins === 1 ? 'Sieg' : 'Siege'}
         </dd>
-        <dt>Platzierungen</dt>
-        <dd>
-          {placesText || '–'}
-          {s.tournaments > 0 && <span className="muted"> · Ø {num(s.avg_place)}</span>}
-        </dd>
+        <dt>Plätze</dt>
+        <dd>{placesText || '–'}</dd>
+        {s.tournaments > 0 && (
+          <>
+            <dt>Ø Platz</dt>
+            <dd>{num(s.avg_place)}</dd>
+          </>
+        )}
         <dt>Matches</dt>
         <dd>
-          {s.matches.wins}-{s.matches.draws}-{s.matches.losses} · {pct(s.match_win_rate)} gewonnen
+          {record(s.matches)} · {pct(s.match_win_rate)}
         </dd>
         <dt>Spiele</dt>
         <dd>
-          {s.games_won}:{s.games_lost} · {pct(s.game_win_rate)} gewonnen
+          {s.games_won}:{s.games_lost} · {pct(s.game_win_rate)}
         </dd>
         <dt>Farben</dt>
         <dd className="color-stats">
@@ -226,25 +284,46 @@ function StatsCard({ stats: s, onClose }: { stats: PlayerStats; onClose(): void 
             ? '–'
             : s.combos.slice(0, 3).map((c) => (
                 <span key={c.key}>
-                  <ManaPips colors={c.key === 'C' ? '' : c.key} /> {c.count}×
+                  <Pips k={c.key} /> {c.count}×
                 </span>
               ))}
         </dd>
       </dl>
-      {s.opponents.length > 0 && (
-        <>
-          <h4>Gegen</h4>
-          <ul className="opponents">
-            {s.opponents.map((o) => (
-              <li key={o.player_id}>
-                <span>{o.display_name}</span>
-                <span className="muted">
-                  {o.wins}-{o.draws}-{o.losses}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
+
+      <div className="chips-select" role="group" aria-label="Bilanz">
+        {VIEWS.map((v) => (
+          <button
+            key={v.id}
+            type="button"
+            className={view === v.id ? 'chip on' : 'chip'}
+            aria-pressed={view === v.id}
+            onClick={() => choose(v.id)}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+      <p className="muted small">
+        {view === 'opponents' && 'Siege-Unentschieden-Niederlagen gegen jeden Spieler'}
+        {view === 'with' && 'Mit welchen Farben du am besten warst'}
+        {view === 'vs' && 'Gegen welche Farben du am häufigsten verloren hast'}
+      </p>
+      <ul className="records" data-testid="records">
+        {view === 'opponents' &&
+          s.opponents.map((o) => (
+            <RecordRow key={o.player_id} label={o.display_name} r={o} rate={winRate(o)} aria={o.display_name} />
+          ))}
+        {view === 'with' &&
+          s.with_colors.map((c) => <RecordRow key={c.key} label={<Pips k={c.key} />} r={c} rate={c.win_rate} aria={colorName(c.key)} />)}
+        {view === 'vs' &&
+          s.vs_colors.map((c) => <RecordRow key={c.key} label={<Pips k={c.key} />} r={c} rate={c.win_rate} aria={colorName(c.key)} />)}
+      </ul>
+      {((view === 'opponents' && s.opponents.length === 0) ||
+        (view === 'with' && s.with_colors.length === 0) ||
+        (view === 'vs' && s.vs_colors.length === 0)) && (
+        <p className="muted" data-testid="records-empty">
+          {view === 'opponents' ? 'Noch keine Matches.' : 'Noch keine Farben gemeldet.'}
+        </p>
       )}
     </section>
   );

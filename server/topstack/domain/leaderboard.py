@@ -32,6 +32,15 @@ class TournamentResult[P: Hashable]:
     held_on: date
     entries: list[EntryResult[P]]
     matches: list[MatchRecord[P]]
+    # Farben aller Teilnehmer, auch der Gäste, die in ``entries`` fehlen (für „Gegen Farben“)
+    colors: dict[P, str | None] = field(default_factory=dict)
+
+    def deck(self, player: P) -> str | None:
+        """Farbkombination eines Teilnehmers; ``"C"`` für farblos, ``None`` wenn nicht gemeldet."""
+        colors = self.colors.get(player)
+        if colors is None:
+            colors = next((e.colors for e in self.entries if e.player == player), None)
+        return None if colors is None else colors or "C"
 
 
 @dataclass(frozen=True)
@@ -134,6 +143,8 @@ class PlayerStats[P: Hashable]:
     colors: Counter[str] = field(default_factory=Counter)  # einzelne Farben W, U, B, R, G, C
     combos: Counter[str] = field(default_factory=Counter)  # ganze Kombination wie „BRG“
     opponents: dict[P, Record] = field(default_factory=dict)
+    with_combo: dict[str, Record] = field(default_factory=dict)  # Bilanz je eigener Kombination
+    vs_color: dict[str, Record] = field(default_factory=dict)  # Bilanz gegen einzelne Farben
 
     @property
     def avg_place(self) -> float:
@@ -161,8 +172,8 @@ def player_stats[P: Hashable](
         s.tournament_wins += mine.place == 1
         s.places[mine.place] += 1
         s.ranking_points += mine.ranking_points
-        if mine.colors is not None:
-            combo = mine.colors or "C"
+        combo = t.deck(player)
+        if combo is not None:
             s.combos[combo] += 1
             for c in combo:
                 s.colors[c] += 1
@@ -175,6 +186,11 @@ def player_stats[P: Hashable](
             o = _outcome(won, lost)
             s.matches.add(o)
             s.opponents.setdefault(other, Record()).add(o)
+            if combo is not None:
+                s.with_combo.setdefault(combo, Record()).add(o)
+            # Eine Kombination wie „BR“ zählt für Schwarz und für Rot
+            for c in t.deck(other) or "":
+                s.vs_color.setdefault(c, Record()).add(o)
             s.games_won += won
             s.games_lost += lost
             s.games_drawn += m.games_drawn

@@ -97,3 +97,43 @@ def test_player_stats_draws_and_colorless():
 def test_rate():
     assert rate(0, 0) == 0.0
     assert rate(1, 3) == 33.3
+
+
+def rec(r):
+    return (r.wins, r.draws, r.losses)
+
+
+def test_color_records_by_hand():
+    s = player_stats([T1, T2], "A")
+    # T1 mit Grün: 3 Siege; T2 mit BRG: Niederlage gegen B, Sieg gegen C
+    assert {k: rec(r) for k, r in s.with_combo.items()} == {"G": (3, 0, 0), "BRG": (1, 0, 1)}
+    # Gegner-Farben: B spielte UW (T1, Sieg) und W (T2, Niederlage), C farblos (T1, Sieg)
+    # und R (T2, Sieg), D ohne Meldung zählt nicht
+    assert {k: rec(r) for k, r in s.vs_color.items()} == {
+        "U": (1, 0, 0),
+        "W": (1, 0, 1),
+        "C": (1, 0, 0),
+        "R": (1, 0, 0),
+    }
+    # D hat keine Farben gemeldet: keine eigene Bilanz, gegen A (G) verloren usw.
+    d = player_stats([T1], "D")
+    assert d.with_combo == {}
+    assert {k: rec(r) for k, r in d.vs_color.items()} == {
+        "G": (0, 0, 1),
+        "U": (0, 0, 1),
+        "W": (0, 0, 1),
+        "C": (0, 1, 0),
+    }
+
+
+def test_guest_colors_count_for_opponents():
+    # Gäste stehen nicht in ``entries``, ihre Farben kommen über ``colors``
+    t = TournamentResult(
+        date(2027, 3, 1),
+        [EntryResult("A", 1, 3, "R")],
+        [MatchRecord("A", "Gast", 1, 2)],
+        colors={"Gast": "UB"},
+    )
+    s = player_stats([t], "A")
+    assert {k: rec(r) for k, r in s.with_combo.items()} == {"R": (0, 0, 1)}
+    assert {k: rec(r) for k, r in s.vs_color.items()} == {"U": (0, 0, 1), "B": (0, 0, 1)}

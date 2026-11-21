@@ -127,6 +127,10 @@ async def test_player_stats(client, session):  # TC-74
     ben = next(o for o in s["opponents"] if o["display_name"] == "Ben")
     assert (ben["wins"], ben["losses"]) == (1, 1)
     assert any(o["display_name"] == "Gina" for o in s["opponents"])  # Match gegen den Gast zählt
+    # Farbbilanz: in T1 spielen alle Grün, in T2 ist nichts gemeldet
+    g = {"key": "G", "wins": 4, "draws": 0, "losses": 0, "win_rate": 100.0}
+    assert s["with_colors"] == [g]
+    assert s["vs_colors"] == [g]  # 4 und nicht 3: die Farbe des Gastes Gina zählt mit
 
 
 async def test_only_members(client, session):

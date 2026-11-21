@@ -99,6 +99,8 @@ async def load(db: AsyncSession, gid: uuid.UUID, f: Filter) -> Results:
                     for m in matches
                     if m.tournament_id == t.id
                 ],
+                # auch Gäste, damit „Gegen Farben“ ihre Decks kennt
+                {e.player_id: e.colors for e in entries if e.tournament_id == t.id},
             )
         )
     return Results(results, players, rules)
