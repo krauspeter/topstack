@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     resend_api_key: str | None = None
     mail_from: str = "TopStack <login@topstack.win>"
 
+    # Web Push (AP-8): Schlüssel aus `python -m topstack.scripts.vapid_keys`; leer = kein Push
+    vapid_public_key: str | None = None
+    vapid_private_key: str | None = None
+    vapid_subject: str = "mailto:admin@topstack.win"
+
     @property
     def secure_cookies(self) -> bool:
         return self.public_origin.startswith("https://")

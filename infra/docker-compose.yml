@@ -23,6 +23,9 @@ services:
       TOPSTACK_MQTT_HOST: mqtt
       TOPSTACK_PUBLIC_ORIGIN: ${TOPSTACK_PUBLIC_ORIGIN}
       TOPSTACK_RESEND_API_KEY: ${RESEND_API_KEY:-}
+      # Web Push (AP-8); leer = Push aus
+      TOPSTACK_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      TOPSTACK_VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
     depends_on:
       db: { condition: service_healthy }
       mqtt: { condition: service_started }
