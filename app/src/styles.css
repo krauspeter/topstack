@@ -161,7 +161,8 @@ input {
 
 /* ---------- W20 ---------- */
 .roll { justify-items: center; align-content: center; gap: 8px; }
-.die { position: relative; width: 150px; height: 150px; background: transparent; border: 0; touch-action: manipulation; }
+/* grid zentriert die Zahl auch dort, wo der Würfel keine Schaltfläche ist (Gegner bei „jeder sein Handy“) */
+.die { position: relative; display: grid; place-items: center; justify-self: center; width: 150px; height: 150px; padding: 0; background: transparent; border: 0; color: inherit; font: inherit; touch-action: manipulation; }
 .die svg { position: absolute; inset: 0; fill: var(--surface-2); stroke: var(--gold); stroke-width: 3; }
 .die span { position: relative; font-size: 2.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .die.spinning svg { animation: spin 0.35s linear infinite; }

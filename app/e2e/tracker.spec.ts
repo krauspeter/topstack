@@ -291,6 +291,16 @@ test('Jeder sein Handy: warten auf den Gegner, nur den eigenen W20 würfeln', as
   // Ben würfelt auf seinem Handy niedriger: Peter entscheidet
   server.rolls[BEN] = 4;
   await expect(page.getByTestId(`roll-${BEN}`)).toHaveText('4', { timeout: 6000 });
+  // Beide Würfel gleich aufgebaut: Zahl mittig im Sechseck, auch beim Gegner
+  for (const id of [BEN, PETER]) {
+    const num = await page.getByTestId(`roll-${id}`).boundingBox();
+    const die = await page.getByTestId(`roll-${id}`).locator('..').boundingBox();
+    expect(num && die).toBeTruthy();
+    if (!num || !die) continue;
+    expect(Math.abs(num.x + num.width / 2 - (die.x + die.width / 2))).toBeLessThan(4);
+    expect(Math.abs(num.y + num.height / 2 - (die.y + die.height / 2))).toBeLessThan(4);
+    expect(die.width).toBeCloseTo(150, 0);
+  }
   await page.getByRole('button', { name: 'Ich beginne' }).click();
   await expect(page.getByTestId('score')).toContainText('Spiel 1');
   // Gleiche Uhrzeit, Reihenfolge in der Outbox beliebig; der Server sortiert selbst
