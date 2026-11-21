@@ -83,7 +83,7 @@ test('Rangliste mit Saisonfilter, Zeitraum und Spielerstatistik', async ({ page 
   expect(queries.at(-1)).toBe('?season=s-2027');
 
   // Zeitraum zusätzlich
-  await page.getByLabel('Von').fill('2027-01-01');
+  await page.getByLabel('Von', { exact: true }).fill('2027-01-01');
   await expect.poll(() => queries.at(-1)).toBe('?season=s-2027&from=2027-01-01');
   await page.getByRole('button', { name: 'Zeitraum zurücksetzen' }).click();
   await page.getByRole('group', { name: 'Saison' }).getByRole('button', { name: 'Gesamt' }).click();
