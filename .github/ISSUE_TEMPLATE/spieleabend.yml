@@ -1,0 +1,49 @@
+name: Spieleabend
+description: Fehler oder Wunsch aus einem echten Turnier (Abnahme G3)
+title: "[Spieleabend] "
+labels: ["spieleabend"]
+body:
+  - type: dropdown
+    id: art
+    attributes:
+      label: Art
+      options: [Fehler, Wunsch]
+    validations: { required: true }
+  - type: dropdown
+    id: schritt
+    attributes:
+      label: Schritt im Turnier
+      options:
+        - Turnier anlegen / einladen
+        - Gast per QR-Code
+        - Plätze und Tischgrafik
+        - Farben melden
+        - Tracker mit zwei Handys
+        - Tracker mit einem Handy
+        - Ergebnis ohne Tracker / Korrektur
+        - Match vorziehen / Rundenwechsel
+        - Siegerehrung
+        - Rangliste / Statistik
+        - Benachrichtigungen
+        - Sonstiges
+    validations: { required: true }
+  - type: textarea
+    id: was
+    attributes:
+      label: Was ist passiert?
+      description: Was hast du gemacht, was hast du erwartet, was kam stattdessen?
+    validations: { required: true }
+  - type: input
+    id: geraet
+    attributes:
+      label: Gerät und Update
+      description: z. B. „Pixel 8, Chrome, Update #123“ (Update-Nummer steht unten auf dem Startbildschirm)
+  - type: dropdown
+    id: g3
+    attributes:
+      label: Blockiert das Gate G3?
+      description: Ja, wenn der Schritt nur mit Eingriff in die Datenbank weiterging.
+      options: [Nein, Ja]
+  - type: markdown
+    attributes:
+      value: "Bitte keine Screenshots von `infra/.env`, Schlüsseln oder Backups anhängen."

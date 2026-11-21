@@ -200,15 +200,40 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 - [x] Rangliste pro Saison und gesamt: Ranglistenpunkte, Summe und Durchschnitt der Matchpunkte (`domain/leaderboard.py`).
 - [x] Basis-Statistik: Turniersiege, Platzierungen, Match- und Spiel-Siegquote, meistgespielte Farben; dazu die Bilanz gegen jeden Gegner.
 - [x] Filter nach Saison und Zeitraum.
-- [ ] Abnahme auf dem Heimserver: nach zwei Testturnieren stimmen Rangliste und Statistik mit einer Handrechnung.
+- [x] Abnahme auf dem Heimserver: nach zwei Testturnieren stimmen Rangliste und Statistik mit einer Handrechnung (21.11.2026).
+- [x] Nachtrag (PR #123): Bilanz je eigener Farbkombination und gegen Gegner-Farben, Zahlen bündig ausgerichtet.
 
 **Fertig, wenn:** Nach zwei Testturnieren stimmen Rangliste und Statistik mit einer Handrechnung überein.
 
 ### AP-10 · Abnahme Gate G3 (ca. 2 h)
 
-- Echtes Draft-Turnier mit der Gruppe, Ablauf nach [Testplan, Abschnitt 4](testplan.md#4-abnahmeszenario-gate-g3).
-- Fehler aus dem Turnier als Issues erfassen und vor Phase 4 beheben.
-- Roadmap und Doku aktualisieren.
+Ein echter Spieleabend nach [Testplan, Abschnitt 4](testplan.md#4-abnahmeszenario-gate-g3). G3 ist abgenommen, wenn alle Schritte ohne Eingriff in die Datenbank gelingen.
+
+**Vorher (am Tag des Spieleabends)**
+
+- [ ] Datenbank sichern, siehe [Heimserver, „Vor dem Spieleabend“](heimserver.md#vor-dem-spieleabend-datenbank-sichern).
+- [ ] Aktuelles Update eingespielt, Startbildschirm zeigt die erwartete Update-Nummer.
+- [ ] Testturniere, die nicht in die Rangliste gehören, gelöscht.
+- [ ] Mitspieler mit Konto sind in der Gruppe; für Spieler ohne Konto ist ein Gast per QR-Code vorgesehen.
+
+**Am Abend**
+
+- [ ] 1. Turnierstarter startet ein Draft-Turnier mit dem Set des Abends.
+- [ ] 2. Mitglieder aus der Liste eingeladen, ein Gast tritt per QR-Code bei.
+- [ ] 3. Plätze ausgelost, alle sehen die Tischgrafik mit Passrichtung.
+- [ ] 4. Nach dem Deckbau melden alle ihre Farben.
+- [ ] 5. Runde 1 gestartet: ein Match mit zwei Handys, eines mit einem Handy, eines ohne Tracker.
+- [ ] 6. Ein Match vorgezogen, ein Ergebnis korrigiert.
+- [ ] 7. Turnier bis zur Siegerehrung gespielt.
+- [ ] 8. Rangliste zeigt die Ranglistenpunkte aller Mitglieder, der Gast fehlt.
+
+**Danach**
+
+- [ ] Fehler und Wünsche als Issues mit der Vorlage „Spieleabend“ erfasst.
+- [ ] Fehler, die G3 betreffen, vor Phase 4 behoben.
+- [ ] Roadmap und Doku aktualisiert, Phase 3 abgeschlossen.
+
+**Fertig, wenn:** Ein echtes Draft-Turnier ist komplett in TopStack erfasst, und die Rangliste ist für alle sichtbar.
 
 ---
 
