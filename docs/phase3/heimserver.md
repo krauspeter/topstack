@@ -193,4 +193,4 @@ docker compose exec -T db pg_restore -U topstack -d topstack --clean --if-exists
 docker compose start api
 ```
 
-Noch nicht dabei und für **Phase 4** geplant: nächtliche Backups mit Wiederherstellungstest, Monitoring mit Uptime Kuma, automatisches Deployment.
+Noch nicht dabei und für **Phase 4** geplant: nächtliche Backups mit Wiederherstellungstest, Monitoring mit Uptime Kuma, automatisches Deployment ([Plan](../phase4/README.md), [ADR-0016](../adr/0016-betrieb-backup-monitoring-deployment.md)).
