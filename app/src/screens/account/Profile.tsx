@@ -1,3 +1,4 @@
+import { Notifications } from './Notifications';
 import { type FormEvent, useState } from 'react';
 import { api, errorText } from '../../api/client';
 import { createPasskey, passkeysSupported } from '../../api/passkeys';
@@ -142,6 +143,8 @@ export function Profile({ me, onChange, onSignOut, onBack }: Props) {
           )
         )}
       </section>
+
+      <Notifications />
 
       <section className="stack">
         <h3>Gruppen</h3>

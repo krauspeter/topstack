@@ -25,6 +25,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff,webmanifest}'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/ws/],
+        // Push-Nachrichten anzeigen, auch wenn die App geschlossen ist (AP-8)
+        importScripts: ['push-sw.js'],
       },
       manifest: {
         id: '/',
