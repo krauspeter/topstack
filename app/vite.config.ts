@@ -3,7 +3,15 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Woher dieser Build kommt; die CI setzt die Werte beim Image-Bau (siehe Dockerfile)
+const build = {
+  pr: process.env.BUILD_PR ?? '',
+  sha: (process.env.BUILD_SHA ?? '').slice(0, 7),
+  time: process.env.BUILD_TIME ?? '',
+};
+
 export default defineConfig({
+  define: { __BUILD__: JSON.stringify(build) },
   plugins: [
     react(),
     VitePWA({

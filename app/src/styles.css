@@ -289,3 +289,6 @@ input { min-width: 0; max-width: 100%; }
 /* ---------- Live (AP-7) ---------- */
 .live-life { display: inline-flex; flex-direction: column; align-items: center; color: var(--gold); line-height: 1.1; }
 .live-life small { color: var(--muted); font-weight: 400; font-size: 0.7rem; }
+
+/* Welches Update läuft (Startbildschirm) */
+.build { font-size: 0.75rem; opacity: 0.8; }

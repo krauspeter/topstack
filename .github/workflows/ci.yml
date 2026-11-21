@@ -192,10 +192,29 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Herkunft des Builds (Anzeige „Update #… “ in der App)
+        id: build
+        env:
+          EVENT_PR: ${{ github.event.pull_request.number }}
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          # Im PR die eigene Nummer; auf main aus der Commit-Nachricht des Merges
+          # („Merge pull request #118 …“ oder beim Squash „… (#118)“)
+          pr="$EVENT_PR"
+          if [ -z "$pr" ]; then
+            pr="$(printf '%s' "$MESSAGE" | head -n1 | grep -oE '#[0-9]+' | tail -n1 | tr -d '#' || true)"
+          fi
+          echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          echo "time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          echo "Build für Update #${pr:-?} ($GITHUB_SHA)" >> "$GITHUB_STEP_SUMMARY"
       - uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
           push: ${{ env.PUSH == 'true' }}
+          build-args: |
+            BUILD_PR=${{ steps.build.outputs.pr }}
+            BUILD_SHA=${{ github.sha }}
+            BUILD_TIME=${{ steps.build.outputs.time }}
           tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest,ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha,scope=${{ matrix.image }}

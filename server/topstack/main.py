@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, FastAPI
 
 from topstack import __version__
@@ -16,9 +18,18 @@ api = APIRouter(prefix="/api/v1")
 
 
 @api.get("/health", tags=["Betrieb"])
-async def health() -> dict[str, str]:
-    """Lebenszeichen für Caddy, Docker und Monitoring."""
-    return {"status": "ok", "version": __version__, "environment": settings.environment}
+async def health() -> dict[str, object]:
+    """Lebenszeichen für Caddy, Docker und Monitoring; ``build`` sagt, welches Update läuft."""
+    return {
+        "status": "ok",
+        "version": __version__,
+        "environment": settings.environment,
+        "build": {
+            "pr": os.environ.get("TOPSTACK_BUILD_PR", ""),
+            "sha": os.environ.get("TOPSTACK_BUILD_SHA", ""),
+            "time": os.environ.get("TOPSTACK_BUILD_TIME", ""),
+        },
+    }
 
 
 api.include_router(auth.router)
