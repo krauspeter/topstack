@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Ohne @types/node: nur die Umgebungsvariablen, die hier gebraucht werden
+declare const process: { env: Record<string, string | undefined> };
+
 // Woher dieser Build kommt; die CI setzt die Werte beim Image-Bau (siehe Dockerfile)
 const build = {
   pr: process.env.BUILD_PR ?? '',
