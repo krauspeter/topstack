@@ -190,15 +190,17 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 - [x] Ereignisse: Du bist dran, neue Runde, Turnierende, Einladung, Ergebnis korrigiert, Abbruch beantragt.
 - [x] Jedes Ereignis einzeln abschaltbar (Profil), Test-Knopf, abgelaufene Abos werden entfernt.
 - [ ] Auf dem iPhone kommt Push nur bei installierter App an; das wird beim iPhone-Test in Phase 4 geprüft.
-- [ ] Abnahme: VAPID-Schlüssel auf dem Heimserver, Android bekommt „Du bist dran“ bei geschlossener App.
+- [x] VAPID-Schlüssel auf dem Heimserver, „Test senden“ kommt auf dem Handy an (21.11.2026, PR #119, #120).
+- [ ] Echter Test im Turnier mit Freunden nach dem Release von v1.0 (Entscheidung vom 21.11.2026, siehe Phase 4).
 
 **Fertig, wenn:** Ein Android-Handy bekommt „Du bist dran“ bei geschlossener App.
 
 ### AP-9 · Rangliste und Basis-Statistik (ca. 5 h) · Branch `feat/p3-leaderboard` · F-18, F-22
 
-- Rangliste pro Saison und gesamt: Ranglistenpunkte, Summe und Durchschnitt der Matchpunkte.
-- Basis-Statistik: Turniersiege, Platzierungen, Match- und Spiel-Siegquote, meistgespielte Farben.
-- Filter nach Saison und Zeitraum.
+- [x] Rangliste pro Saison und gesamt: Ranglistenpunkte, Summe und Durchschnitt der Matchpunkte (`domain/leaderboard.py`).
+- [x] Basis-Statistik: Turniersiege, Platzierungen, Match- und Spiel-Siegquote, meistgespielte Farben; dazu die Bilanz gegen jeden Gegner.
+- [x] Filter nach Saison und Zeitraum.
+- [ ] Abnahme auf dem Heimserver: nach zwei Testturnieren stimmen Rangliste und Statistik mit einer Handrechnung.
 
 **Fertig, wenn:** Nach zwei Testturnieren stimmen Rangliste und Statistik mit einer Handrechnung überein.
 

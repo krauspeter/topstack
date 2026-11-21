@@ -109,10 +109,12 @@ Ereignisarten: `game_start`, `die_roll` (`value` 1–20), `life` (`delta` ≠ 0)
 
 | Methode | Pfad | Zweck |
 | --- | --- | --- |
-| GET | `/groups/{gid}/leaderboard?season=&from=&to=` | Rangliste (Punkte, Summe und Schnitt der Matchpunkte) |
-| GET | `/groups/{gid}/stats` | Gruppenstatistik |
-| GET | `/players/{pid}/stats` | Spielerstatistik |
-| GET | `/players/{pid}/head-to-head/{otherId}` | Direktvergleich |
+| GET | `/groups/{gid}/seasons` | Saisons der Gruppe, neueste zuerst, mit `current` |
+| GET | `/groups/{gid}/leaderboard?season=&from=&to=` | Rangliste: Rang, Ranglistenpunkte, Turniere, Turniersiege, Summe und Schnitt der Matchpunkte. Ohne `season` gesamt; `from`/`to` (JJJJ-MM-TT) nach Turnierdatum. Sortiert nach Punkten, Matchpunkten, Schnitt, Turniersiegen; gleiche Werte teilen sich den Rang |
+| GET | `/groups/{gid}/players/{pid}/stats?season=&from=&to=` | Spielerstatistik: Turniersiege, Platzierungen, Match- und Spiel-Siegquote, Farben (einzeln und als Kombination), Bilanz gegen jeden Gegner |
+| – | Gruppenstatistik, Direktvergleich | ab v1.1 (Head-to-Head, Statistik pro Set) |
+
+Es zählen nur abgeschlossene Turniere der Gruppe; Gäste stehen nicht in der Rangliste, ihre Matches zählen aber für die Gegner (TC-72, TC-73). Nur Mitglieder der Gruppe dürfen abfragen.
 
 ### Push
 

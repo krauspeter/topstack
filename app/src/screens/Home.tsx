@@ -8,10 +8,11 @@ interface Props {
   onSeating(): void;
   onLogin(): void;
   onTournaments(): void;
+  onLeaderboard(): void;
   onProfile(): void;
 }
 
-export function Home({ account, onNewMatch, onSeating, onLogin, onProfile, onTournaments }: Props) {
+export function Home({ account, onNewMatch, onSeating, onLogin, onProfile, onTournaments, onLeaderboard }: Props) {
   return (
     <main className="page home">
       <header className="brand">
@@ -29,9 +30,14 @@ export function Home({ account, onNewMatch, onSeating, onLogin, onProfile, onTou
           Neues Match
         </button>
         {account.status === 'signed-in' && account.me.groups.length > 0 && (
-          <button className="btn big" onClick={onTournaments}>
-            Turnier
-          </button>
+          <>
+            <button className="btn big" onClick={onTournaments}>
+              Turnier
+            </button>
+            <button className="btn big" onClick={onLeaderboard}>
+              Rangliste
+            </button>
+          </>
         )}
         <button className="btn big" onClick={onSeating}>
           Draftplätze auslosen

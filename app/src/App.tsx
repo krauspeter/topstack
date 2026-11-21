@@ -12,6 +12,7 @@ import { TournamentView } from './screens/tournament/TournamentView';
 import { ChooseStarter, MatchEnd } from './screens/Between';
 import { Home } from './screens/Home';
 import { DualRoll } from './screens/DualRoll';
+import { Leaderboard } from './screens/leaderboard/Leaderboard';
 import { Roll } from './screens/Roll';
 import { Seating } from './screens/Seating';
 import { Setup } from './screens/Setup';
@@ -135,6 +136,24 @@ export function App() {
         }}
       />
     );
+  }
+
+  if (url.pathname === '/rangliste') {
+    if (account.status === 'loading') return <main className="page center muted">Lade …</main>;
+    if (account.status !== 'signed-in') {
+      return (
+        <main className="page center">
+          <section className="card">
+            <h2>{account.status === 'offline' ? 'Keine Verbindung' : 'Bitte anmelden'}</h2>
+            <p>Die Rangliste braucht eine Anmeldung und eine Verbindung zum Server.</p>
+            <button className="btn" onClick={home}>
+              Zur Startseite
+            </button>
+          </section>
+        </main>
+      );
+    }
+    return <Leaderboard me={account.me} onBack={home} />;
   }
 
   if (url.pathname === '/profil') {
@@ -295,6 +314,7 @@ export function App() {
           onSeating={() => setScreen('seating')}
           onLogin={() => navigate('/anmelden')}
           onTournaments={() => navigate('/turnier')}
+          onLeaderboard={() => navigate('/rangliste')}
           onProfile={() => navigate('/profil')}
         />
       );
