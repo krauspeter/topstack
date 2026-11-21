@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, errorText } from '../../api/client';
+import { ApiError, api } from '../../api/client';
 import {
   type NotificationSettings,
   type PushState,
@@ -9,6 +9,25 @@ import {
 } from '../../api/push';
 
 /** Profil: Push auf diesem Gerät an/aus, Ereignisse einzeln schalten, Test (AP-8, F-17). */
+/**
+ * Fehler beim Einrichten verständlich machen. Nicht jeder Fehler ist ein Netzproblem:
+ * fehlende Schlüssel, verweigerte Erlaubnis oder ein Push-Dienst, der nicht mitspielt.
+ */
+export function pushErrorText(err: unknown): string {
+  if (err instanceof ApiError) return err.message;
+  if (err instanceof DOMException) {
+    if (err.name === 'NotAllowedError') return 'Benachrichtigungen wurden nicht erlaubt.';
+    if (err.name === 'InvalidAccessError' || err.name === 'InvalidCharacterError')
+      return 'Der Push-Schlüssel des Servers ist ungültig. Bitte die VAPID-Zeilen in der .env prüfen.';
+    if (err.name === 'AbortError')
+      return 'Der Push-Dienst des Browsers hat abgelehnt. Manche Browser (z. B. Brave) haben Push abgeschaltet.';
+    return `Push ging nicht: ${err.message || err.name}`;
+  }
+  if (err instanceof TypeError) return 'Keine Verbindung zum Server. Bist du online?';
+  if (err instanceof Error) return err.message;
+  return 'Unbekannter Fehler beim Einrichten von Push.';
+}
+
 export function Notifications() {
   const [state, setState] = useState<PushState | null>(null);
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
@@ -30,7 +49,7 @@ export function Notifications() {
     try {
       await fn();
     } catch (err) {
-      setError(errorText(err));
+      setError(pushErrorText(err));
     } finally {
       setBusy(false);
       setState(await pushState());
@@ -46,7 +65,7 @@ export function Notifications() {
       await api<NotificationSettings>(`/me/notifications/${event}`, { method: 'PUT', body: { enabled } });
     } catch (err) {
       setSettings(before);
-      setError(errorText(err));
+      setError(pushErrorText(err));
     }
   };
 
