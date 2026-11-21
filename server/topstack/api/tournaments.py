@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, status
 from sqlalchemy import func, select
 
+from topstack import live
 from topstack.api.deps import CurrentUser, Db
 from topstack.api.problems import problem
 from topstack.api.schemas import (
@@ -23,6 +24,7 @@ from topstack.api.schemas import (
     GuestLink,
     InviteBody,
     MatchOut,
+    NextOpponentOut,
     PlayerOut,
     RejectedEvent,
     ReservedCreate,
@@ -111,9 +113,15 @@ async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
             version=m.version,
             mine=mine,
             can_report=playing and (mine or may_report_all),
+            tracker_mode=m.tracker_mode,
+            game_no=lives[m.id].game_no if m.id in lives else None,
+            life_a=lives[m.id].life_a if m.id in lives else None,
+            life_b=lives[m.id].life_b if m.id in lives else None,
         )
 
     vote = await rounds.cancel_vote_state(db, ctx)
+    lives = await tracker.live_life(db, [m for m in ov.matches if m.status == "running"])
+    nxt = await rounds.next_opponent(db, ctx, ov) if playing else None
     return TournamentOut(
         id=t.id,
         group_id=t.group_id,
@@ -174,11 +182,14 @@ async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
         else [],
         suggestion=ov.suggestion.id if ov.suggestion else None,
         cancel_vote=CancelVoteOut(**vars(vote)) if vote else None,
+        next_opponent=NextOpponentOut(**vars(nxt)) if nxt else None,
     )
 
 
 async def reload(db: Db, tid: uuid.UUID, user: AppUser) -> TournamentOut:
+    """Nach jeder Änderung: speichern, Zuschauer per WebSocket benachrichtigen, Stand zurück."""
     await db.commit()
+    await live.tournament_changed(tid, "updated")
     return await tournament_out(db, await svc.load(db, tid, user))
 
 
@@ -318,6 +329,8 @@ async def guest_join(token: str, body: GuestJoin, db: Db) -> GuestJoined:
     entry_tournament = await db.scalar(
         select(TournamentEntry.tournament_id).where(TournamentEntry.player_id == guest.id)
     )
+    if entry_tournament is not None:
+        await live.tournament_changed(entry_tournament, "guest_joined")
     return GuestJoined(
         tournament_id=entry_tournament, player_id=guest.id, display_name=guest.display_name
     )
@@ -354,10 +367,11 @@ async def report_colors(
 
 @router.delete("/tournaments/{tid}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_tournament(tid: uuid.UUID, user: CurrentUser, db: Db) -> None:
-    """Nur abgebrochene Turniere, durch Turnierstarter oder Gruppen-Admin."""
+    """Abgebrochene Turniere (Starter oder Admin), abgeschlossene nur durch den Admin."""
     async with errors():
         await svc.delete(db, await svc.load(db, tid, user, lock=True))
     await db.commit()
+    await live.tournament_changed(tid, "deleted")
 
 
 @router.post("/tournaments/{tid}/cancel")
@@ -557,6 +571,7 @@ async def start_tracker(
     async with errors():
         await tracker.start(db, await svc.load(db, tid, user, lock=True), mid, body.mode)
         await db.commit()
+        await live.tournament_changed(tid, "match_started")
         return await tracker_out(db, await svc.load(db, tid, user), mid)
 
 
@@ -574,6 +589,8 @@ async def push_events(
     """Ereignis-Stapel aus der Outbox, idempotent (ADR-0012)."""
     async with errors():
         ctx = await svc.load(db, tid, user, lock=True)
+        m = await db.get(Match, mid)
+        old = (m.status, m.games_a, m.games_b, m.games_drawn) if m else None
         res = await tracker.push(
             db,
             ctx,
@@ -583,6 +600,14 @@ async def push_events(
         await db.commit()
         match = await db.get(Match, mid)
         assert match is not None
+        fresh = set(res.accepted)
+        await live.game_events(
+            tid,
+            mid,
+            [e.model_dump(mode="json") for e in body.events if e.id in fresh],
+        )
+        if old != (match.status, match.games_a, match.games_b, match.games_drawn):
+            await live.tournament_changed(tid, "match_result")
         return EventBatchResult(
             accepted=res.accepted,
             duplicates=res.duplicates,

@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from topstack.db.models import Game, GameEvent, Match, Player, Round, TournamentEntry
 from topstack.db.repo import groups
+from topstack.domain import life
 from topstack.domain.tournament import GAMES_TO_WIN, Action, check
 from topstack.services.rounds import _match, _may_report
 from topstack.services.tournaments import Conflict, Context, Forbidden
@@ -289,3 +290,45 @@ async def _update_result(db: AsyncSession, ctx: Context, match: Match) -> None:
         match.finished_at = max(g.ended_at for g in ended if g.ended_at)
         match.result_by = ctx.my_player.id if ctx.my_player else None
         match.version += 1
+
+
+@dataclass
+class LiveLife:
+    game_no: int
+    life_a: int
+    life_b: int
+
+
+async def live_life(db: AsyncSession, matches: list[Match]) -> dict[uuid.UUID, LiveLife]:
+    """Lebenspunkte im laufenden Spiel jedes Matches, für die Live-Ansicht (F-15)."""
+    by_id = {m.id: m for m in matches}
+    if not by_id:
+        return {}
+    games = list(
+        await db.scalars(select(Game).where(Game.match_id.in_(by_id), Game.ended_at.is_(None)))
+    )
+    if not games:
+        return {}
+    rows = list(
+        await db.scalars(select(GameEvent).where(GameEvent.game_id.in_([g.id for g in games])))
+    )
+    out: dict[uuid.UUID, LiveLife] = {}
+    for g in games:
+        m = by_id[g.match_id]
+        events = [
+            life.GameEvent(
+                id=str(e.id),
+                player_id=e.player_id,
+                type=e.type,  # type: ignore[arg-type]
+                device_id=e.device_id,
+                seq=e.seq,
+                delta=e.delta,
+                value=e.value,
+                undo_of=str(e.undo_of) if e.undo_of else None,
+            )
+            for e in rows
+            if e.game_id == g.id
+        ]
+        totals = life.life_totals([m.player_a_id, m.player_b_id], events, g.starting_life)
+        out[m.id] = LiveLife(g.number, totals[m.player_a_id], totals[m.player_b_id])
+    return out
