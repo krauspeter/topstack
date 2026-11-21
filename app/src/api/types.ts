@@ -239,3 +239,57 @@ export interface GuestJoined {
   player_id: string;
   display_name: string;
 }
+
+// ---------------------------------------------------------------------------
+// Rangliste und Statistik (AP-9)
+// ---------------------------------------------------------------------------
+
+export interface SeasonInfo {
+  id: string;
+  name: string;
+  starts_on: string;
+  ends_on: string | null;
+  current: boolean;
+}
+
+export interface LeaderboardRow {
+  rank: number;
+  player_id: string;
+  display_name: string;
+  kind: PlayerKind;
+  tournaments: number;
+  wins: number;
+  ranking_points: number;
+  match_points: number;
+  avg_match_points: number;
+}
+
+export interface Leaderboard {
+  tournaments: number;
+  rows: LeaderboardRow[];
+}
+
+export interface WinRecord {
+  wins: number;
+  draws: number;
+  losses: number;
+}
+
+export interface PlayerStats {
+  player_id: string;
+  display_name: string;
+  tournaments: number;
+  tournament_wins: number;
+  ranking_points: number;
+  places: Record<string, number>;
+  avg_place: number;
+  matches: WinRecord;
+  match_win_rate: number;
+  games_won: number;
+  games_lost: number;
+  games_drawn: number;
+  game_win_rate: number;
+  colors: { key: string; count: number }[];
+  combos: { key: string; count: number }[];
+  opponents: (WinRecord & { player_id: string; display_name: string })[];
+}

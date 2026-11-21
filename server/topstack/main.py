@@ -3,7 +3,17 @@ import os
 from fastapi import APIRouter, FastAPI
 
 from topstack import __version__
-from topstack.api import auth, invitations, live, me, passkeys, problems, push, tournaments
+from topstack.api import (
+    auth,
+    invitations,
+    leaderboard,
+    live,
+    me,
+    passkeys,
+    problems,
+    push,
+    tournaments,
+)
 from topstack.config import settings
 
 app = FastAPI(
@@ -38,5 +48,6 @@ api.include_router(me.router)
 api.include_router(invitations.router)
 api.include_router(tournaments.router)
 api.include_router(push.router)
+api.include_router(leaderboard.router)
 app.include_router(api)
 app.include_router(live.router)  # /ws, außerhalb von /api/v1 (siehe Caddyfile)
