@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, errorText } from '../../api/client';
-import type { MatchInfo, Standing, Tournament, TrackerInfo } from '../../api/types';
+import type { MatchInfo, NextOpponent, Standing, Tournament, TrackerInfo } from '../../api/types';
 import type { GameEvent } from '../../domain/lifeEvents';
 import type { MatchConfig } from '../../domain/match';
 import { configFromTracker, defaultSide, fromApi } from '../../domain/remote';
@@ -121,6 +121,7 @@ export function TournamentPlay({ t, busy, helper, can, onNextRound, onAct, onPla
           <h3>
             Runde {current.number} von {t.rounds.length}
           </h3>
+          {t.next_opponent && <PauseCard next={t.next_opponent} />}
           <MatchList matches={[...current.matches, ...pulled, ...leftovers]} onEdit={setEditing} onPlay={setPlaying} />
           {current.bye && <p className="muted small">Pause: {current.bye}</p>}
 
@@ -212,6 +213,25 @@ export function TournamentPlay({ t, busy, helper, can, onNextRound, onAct, onPla
   );
 }
 
+/** Pause-Ansicht (AP-7): wer frei ist, sieht den nächsten Gegner und die eigene Bilanz. */
+function PauseCard({ next }: { next: NextOpponent }) {
+  const played = next.wins + next.draws + next.losses;
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  return (
+    <div className="card left" data-testid="pause-card">
+      <h3>Du hast gerade frei</h3>
+      <p>
+        Nächster Gegner: <strong>{next.display_name}</strong> <span className="muted">(Runde {next.round})</span>
+      </p>
+      <p className="muted small">
+        {played === 0
+          ? `Ihr habt in dieser Gruppe noch nicht gegeneinander gespielt.`
+          : `Deine Bilanz gegen ${next.display_name}: ${plural(next.wins, 'Sieg', 'Siege')}, ${plural(next.draws, 'Unentschieden', 'Unentschieden')}, ${plural(next.losses, 'Niederlage', 'Niederlagen')}.`}
+      </p>
+    </div>
+  );
+}
+
 function MatchList({
   matches,
   onEdit,
@@ -233,7 +253,22 @@ function MatchList({
             <span className="match-names">
               <strong>{m.player_a}</strong> <span className="muted">gegen</span> <strong>{m.player_b}</strong>
             </span>
-            <span className="match-score">{m.status === 'finished' ? score(m) : m.status === 'running' ? 'läuft' : '–'}</span>
+            <span className="match-score">
+              {m.status === 'finished' ? (
+                score(m)
+              ) : m.status === 'running' && typeof m.life_a === 'number' && typeof m.life_b === 'number' ? (
+                <span className="live-life" data-testid="live-life" title={`Spiel ${m.game_no ?? 1}, Lebenspunkte`}>
+                  {m.life_a} : {m.life_b}
+                  <small>
+                    Spiel {m.game_no} · {m.games_a}:{m.games_b}
+                  </small>
+                </span>
+              ) : m.status === 'running' ? (
+                'läuft'
+              ) : (
+                '–'
+              )}
+            </span>
             {editable && (
               <span className="match-actions">
                 {onPlay && m.status !== 'finished' && (
