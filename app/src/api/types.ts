@@ -202,6 +202,9 @@ export interface TrackerInfo {
   starting_life: number;
   time_limit_min: number | null;
   events: ApiEvent[];
+  /** Modus `dual`: Warteraum bis Spiel 1. */
+  seats?: { player_id: string; device_id: string; roll: number | null }[];
+  tie?: number | null;
 }
 
 export interface EventBatchResult {

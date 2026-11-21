@@ -41,6 +41,8 @@ Offene Punkte aus Phase 2:
 - **Abgelehnte Ereignisse** stehen in der Antwort unter `rejected` mit Grund; der Rest des Stapels wird gespeichert. Die App nimmt sie aus ihrem Protokoll und zeigt einen Hinweis. Das betrifft das widersprüchliche zweite Spielende und Lebenspunkte für den falschen Spieler.
 - **Zwei Handys ohne eigene Konten:** Im Modus `dual` zählt ein Gerät (`device_id`) im ganzen Match nur einen Spieler; der Server merkt sich das am ersten Lebenspunkte-Ereignis. So kann auch ein Handy für einen Spieler ohne Konto zählen.
 - **Nachladen:** Bis zum WebSocket in AP-7 fragt das Handy alle 2 Sekunden `GET /tournaments/{tid}/matches/{mid}/tracker` ab; die Antwort enthält alle Ereignisse des Matches (ein Match hat wenige Hundert), `mergeEvents` führt sie zusammen.
+- **Warteraum im Modus `dual` (ergänzt am 21.11.2026):** Jedes Handy belegt beim Server einen Platz (`PUT …/tracker/seats/{pid}`); ein Spieler zählt nur auf einem Handy, übernehmen geht nur ausdrücklich (`force`). Erst wenn beide Plätze belegt sind, würfelt jeder seinen eigenen W20 (`PUT …/seats/{pid}/roll`); bei Gleichstand würfeln beide neu. Wer höher würfelt, legt auf seinem Handy fest, wer beginnt, und schickt die Würfe mit dem `game_start`. Ab Spiel 2 wählt nur das Handy des Verlierers. Der Warteraum liegt in `tournament.settings.tracker`, ohne Migration.
+- **Ansicht im Modus `dual`:** Der Gegner steht oben und richtig herum, die eigenen Lebenspunkte immer unten.
 - **Matchergebnis:** Der Server übernimmt die Spielsiege laufend und schließt das Match bei 2 Siegen oder einem unentschiedenen Spiel ab. Endet ein Match durch das Zeitlimit ohne Entscheidung (z. B. 1:0 oder 1:1), bestätigt ein Spieler das Ergebnis in der App (UC-12, `PUT …/result`).
 
 ## Alternativen

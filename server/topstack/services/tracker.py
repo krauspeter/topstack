@@ -332,3 +332,110 @@ async def live_life(db: AsyncSession, matches: list[Match]) -> dict[uuid.UUID, L
         totals = life.life_totals([m.player_a_id, m.player_b_id], events, g.starting_life)
         out[m.id] = LiveLife(g.number, totals[m.player_a_id], totals[m.player_b_id])
     return out
+
+
+# ---------------------------------------------------------------------------
+# Warteraum für „jeder sein eigenes Handy“ (21.11.2026)
+# ---------------------------------------------------------------------------
+# Gespeichert in ``tournament.settings["tracker"][match_id]``:
+# ``{"seats": {player_id: device_id}, "rolls": {player_id: 1..20}, "tie": int | None}``.
+# Gilt nur bis zum ``game_start`` von Spiel 1; danach zählen die Ereignisse.
+
+
+@dataclass
+class Lobby:
+    seats: dict[uuid.UUID, str]
+    rolls: dict[uuid.UUID, int]
+    tie: int | None
+
+
+def lobby(ctx: Context, match_id: uuid.UUID) -> Lobby:
+    raw = ((ctx.tournament.settings or {}).get("tracker") or {}).get(str(match_id)) or {}
+    return Lobby(
+        seats={uuid.UUID(k): v for k, v in (raw.get("seats") or {}).items()},
+        rolls={uuid.UUID(k): int(v) for k, v in (raw.get("rolls") or {}).items()},
+        tie=raw.get("tie"),
+    )
+
+
+def _save_lobby(ctx: Context, match_id: uuid.UUID, lob: Lobby) -> None:
+    t = ctx.tournament
+    settings = dict(t.settings or {})
+    tracker_state = dict(settings.get("tracker") or {})
+    tracker_state[str(match_id)] = {
+        "seats": {str(k): v for k, v in lob.seats.items()},
+        "rolls": {str(k): v for k, v in lob.rolls.items()},
+        "tie": lob.tie,
+    }
+    settings["tracker"] = tracker_state
+    t.settings = settings
+
+
+async def _dual_match(
+    db: AsyncSession, ctx: Context, match_id: uuid.UUID, player_id: uuid.UUID
+) -> Match:
+    match, _ = await _playable(db, ctx, match_id)
+    if match.tracker_mode != "dual" or match.status != "running":
+        raise Conflict("Das Match läuft nicht im Modus „jeder sein eigenes Handy“.")
+    if player_id not in (match.player_a_id, match.player_b_id):
+        raise Conflict("Spieler gehört nicht zu diesem Match.")
+    return match
+
+
+async def claim_seat(
+    db: AsyncSession,
+    ctx: Context,
+    match_id: uuid.UUID,
+    player_id: uuid.UUID,
+    device_id: str,
+    *,
+    force: bool = False,
+) -> None:
+    """Dieses Handy zählt für ``player_id``. Ein Spieler zählt nur auf einem Handy."""
+    await _dual_match(db, ctx, match_id, player_id)
+    lob = lobby(ctx, match_id)
+    holder = lob.seats.get(player_id)
+    if holder is not None and holder != device_id and not force:
+        raise Conflict("Für diesen Spieler zählt schon ein anderes Handy.")
+    # Ein Handy zählt nur einen Spieler: einen anderen Platz dieses Handys freigeben
+    for pid, dev in list(lob.seats.items()):
+        if dev == device_id and pid != player_id:
+            del lob.seats[pid]
+            lob.rolls.pop(pid, None)
+    if holder != device_id:
+        lob.rolls.pop(player_id, None)  # neues Handy würfelt selbst neu
+    lob.seats[player_id] = device_id
+    _save_lobby(ctx, match_id, lob)
+    await db.flush()
+
+
+async def roll(
+    db: AsyncSession,
+    ctx: Context,
+    match_id: uuid.UUID,
+    player_id: uuid.UUID,
+    device_id: str,
+    value: int,
+) -> None:
+    """Eigener W20 vor Spiel 1 (UC-10); bei Gleichstand würfeln beide neu."""
+    match = await _dual_match(db, ctx, match_id, player_id)
+    if not 1 <= value <= 20:
+        raise Conflict("Ein W20 zeigt 1 bis 20.")
+    lob = lobby(ctx, match_id)
+    if lob.seats.get(player_id) != device_id:
+        raise Forbidden
+    other = match.player_b_id if player_id == match.player_a_id else match.player_a_id
+    if other not in lob.seats:
+        raise Conflict("Der Gegner ist noch nicht da.")
+    if await db.scalar(select(Game.id).where(Game.match_id == match.id).limit(1)) is not None:
+        raise Conflict("Das Spiel hat schon begonnen.")
+    if player_id in lob.rolls:
+        raise Conflict("Du hast schon gewürfelt.")
+    if lob.rolls.get(other) == value:
+        lob.rolls.clear()
+        lob.tie = value
+    else:
+        lob.rolls[player_id] = value
+        lob.tie = None
+    _save_lobby(ctx, match_id, lob)
+    await db.flush()

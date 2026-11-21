@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type EndReason, type GameEvent, lastUndoable, mergeEvents, uuidv7 } from '../domain/lifeEvents';
-import { type MatchConfig, type MatchState, type RemoteStatus, controls, createEvent, matchState } from '../domain/match';
+import { type Lobby, type MatchConfig, type MatchState, type RemoteStatus, controls, createEvent, matchState } from '../domain/match';
 import { freshEvents } from '../domain/remote';
 import { useNow } from '../hooks';
 import { type MatchRecord, loadActiveMatch, saveMatch } from './db';
@@ -54,7 +54,13 @@ export interface MatchApi {
   /** Turnier-Match vom Server öffnen; ersetzt ein laufendes lokales Match nicht. */
   openRemote(config: MatchConfig, events: GameEvent[]): boolean;
   /** Ereignisse vom Server übernehmen und abgelehnte eigene entfernen (ADR-0012). */
-  applyServer(matchId: string, incoming: GameEvent[], rejected: readonly string[], server?: RemoteStatus): void;
+  applyServer(
+    matchId: string,
+    incoming: GameEvent[],
+    rejected: readonly string[],
+    server?: RemoteStatus,
+    lobby?: Lobby,
+  ): void;
 }
 
 export function useMatch(): MatchApi {
@@ -194,7 +200,7 @@ export function useMatch(): MatchApi {
   );
 
   const applyServer = useCallback(
-    (matchId: string, incoming: GameEvent[], rejected: readonly string[], server?: RemoteStatus) => {
+    (matchId: string, incoming: GameEvent[], rejected: readonly string[], server?: RemoteStatus, lobby?: Lobby) => {
       const prev = current.current;
       if (!prev || prev.id !== matchId || !prev.config.remote) return;
       const drop = new Set(rejected);
@@ -203,8 +209,14 @@ export function useMatch(): MatchApi {
         incoming.filter((e) => !drop.has(e.id)),
       );
       const changed = events.length !== prev.events.length || drop.size > 0;
-      const remote = server ? { ...prev.config.remote, server } : prev.config.remote;
-      const statusChanged = JSON.stringify(remote.server) !== JSON.stringify(prev.config.remote.server);
+      const remote = {
+        ...prev.config.remote,
+        ...(server ? { server } : {}),
+        ...(lobby ? { lobby } : {}),
+      };
+      const statusChanged =
+        JSON.stringify([remote.server, remote.lobby]) !==
+        JSON.stringify([prev.config.remote.server, prev.config.remote.lobby]);
       if (!changed && !statusChanged) return;
       commit({ ...prev, config: { ...prev.config, remote }, events, updatedAt: new Date().toISOString() });
     },

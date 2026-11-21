@@ -50,6 +50,16 @@ export interface RemoteMatch {
   /** Im Modus `dual` der Spieler, den dieses Handy zählt. */
   myPlayer: string | null;
   server?: RemoteStatus;
+  /** Modus `dual`: Warteraum bis Spiel 1 (wer ist da, wer hat was gewürfelt). */
+  lobby?: Lobby;
+}
+
+export interface Lobby {
+  /** Spieler → Gerät, das für ihn zählt. */
+  seats: Record<string, string>;
+  rolls: Record<string, number>;
+  /** Letzter Gleichstand beim W20; beide würfeln neu. */
+  tie: number | null;
 }
 
 /** Darf dieses Handy die Lebenspunkte dieses Spielers ändern? */

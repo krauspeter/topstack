@@ -368,6 +368,22 @@ class EventBatchResult(BaseModel):
     match: TrackerMatch
 
 
+class SeatOut(BaseModel):
+    player_id: uuid.UUID
+    device_id: str
+    roll: int | None
+
+
+class SeatBody(BaseModel):
+    device_id: str = Field(min_length=1, max_length=80)
+    force: bool = False  # Platz von einem anderen Handy übernehmen
+
+
+class RollBody(BaseModel):
+    device_id: str = Field(min_length=1, max_length=80)
+    value: int = Field(ge=1, le=20)
+
+
 class TrackerOut(BaseModel):
     tournament_id: uuid.UUID
     match: TrackerMatch
@@ -377,3 +393,6 @@ class TrackerOut(BaseModel):
     starting_life: int
     time_limit_min: int | None
     events: list[EventBody]
+    # Warteraum im Modus „dual“ bis Spiel 1 beginnt
+    seats: list[SeatOut] = []
+    tie: int | None = None  # letzter Gleichstand beim W20, beide würfeln neu

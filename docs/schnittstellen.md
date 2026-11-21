@@ -74,6 +74,8 @@ Turnier-Antworten enthalten `actions`: was der angemeldete Nutzer im aktuellen S
 | --- | --- | --- | --- |
 | POST | `/tournaments/{tid}/matches/{mid}/tracker` | Match mit dem Life-Tracker starten (`{mode: "shared" \| "dual"}`), idempotent; Antwort wie `GET` | UC-10 |
 | GET | `/tournaments/{tid}/matches/{mid}/tracker` | Spieler, Startleben, Zeitlimit, Stand des Matches und alle Ereignisse; zum Koppeln des zweiten Handys und zum Nachladen | UC-11 |
+| PUT | `/tournaments/{tid}/matches/{mid}/tracker/seats/{pid}` | Modus `dual`: dieses Handy zählt für `pid` (`{device_id, force}`); `409`, wenn schon ein anderes Handy zählt. `GET …/tracker` zeigt `seats` und `tie` | UC-11 |
+| PUT | `/tournaments/{tid}/matches/{mid}/tracker/seats/{pid}/roll` | Modus `dual`: eigener W20 vor Spiel 1 (`{device_id, value}`), erst wenn beide da sind; Gleichstand setzt `tie` und beide würfeln neu | UC-10 |
 | POST | `/tournaments/{tid}/matches/{mid}/events` | Stapel aus der Outbox (idempotent, bis 500 Ereignisse, mehrere Spiele möglich); Spiele entstehen beim `game_start` | UC-10, UC-11 |
 | PUT | `/matches/{mid}/result` | Ergebnis bestätigen oder direkt eintragen | UC-12, UC-13 |
 | PATCH | `/matches/{mid}/result` | Ergebnis korrigieren (wird protokolliert) | UC-14 |

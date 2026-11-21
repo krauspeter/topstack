@@ -168,6 +168,7 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 - [x] Zweites Handy koppeln: Es zählt nur den eigenen Spieler und sieht den Gegner (bis AP-7 alle 2 Sekunden nachgeladen). Wer kein Konto hat, für den zählt ein Handy, das „für ihn“ gewählt wurde.
 - [x] Spielende mit Grund (`life_zero`, `concede`, `time`) speichern; das Matchergebnis entsteht automatisch (F-11), nach Zeitablauf ohne Entscheidung per Bestätigung.
 - [x] Lokale Matches ohne Turnier aus Phase 2 bleiben möglich und bleiben auf dem Gerät.
+- [x] Nachgezogen am 21.11.2026: Warteraum, bis beide Handys da sind; jeder würfelt nur seinen eigenen W20; Gegner oben und richtig herum, eigene Lebenspunkte unten.
 - [ ] Abnahmetest auf dem Heimserver mit zwei Geräten und kurzem Offline (PR #111, #112 gemergt).
 
 **Fertig, wenn:** Zwei Handys zählen dasselbe Match, eines geht kurz offline, danach stimmen Lebenspunkte und Ergebnis auf beiden und auf dem Server.
