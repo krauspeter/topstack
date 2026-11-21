@@ -20,6 +20,7 @@ from topstack.db.models import (
     MatchCorrection,
     Player,
     Round,
+    Tournament,
     TournamentCancelVote,
     TournamentEntry,
 )
@@ -509,3 +510,55 @@ async def vote_cancel(
         await db.delete(existing)
     await db.flush()
     await _evaluate_vote(db, ctx)
+
+
+# ---------------------------------------------------------------------------
+# Pause-Ansicht (AP-7)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class NextOpponent:
+    player_id: uuid.UUID
+    display_name: str
+    round: int
+    wins: int
+    draws: int
+    losses: int
+
+
+async def next_opponent(db: AsyncSession, ctx: Context, ov: Overview) -> NextOpponent | None:
+    """Wer gerade frei ist: nächster Gegner und die Bilanz gegen ihn in der Gruppe."""
+    me = ctx.my_player.id if ctx.my_player else None
+    if me is None or me not in ov.free:
+        return None
+    number = {r.id: r.number for r in ov.rounds}
+    upcoming = sorted(
+        (m for m in ov.matches if m.status == "scheduled" and me in (m.player_a_id, m.player_b_id)),
+        key=lambda m: number[m.round_id],
+    )
+    if not upcoming:
+        return None
+    nxt = upcoming[0]
+    other = nxt.player_b_id if nxt.player_a_id == me else nxt.player_a_id
+    played = await db.scalars(
+        select(Match)
+        .join(Tournament, Tournament.id == Match.tournament_id)
+        .where(
+            Tournament.group_id == ctx.tournament.group_id,
+            Tournament.status != Status.CANCELLED,
+            Match.status == "finished",
+            ((Match.player_a_id == me) & (Match.player_b_id == other))
+            | ((Match.player_a_id == other) & (Match.player_b_id == me)),
+        )
+    )
+    wins = draws = losses = 0
+    for m in played:
+        mine, theirs = (m.games_a, m.games_b) if m.player_a_id == me else (m.games_b, m.games_a)
+        if mine > theirs:
+            wins += 1
+        elif mine < theirs:
+            losses += 1
+        else:
+            draws += 1
+    return NextOpponent(other, ov.names.get(other, "?"), number[nxt.round_id], wins, draws, losses)

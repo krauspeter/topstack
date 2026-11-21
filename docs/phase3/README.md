@@ -163,20 +163,22 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 
 ### AP-6 · Life-Tracker am Server (ca. 8 h) · Branch `feat/p3-tracker-sync` · UC-10, UC-11, N-01
 
-- [ ] Match aus dem Turnier starten; Modus „ein gemeinsames Handy“ oder „jeder sein eigenes“.
-- [ ] Ereignisse aus der App über eine Outbox an den Server senden (ADR-0012), offline weiterzählen, danach nachsenden.
-- [ ] Zweites Handy koppeln: Es zählt nur den eigenen Spieler und sieht den Gegner (bis AP-7 alle 2 Sekunden nachgeladen). Wer kein Konto hat, für den zählt ein Handy, das „für ihn“ gewählt wurde.
-- [ ] Spielende mit Grund (`life_zero`, `concede`, `time`) speichern; das Matchergebnis entsteht automatisch (F-11), nach Zeitablauf ohne Entscheidung per Bestätigung.
-- [ ] Lokale Matches ohne Turnier aus Phase 2 bleiben möglich und bleiben auf dem Gerät.
+- [x] Match aus dem Turnier starten; Modus „ein gemeinsames Handy“ oder „jeder sein eigenes“.
+- [x] Ereignisse aus der App über eine Outbox an den Server senden (ADR-0012), offline weiterzählen, danach nachsenden.
+- [x] Zweites Handy koppeln: Es zählt nur den eigenen Spieler und sieht den Gegner (bis AP-7 alle 2 Sekunden nachgeladen). Wer kein Konto hat, für den zählt ein Handy, das „für ihn“ gewählt wurde.
+- [x] Spielende mit Grund (`life_zero`, `concede`, `time`) speichern; das Matchergebnis entsteht automatisch (F-11), nach Zeitablauf ohne Entscheidung per Bestätigung.
+- [x] Lokale Matches ohne Turnier aus Phase 2 bleiben möglich und bleiben auf dem Gerät.
+- [ ] Abnahmetest auf dem Heimserver mit zwei Geräten und kurzem Offline (PR #111, #112 gemergt).
 
 **Fertig, wenn:** Zwei Handys zählen dasselbe Match, eines geht kurz offline, danach stimmen Lebenspunkte und Ergebnis auf beiden und auf dem Server.
 
 ### AP-7 · Live-Ansicht (ca. 6 h) · Branch `feat/p3-live` · F-15, N-04
 
-- WebSocket `/ws` mit Themen `tournament:<id>` und `game:<id>` (siehe Schnittstellen).
-- Nach einem Abbruch Stand per REST nachladen und neu abonnieren.
-- App: Live-Ansicht mit laufenden Matches, Pausen, offenen Matches, Tabelle, Lebenspunkten.
-- Pause-Ansicht: Lebenspunkte der anderen Matches, Tabelle, eigene Bilanz gegen den nächsten Gegner.
+- [ ] WebSocket `/ws` mit dem Thema `tournament:<id>` (siehe Schnittstellen, ADR-0006); nur Mitglieder der Gruppe.
+- [ ] Nach einem Abbruch Stand per REST nachladen und neu abonnieren.
+- [ ] App: Live-Ansicht mit laufenden Matches, Pausen, offenen Matches, Tabelle, Lebenspunkten.
+- [ ] Pause-Ansicht: Lebenspunkte der anderen Matches, Tabelle, eigene Bilanz gegen den nächsten Gegner.
+- [ ] Tracker: Eingaben vom zweiten Handy kommen per WebSocket statt alle 2 Sekunden.
 
 **Fertig, wenn:** Eine Lebenspunkt-Änderung erscheint bei allen Eingeladenen in unter 2 Sekunden.
 

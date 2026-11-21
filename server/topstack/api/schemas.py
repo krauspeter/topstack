@@ -166,6 +166,11 @@ class MatchOut(BaseModel):
     version: int
     mine: bool
     can_report: bool
+    tracker_mode: str = "none"
+    # Live: laufendes Spiel mit Lebenspunkten (AP-7)
+    game_no: int | None = None
+    life_a: int | None = None
+    life_b: int | None = None
 
 
 class RoundOut(BaseModel):
@@ -202,6 +207,17 @@ class CancelVoteOut(BaseModel):
     voters: list[uuid.UUID]  # wer schon bestätigt hat (Spieler-IDs)
 
 
+class NextOpponentOut(BaseModel):
+    """Pause-Ansicht: nächster Gegner und eigene Bilanz gegen ihn in der Gruppe."""
+
+    player_id: uuid.UUID
+    display_name: str
+    round: int
+    wins: int
+    draws: int
+    losses: int
+
+
 class TournamentOut(BaseModel):
     id: uuid.UUID
     group_id: uuid.UUID
@@ -222,6 +238,7 @@ class TournamentOut(BaseModel):
     standings: list[StandingOut] = []
     suggestion: uuid.UUID | None = None  # Match, das freie Spieler vorziehen können
     cancel_vote: CancelVoteOut | None = None
+    next_opponent: NextOpponentOut | None = None  # nur wenn ich gerade frei bin
 
 
 class TournamentSummary(BaseModel):

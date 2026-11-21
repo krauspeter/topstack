@@ -122,29 +122,27 @@ Ereignisarten: `game_start`, `die_roll` (`value` 1–20), `life` (`delta` ≠ 0)
 
 ## 2. WebSocket
 
-Pfad `/ws`, Anmeldung über das Sitzungs-Cookie (Gäste: `?guest_token=`). Nachrichten sind JSON mit `type`.
+Pfad `/ws`, Anmeldung über das Sitzungs-Cookie; ohne gültige Sitzung schließt der Server mit Code `4401`. Gäste ohne Konto haben keinen WebSocket. Nachrichten sind JSON mit `type`.
 
 Client → Server:
 
 ```json
 { "type": "subscribe", "topic": "tournament:<tid>" }
-{ "type": "subscribe", "topic": "game:<gameId>" }
-{ "type": "unsubscribe", "topic": "game:<gameId>" }
+{ "type": "unsubscribe", "topic": "tournament:<tid>" }
+{ "type": "pong" }
 ```
 
-Server → Client:
+Abonnieren darf, wer das Turnier auch per REST sieht (Mitglieder der Gruppe). Antwort `{ "type": "subscribed", "topic" }` oder `{ "type": "error", "topic", "detail" }`.
+
+Server → Client (jede Nachricht trägt `topic`):
 
 | `type` | Inhalt | Auslöser |
 | --- | --- | --- |
-| `game.events` | `{ game_id, events: [...] }` | Neue Ereignisse (Lebenspunkte live) |
-| `match.updated` | Match mit Status und Ergebnis | Start, Ergebnis, Korrektur |
-| `round.started` | Runde mit Paarungen und Pause | Nächste Runde |
-| `standings.updated` | Tabelle | Jedes Ergebnis |
-| `seating.drawn` | Plätze mit Animations-Seed | Auslosung |
-| `entry.colors` | Spieler und Farben | Farben gemeldet |
-| `tournament.updated` | Status | Pause, Fortsetzen, Ende |
+| `tournament.updated` | `{ tournament_id, reason }` | Jede Änderung am Turnier: Teilnehmer, Auslosung, Farben, Runde, Ergebnis, Korrektur, Pause, Abschluss, Abbruch, Löschen (`reason: "deleted"`) |
+| `game.events` | `{ match_id, events: [...] }` | Neue Ereignisse aus dem Tracker, Format wie im REST-Stapel (Lebenspunkte live) |
+| `ping` | – | Alle 25 Sekunden |
 
-Nach einem Verbindungsabbruch holt die App den Stand per REST nach und abonniert neu. Ziel: Ende-zu-Ende unter 2 Sekunden (N-04).
+Die Nachrichten sind Hinweise: Die App lädt danach `GET /tournaments/{tid}` (Runden, Matches mit Lebenspunkten im laufenden Spiel, Tabelle, Pause-Ansicht) und im Tracker `GET …/tracker`. Ein eigenes `GET /tournaments/{tid}/live` und feinere Nachrichtenarten (`match.updated`, `round.started` …) entfallen dadurch (AP-7, 21.11.2026). Nach einem Verbindungsabbruch holt die App den Stand per REST nach und abonniert neu. Ziel: Ende-zu-Ende unter 2 Sekunden (N-04).
 
 ## 3. MQTT (Steuergerät, ab Phase 6)
 
@@ -173,7 +171,6 @@ Aus der Planung von [Phase 3](phase3/README.md) und ADR-0012 und ADR-0013. Sie w
 | DELETE | `/tournaments/{tid}/cancel-request` | Antrag zurückziehen (Antragsteller oder Admin) | AP-5 |
 | PUT, DELETE | `/tournaments/{tid}/cancel-request/vote` | Eigene Bestätigung abgeben oder zurücknehmen; Antwort enthält `cancel_vote` mit `confirmed`, `required`, `participants`, `i_voted`, `voters` | AP-5 |
 | PUT, DELETE | `/tournaments/{tid}/cancel-request/votes/{pid}` | Starter oder Admin bestätigen für Gäste und Spieler ohne Konto (wie bei den Farben) | AP-5 |
-| GET | `/tournaments/{tid}/live` | Kompletter Live-Stand in einem Aufruf: Runden, Matches, Lebenspunkte, Tabelle. Für das Nachladen nach einem Verbindungsabbruch | AP-7 |
 | POST | `/tournaments/{tid}/tiebreak-roll` | W20-Wurf bei Gleichstand nach allen Tiebreakern | AP-5 |
 
 **Präzisierungen**
