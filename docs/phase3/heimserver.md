@@ -169,4 +169,28 @@ Die API spielt fehlende Datenbank-Migrationen beim Start selbst ein (ADR-0014). 
 | `api` startet neu und neu | Datenbank nicht erreichbar oder Migration schlägt fehl | `docker compose logs api` |
 | `mosquitto.passwd` ist ein Ordner | Datei fehlte beim ersten Start, Docker hat einen Ordner angelegt | Ordner löschen, Schritt 3 wiederholen |
 
+## Vor dem Spieleabend: Datenbank sichern
+
+Automatische Backups kommen erst in Phase 4. Bis dahin vor jedem echten Turnier einmal von Hand sichern.
+
+**Auf dem Heimserver (SSH):**
+
+```bash
+mkdir -p ~/topstack-backups
+cd ~/topstack/infra
+docker compose exec -T db pg_dump -U topstack -Fc topstack > ~/topstack-backups/topstack-$(date +%F-%H%M).dump
+ls -lh ~/topstack-backups
+```
+
+Die Datei muss größer als 0 Byte sein. Sie liegt bewusst **außerhalb** von `~/topstack`, damit sie nie ins Repository gelangt; sie enthält E-Mail-Adressen der Mitspieler und gehört nicht in Chats oder Issues.
+
+**Nur im Notfall zurückspielen** (überschreibt den aktuellen Stand):
+
+```bash
+cd ~/topstack/infra
+docker compose stop api
+docker compose exec -T db pg_restore -U topstack -d topstack --clean --if-exists < ~/topstack-backups/<DATEI>.dump
+docker compose start api
+```
+
 Noch nicht dabei und für **Phase 4** geplant: nächtliche Backups mit Wiederherstellungstest, Monitoring mit Uptime Kuma, automatisches Deployment.
