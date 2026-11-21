@@ -207,7 +207,7 @@ jobs:
           echo "pr=$pr" >> "$GITHUB_OUTPUT"
           echo "time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
           echo "Build für Update #${pr:-?} ($GITHUB_SHA)" >> "$GITHUB_STEP_SUMMARY"
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
           push: ${{ env.PUSH == 'true' }}
