@@ -103,3 +103,18 @@ test('Zeitlimit: nach Ablauf Hinweis, Unentschieden beendet das Match', async ({
   await expect(page.getByTestId('match-winner')).toHaveText('Unentschieden');
   await expect(page.getByText('nach Zeitablauf')).toBeVisible();
 });
+
+test('Startbildschirm zeigt, welches Update läuft', async ({ page }) => {
+  await page.route('**/api/v1/health', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 'ok', build: { pr: '999', sha: 'abcdef1', time: '' } }),
+    }),
+  );
+  await page.goto('/');
+  const build = page.getByTestId('build');
+  // Lokal und in der CI ohne Build-Angaben: Entwicklungsstand; der Server meldet ein anderes Update
+  await expect(build).toContainText('Entwicklungsstand');
+  await expect(build).toContainText('Server #999');
+});

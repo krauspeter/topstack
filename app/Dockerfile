@@ -7,6 +7,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
+# Herkunft des Builds für die Anzeige „Update #… “ auf dem Startbildschirm; erst hier,
+# damit der Cache von npm ci bleibt
+ARG BUILD_PR="" BUILD_SHA="" BUILD_TIME=""
+ENV BUILD_PR=$BUILD_PR BUILD_SHA=$BUILD_SHA BUILD_TIME=$BUILD_TIME
 RUN npm run build
 
 FROM caddy:2

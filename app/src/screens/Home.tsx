@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import { BUILD, buildLabel } from '../build';
 import type { Account } from '../store/useAccount';
 
 interface Props {
@@ -48,7 +50,37 @@ export function Home({ account, onNewMatch, onSeating, onLogin, onProfile, onTou
           </button>
         )}
         <p className="muted small">Läuft auch ohne Internet · Spielstand bleibt auf diesem Gerät gespeichert</p>
+        <BuildLine />
       </footer>
     </main>
+  );
+}
+
+/**
+ * Welches Update läuft? App-Stand aus dem Build; weicht der Server ab (z. B. nur ein
+ * Image aktualisiert), steht seine Nummer dahinter.
+ */
+function BuildLine() {
+  const [server, setServer] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    fetch('/api/v1/health')
+      .then((r) => (r.ok ? (r.json() as Promise<{ build?: { pr?: string; sha?: string } }>) : null))
+      .then((h) => {
+        if (!active || !h?.build) return;
+        const pr = h.build.pr ?? '';
+        const sha = (h.build.sha ?? '').slice(0, 7);
+        if (pr ? pr !== BUILD.pr : sha && sha !== BUILD.sha) setServer(pr ? `#${pr}` : sha);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+  return (
+    <p className="muted small build" data-testid="build">
+      {buildLabel(BUILD)}
+      {server && <span className="warn"> · Server {server}</span>}
+    </p>
   );
 }

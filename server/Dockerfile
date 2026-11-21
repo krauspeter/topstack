@@ -9,6 +9,10 @@ COPY alembic.ini ./
 COPY migrations ./migrations
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
+# Herkunft des Builds, sichtbar in /api/v1/health (Anzeige „Update #… “ in der App)
+ARG BUILD_PR="" BUILD_SHA="" BUILD_TIME=""
+ENV TOPSTACK_BUILD_PR=$BUILD_PR TOPSTACK_BUILD_SHA=$BUILD_SHA TOPSTACK_BUILD_TIME=$BUILD_TIME
+
 RUN useradd --system --uid 10001 topstack
 USER topstack
 
