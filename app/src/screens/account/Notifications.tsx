@@ -37,6 +37,19 @@ export function Notifications() {
     }
   };
 
+  /** Sofort umschalten, bei einem Fehler zurück (kein Warten auf den Server beim Tippen). */
+  const toggle = async (event: string, enabled: boolean) => {
+    const before = settings;
+    setSettings((cur) => cur && { ...cur, events: cur.events.map((x) => (x.event === event ? { ...x, enabled } : x)) });
+    setError(null);
+    try {
+      await api<NotificationSettings>(`/me/notifications/${event}`, { method: 'PUT', body: { enabled } });
+    } catch (err) {
+      setSettings(before);
+      setError(errorText(err));
+    }
+  };
+
   return (
     <section className="stack" aria-label="Benachrichtigungen">
       <h3>Benachrichtigungen</h3>
@@ -91,17 +104,7 @@ export function Notifications() {
                 <input
                   type="checkbox"
                   checked={e.enabled}
-                  disabled={busy}
-                  onChange={(ev) =>
-                    void run(async () =>
-                      setSettings(
-                        await api<NotificationSettings>(`/me/notifications/${e.event}`, {
-                          method: 'PUT',
-                          body: { enabled: ev.target.checked },
-                        }),
-                      ),
-                    )
-                  }
+                  onChange={(ev) => void toggle(e.event, ev.target.checked)}
                 />{' '}
                 {e.label}
               </label>
