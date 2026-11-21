@@ -293,11 +293,10 @@ test('Jeder sein Handy: warten auf den Gegner, nur den eigenen W20 würfeln', as
   await expect(page.getByTestId(`roll-${BEN}`)).toHaveText('4', { timeout: 6000 });
   await page.getByRole('button', { name: 'Ich beginne' }).click();
   await expect(page.getByTestId('score')).toContainText('Spiel 1');
-  await expect.poll(() => server.events.map((e) => [e.type, e.player_id, e.value ?? null])).toEqual([
-    ['die_roll', PETER, 15],
-    ['die_roll', BEN, 4],
-    ['game_start', PETER, null],
-  ]);
+  // Gleiche Uhrzeit, Reihenfolge in der Outbox beliebig; der Server sortiert selbst
+  await expect
+    .poll(() => server.events.map((e) => `${e.type} ${e.player_id} ${e.value ?? '-'}`).sort())
+    .toEqual([`die_roll ${BEN} 4`, `die_roll ${PETER} 15`, `game_start ${PETER} -`]);
   await expect(page.locator('.table > .half').first()).toHaveAttribute('data-testid', `half-${BEN}`);
 });
 
