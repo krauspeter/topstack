@@ -81,17 +81,23 @@ export function Tracker({ config, state, events, onChange, onUndo, onWin, onAbor
   };
   const mine = (id: string) => controls(config, id);
   const remote = config.remote;
+  // Jeder sein eigenes Handy: Gegner oben und richtig herum, man selbst immer unten
+  const myId = remote?.mode === 'dual' ? remote.myPlayer : null;
+  const dual = myId !== null;
+  const shown = dual ? [...config.players].sort((a, b) => Number(a.id === myId) - Number(b.id === myId)) : config.players;
 
   return (
-    <main className="table">
-      {config.players.map((p, i) => {
+    <main className={dual ? 'table dual' : 'table'}>
+      {shown.map((p, i) => {
         const change = recentChange(gameEvents, p.id, now);
         const life = state.totals[p.id];
+        const index = config.players.indexOf(p);
         return (
           <section
             key={p.id}
-            className={`half tracker ${i === 0 ? 'flipped' : ''} ${life <= 0 ? 'dead' : ''}`}
-            style={halfStyle(playerColors(p, i === 0 ? 0 : 1))}
+            className={`half tracker ${i === 0 && !dual ? 'flipped' : ''} ${life <= 0 ? 'dead' : ''}`}
+            style={halfStyle(playerColors(p, index === 0 ? 0 : 1))}
+            data-testid={`half-${p.id}`}
           >
             {mine(p.id) ? (
               <LifeButton label={`${p.name} −1`} sign={-1} onStep={(d) => step(p.id, d)} />

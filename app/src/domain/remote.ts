@@ -4,7 +4,7 @@
  */
 import type { ApiEvent, TrackerInfo, TrackerMatch } from '../api/types';
 import type { GameEvent } from './lifeEvents';
-import type { MatchConfig, RemoteStatus } from './match';
+import type { Lobby, MatchConfig, RemoteStatus } from './match';
 
 export function toApi(e: GameEvent): ApiEvent {
   return {
@@ -45,6 +45,16 @@ export function remoteStatus(m: TrackerMatch): RemoteStatus {
   return { status: m.status, gamesA: m.games_a, gamesB: m.games_b, gamesDrawn: m.games_drawn, version: m.version };
 }
 
+export function lobbyFrom(info: TrackerInfo): Lobby {
+  const seats: Record<string, string> = {};
+  const rolls: Record<string, number> = {};
+  for (const s of info.seats ?? []) {
+    seats[s.player_id] = s.device_id;
+    if (s.roll !== null) rolls[s.player_id] = s.roll;
+  }
+  return { seats, rolls, tie: info.tie ?? null };
+}
+
 /** Match-Konfiguration aus dem Stand des Servers; Spieler-IDs sind die Server-IDs. */
 export function configFromTracker(info: TrackerInfo, myPlayer: string | null, now = new Date()): MatchConfig {
   const mode = info.match.tracker_mode === 'dual' ? 'dual' : 'shared';
@@ -64,6 +74,7 @@ export function configFromTracker(info: TrackerInfo, myPlayer: string | null, no
       mode,
       myPlayer: mode === 'dual' ? myPlayer : null,
       server: remoteStatus(info.match),
+      lobby: lobbyFrom(info),
     },
   };
 }

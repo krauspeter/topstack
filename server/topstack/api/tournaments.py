@@ -30,8 +30,11 @@ from topstack.api.schemas import (
     ReservedCreate,
     RespondBody,
     ResultBody,
+    RollBody,
     RoundOut,
+    SeatBody,
     Seating,
+    SeatOut,
     StandingOut,
     TournamentCreate,
     TournamentOut,
@@ -530,6 +533,7 @@ def tracker_match(m: Match) -> TrackerMatch:
 async def tracker_out(db: Db, ctx: svc.Context, mid: uuid.UUID) -> TrackerOut:
     st = await tracker.state(db, ctx, mid)
     reasons = {g.id: g.end_reason for g in st.games}
+    lob = tracker.lobby(ctx, mid)
     (pa, ea), (pb, eb) = st.players
     return TrackerOut(
         tournament_id=ctx.tournament.id,
@@ -560,6 +564,11 @@ async def tracker_out(db: Db, ctx: svc.Context, mid: uuid.UUID) -> TrackerOut:
             )
             for e in st.events
         ],
+        seats=[
+            SeatOut(player_id=pid, device_id=dev, roll=lob.rolls.get(pid))
+            for pid, dev in lob.seats.items()
+        ],
+        tie=lob.tie,
     )
 
 
@@ -614,3 +623,29 @@ async def push_events(
             rejected=[RejectedEvent(id=i, detail=d) for i, d in res.rejected],
             match=tracker_match(match),
         )
+
+
+@router.put("/tournaments/{tid}/matches/{mid}/tracker/seats/{pid}")
+async def claim_seat(
+    tid: uuid.UUID, mid: uuid.UUID, pid: uuid.UUID, body: SeatBody, user: CurrentUser, db: Db
+) -> TrackerOut:
+    """Modus „dual“: Dieses Handy zählt für ``pid``; ``409``, wenn schon ein anderes zählt."""
+    async with errors():
+        ctx = await svc.load(db, tid, user, lock=True)
+        await tracker.claim_seat(db, ctx, mid, pid, body.device_id, force=body.force)
+        await db.commit()
+        await live.tournament_changed(tid, "tracker_seat")
+        return await tracker_out(db, await svc.load(db, tid, user), mid)
+
+
+@router.put("/tournaments/{tid}/matches/{mid}/tracker/seats/{pid}/roll")
+async def roll_die(
+    tid: uuid.UUID, mid: uuid.UUID, pid: uuid.UUID, body: RollBody, user: CurrentUser, db: Db
+) -> TrackerOut:
+    """Eigener W20 vor Spiel 1; bei Gleichstand ``tie`` und beide würfeln neu."""
+    async with errors():
+        ctx = await svc.load(db, tid, user, lock=True)
+        await tracker.roll(db, ctx, mid, pid, body.device_id, body.value)
+        await db.commit()
+        await live.tournament_changed(tid, "tracker_roll")
+        return await tracker_out(db, await svc.load(db, tid, user), mid)

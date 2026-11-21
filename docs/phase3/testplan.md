@@ -81,6 +81,7 @@ Pflicht in Phase 3: alle Fälle mit Priorität **hoch**. Jeder Fall hängt an ei
 | TC-41 | Zweites Handy koppeln (UC-11) | jedes Handy zählt nur den eigenen Spieler, beide sehen alles | hoch |
 | TC-42 | Handy A im Flugmodus, 10 Änderungen, wieder online | alle 10 Ereignisse kommen an, Stand überall gleich (N-01) | hoch |
 | TC-43 | Dasselbe Ereignis dreimal senden | einmal gespeichert, zweimal `duplicates` | hoch |
+| TC-41a | Modus `dual`: zweites Handy fehlt, dann würfelt jeder selbst | Würfeln erst, wenn beide da sind; nur der eigene W20; Gleichstand → beide neu; Platz übernehmen nur mit Bestätigung | hoch |
 | TC-44 | Handy B sendet Lebenspunkte für Spieler A im Modus `dual` | Ereignis im Stapel abgelehnt (`rejected` mit Grund), der Rest wird gespeichert | hoch |
 | TC-45 | Beide Handys melden widersprüchliches Spielende | erstes gilt, zweites `rejected`, Hinweis in der App | mittel |
 | TC-46 | Spielende mit Grund `concede` und `time` | `game.end_reason` gespeichert | mittel |

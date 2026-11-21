@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api } from '../api/client';
 import { useLive } from '../api/live';
 import type { EventBatchResult, TrackerInfo } from '../api/types';
-import { fromApi, remoteStatus, toApi } from '../domain/remote';
+import { fromApi, lobbyFrom, remoteStatus, toApi } from '../domain/remote';
 import { allPending, confirmEvents, pendingEvents } from './db';
 import type { MatchApi } from './useMatch';
 
@@ -57,7 +57,7 @@ export function useSync(match: MatchApi): SyncInfo {
         setPending((await pendingEvents(matchId)).length);
       }
       const info = await api<TrackerInfo>(`${base}/tracker`);
-      apply.current(matchId, info.events.map(fromApi), [], remoteStatus(info.match));
+      apply.current(matchId, info.events.map(fromApi), [], remoteStatus(info.match), lobbyFrom(info));
       setOnline(true);
     } catch (err) {
       // Offline oder Server weg: Ereignisse bleiben in der Outbox und gehen später raus

@@ -93,7 +93,22 @@ function tracker(mode: string, events: ApiEvent[], status = 'running') {
 
 /** Nachgebauter Server: speichert Ereignisse idempotent, zählt Spielsiege wie der echte. */
 async function mockServer(page: Page, opts: { mode?: string; initial?: ApiEvent[] } = {}) {
-  const server = { events: [...(opts.initial ?? [])], mode: opts.mode ?? 'shared', offline: false, batches: 0 };
+  const server = {
+    events: [...(opts.initial ?? [])],
+    mode: opts.mode ?? 'shared',
+    offline: false,
+    batches: 0,
+    seats: {} as Record<string, string>,
+    rolls: {} as Record<string, number>,
+  };
+  const lobby = () => ({
+    seats: Object.entries(server.seats).map(([player_id, device_id]) => ({
+      player_id,
+      device_id,
+      roll: server.rolls[player_id] ?? null,
+    })),
+    tie: null,
+  });
   const status = () => {
     const ends = server.events.filter((e) => e.type === 'game_end');
     const a = ends.filter((e) => e.player_id === PETER).length;
@@ -117,7 +132,15 @@ async function mockServer(page: Page, opts: { mode?: string; initial?: ApiEvent[
     if (route.request().method() === 'POST') {
       server.mode = (route.request().postDataJSON() as { mode: string }).mode;
     }
-    return json(route, 200, { ...tracker(server.mode, server.events), match: status() });
+    return json(route, 200, { ...tracker(server.mode, server.events), match: status(), ...lobby() });
+  });
+  await page.route(`**/api/v1/tournaments/${TID}/matches/${MID}/tracker/seats/**`, async (route) => {
+    const url = route.request().url();
+    const body = route.request().postDataJSON() as { device_id: string; value?: number };
+    const pid = url.split('/seats/')[1].split('/')[0];
+    if (url.endsWith('/roll')) server.rolls[pid] = 15; // Server merkt sich den Wurf (hier fest 15)
+    else server.seats[pid] = body.device_id;
+    return json(route, 200, { ...tracker(server.mode, server.events), match: status(), ...lobby() });
   });
   await page.route(`**/api/v1/tournaments/${TID}/matches/${MID}/events`, async (route) => {
     if (server.offline) return route.abort('internetdisconnected');
@@ -228,6 +251,12 @@ test('Zweites Handy koppeln: zählt nur den eigenen Spieler und sieht den Gegner
   // Spiel läuft schon: kein Modus wählen, Peter zählt automatisch sich selbst
   await expect(page.getByTestId('score')).toContainText('Spiel 1');
   await expect(page.getByRole('button', { name: 'Ben −1' })).toHaveCount(0);
+  // Gegner oben und richtig herum, eigene Lebenspunkte unten
+  const halves = page.locator('.table > .half');
+  await expect(halves.first()).toHaveAttribute('data-testid', `half-${BEN}`);
+  await expect(halves.first()).not.toHaveClass(/flipped/);
+  await expect(halves.last()).toHaveAttribute('data-testid', `half-${PETER}`);
+  expect(Object.keys(server.seats)).toEqual([PETER]);
   await page.getByRole('button', { name: 'Peter −1' }).click();
   await expect.poll(() => lifeOf(server, PETER)).toBe(-1);
 
@@ -237,4 +266,61 @@ test('Zweites Handy koppeln: zählt nur den eigenen Spieler und sieht den Gegner
   await page.getByRole('button', { name: 'Menü' }).click();
   await expect(page.getByRole('button', { name: 'Peter gibt auf' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Ben gibt auf' })).toHaveCount(0);
+});
+
+test('Jeder sein Handy: warten auf den Gegner, nur den eigenen W20 würfeln', async ({ page }) => {
+  const server = await mockServer(page, { mode: 'shared' });
+  await page.goto(`/turnier/${TID}`);
+  await page.getByTestId('match').getByRole('button', { name: 'Spielen' }).click();
+  await page.getByRole('button', { name: 'Jeder sein eigenes Handy' }).click();
+
+  // Peter spielt selbst mit und zählt automatisch sich; Ben ist noch nicht da
+  await expect(page.getByTestId('opponent-status')).toContainText('Warte auf Ben');
+  await expect(page.getByRole('button', { name: 'Peter würfelt' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Ben würfelt' })).toHaveCount(0);
+  await expect(page.getByTestId('half-opponent')).not.toHaveClass(/flipped/);
+  expect(server.seats[PETER]).toBeTruthy();
+
+  // Ben öffnet das Match auf seinem Handy
+  server.seats[BEN] = 'handy-ben';
+  await expect(page.getByTestId('opponent-status')).toContainText('Ben ist da', { timeout: 6000 });
+  await page.getByRole('button', { name: 'Peter würfelt' }).click();
+  await expect(page.getByTestId(`roll-${PETER}`)).toHaveText('15');
+  await expect(page.getByText('Warte auf den Wurf des Gegners')).toBeVisible();
+
+  // Ben würfelt auf seinem Handy niedriger: Peter entscheidet
+  server.rolls[BEN] = 4;
+  await expect(page.getByTestId(`roll-${BEN}`)).toHaveText('4', { timeout: 6000 });
+  await page.getByRole('button', { name: 'Ich beginne' }).click();
+  await expect(page.getByTestId('score')).toContainText('Spiel 1');
+  // Gleiche Uhrzeit, Reihenfolge in der Outbox beliebig; der Server sortiert selbst
+  await expect
+    .poll(() => server.events.map((e) => `${e.type} ${e.player_id} ${e.value ?? '-'}`).sort())
+    .toEqual([`die_roll ${BEN} 4`, `die_roll ${PETER} 15`, `game_start ${PETER} -`]);
+  await expect(page.locator('.table > .half').first()).toHaveAttribute('data-testid', `half-${BEN}`);
+});
+
+test('Jeder sein Handy: Platz schon belegt, auf dieses Handy übernehmen', async ({ page }) => {
+  const server = await mockServer(page, { mode: 'dual' });
+  // Alter Platz von einem anderen Handy; die Nachbildung lehnt ohne force ab
+  server.seats[PETER] = 'altes-handy';
+  await page.route(`**/api/v1/tournaments/${TID}/matches/${MID}/tracker/seats/${PETER}`, async (route) => {
+    const body = route.request().postDataJSON() as { device_id: string; force?: boolean };
+    if (!body.force) {
+      return route.fulfill({
+        status: 409,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({ status: 409, title: 'Konflikt', detail: 'Für diesen Spieler zählt schon ein anderes Handy.' }),
+      });
+    }
+    server.seats[PETER] = body.device_id;
+    return route.fallback();
+  });
+  await page.goto(`/turnier/${TID}`);
+  await page.getByTestId('match').getByRole('button', { name: 'Spielen' }).click();
+  await page.getByRole('button', { name: 'Jeder sein eigenes Handy' }).click();
+  await expect(page.getByTestId('seat-taken')).toContainText('Für Peter zählt schon ein anderes Handy.');
+  await page.getByRole('button', { name: 'Auf dieses Handy übernehmen' }).click();
+  await expect(page.getByTestId('opponent-status')).toContainText('Warte auf Ben');
+  expect(server.seats[PETER]).not.toBe('altes-handy');
 });

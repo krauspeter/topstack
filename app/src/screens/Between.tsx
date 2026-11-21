@@ -2,20 +2,22 @@ import { useState } from 'react';
 import { type MatchConfig, type MatchState, formatDuration, gameDuration, isDrawn, opponentOf } from '../domain/match';
 
 interface ChooseProps {
+  /** Jeder sein eigenes Handy: Nur das Handy des Verlierers wählt, die anderen warten. */
+  waiting?: boolean;
   config: MatchConfig;
   state: MatchState;
   onChoose(starter: string): void;
 }
 
 /** Nach einem Spiel entscheidet der Verlierer, wer das nächste beginnt (F-09). */
-export function ChooseStarter({ config, state, onChoose }: ChooseProps) {
+export function ChooseStarter({ config, state, onChoose, waiting = false }: ChooseProps) {
   const ids = config.players.map((p) => p.id);
   const chooser = state.chooser ?? ids[0];
   const other = opponentOf(ids, chooser);
   const name = (id: string) => config.players.find((p) => p.id === id)?.name ?? id;
   const last = state.games.at(-1);
   // Der Verlierer soll die Frage lesen können: Sitzt er oben (Spieler 1), wird die Karte gedreht.
-  const flipped = chooser === ids[0];
+  const flipped = chooser === ids[0] && config.remote?.mode !== 'dual';
 
   return (
     <main className="page center">
@@ -23,8 +25,14 @@ export function ChooseStarter({ config, state, onChoose }: ChooseProps) {
         <p className="muted">
           Spiel {last?.number} an {name(last?.winner ?? '')} · Stand {state.wins[ids[0]]}:{state.wins[ids[1]]}
         </p>
-        <h2>{name(chooser)}, wer beginnt Spiel {(last?.number ?? 0) + 1}?</h2>
-        <div className="stack">
+        {waiting ? (
+          <p data-testid="waiting-choice">
+            {name(chooser)} entscheidet auf dem eigenen Handy, wer Spiel {(last?.number ?? 0) + 1} beginnt …
+          </p>
+        ) : (
+          <h2>{name(chooser)}, wer beginnt Spiel {(last?.number ?? 0) + 1}?</h2>
+        )}
+        <div className="stack" hidden={waiting}>
           <button className="btn primary big" onClick={() => onChoose(chooser)}>
             Ich beginne
           </button>

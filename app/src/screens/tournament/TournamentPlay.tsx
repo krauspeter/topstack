@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api, errorText } from '../../api/client';
+import { ApiError, api, errorText } from '../../api/client';
+import { deviceId } from '../../store/useMatch';
 import type { MatchInfo, NextOpponent, Standing, Tournament, TrackerInfo } from '../../api/types';
 import type { GameEvent } from '../../domain/lifeEvents';
 import type { MatchConfig } from '../../domain/match';
@@ -306,18 +307,37 @@ function PlaySheet({
   const [info, setInfo] = useState<TrackerInfo | null>(null);
   const [step, setStep] = useState<'load' | 'mode' | 'side'>('load');
   const [error, setError] = useState<string | null>(null);
+  /** Für diesen Spieler zählt schon ein anderes Handy: übernehmen? */
+  const [taken, setTaken] = useState<string | null>(null);
   const base = `/tournaments/${tournamentId}/matches/${match.id}/tracker`;
 
-  const open = (i: TrackerInfo, side: string | null) => {
+  const launch = (i: TrackerInfo, side: string | null) => {
     if (!onPlay(configFromTracker(i, side), i.events.map(fromApi))) {
       setError('Auf diesem Handy läuft noch ein freies Match. Beende es zuerst.');
+    }
+  };
+
+  /** Modus „dual“: erst beim Server den Platz belegen, dann öffnen (Warteraum, 21.11.2026). */
+  const open = async (i: TrackerInfo, side: string | null, force = false) => {
+    if (i.match.tracker_mode !== 'dual' || side === null) return launch(i, side);
+    setError(null);
+    try {
+      const seated = await api<TrackerInfo>(`${base}/seats/${side}`, {
+        method: 'PUT',
+        body: { device_id: deviceId(), force },
+      });
+      setTaken(null);
+      launch(seated, side);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409 && !force) setTaken(side);
+      else setError(errorText(err));
     }
   };
 
   const proceed = (i: TrackerInfo) => {
     setInfo(i);
     if (i.match.tracker_mode === 'dual' && defaultSide(i) === null) setStep('side');
-    else open(i, defaultSide(i));
+    else void open(i, defaultSide(i));
   };
 
 
@@ -369,11 +389,21 @@ function PlaySheet({
           <>
             <p className="muted small">Für wen zählt dieses Handy?</p>
             {[info.player_a, info.player_b].map((p) => (
-              <button key={p.id} className="btn big" onClick={() => open(info, p.id)}>
+              <button key={p.id} className="btn big" onClick={() => void open(info, p.id)}>
                 {p.display_name}
               </button>
             ))}
           </>
+        )}
+        {taken && info && (
+          <div className="stack" data-testid="seat-taken">
+            <p className="warn">
+              Für {[info.player_a, info.player_b].find((p) => p.id === taken)?.display_name} zählt schon ein anderes Handy.
+            </p>
+            <button className="btn danger big" onClick={() => void open(info, taken, true)}>
+              Auf dieses Handy übernehmen
+            </button>
+          </div>
         )}
         {error && (
           <p className="warn" role="alert">

@@ -11,12 +11,15 @@ import { TournamentHome } from './screens/tournament/TournamentHome';
 import { TournamentView } from './screens/tournament/TournamentView';
 import { ChooseStarter, MatchEnd } from './screens/Between';
 import { Home } from './screens/Home';
+import { DualRoll } from './screens/DualRoll';
 import { Roll } from './screens/Roll';
 import { Seating } from './screens/Seating';
 import { Setup } from './screens/Setup';
 import { Tracker } from './screens/Tracker';
 import { useAccount } from './store/useAccount';
-import { useMatch } from './store/useMatch';
+import { deviceId, useMatch } from './store/useMatch';
+import { controls } from './domain/match';
+import { fromApi, lobbyFrom, remoteStatus } from './domain/remote';
 import { useSync } from './store/useSync';
 import { playerColors } from './theme';
 
@@ -179,6 +182,21 @@ export function App() {
     const remote = config.remote;
     switch (state.phase) {
       case 'roll':
+        if (remote?.mode === 'dual' && remote.myPlayer)
+          return (
+            <DualRoll
+              config={config}
+              device={deviceId()}
+              onInfo={(info) =>
+                match.applyServer(remote.matchId, info.events.map(fromApi), [], remoteStatus(info.match), lobbyFrom(info))
+              }
+              onStart={match.beginFirstGame}
+              onCancel={() => {
+                match.close();
+                navigate(`/turnier/${remote.tournamentId}`);
+              }}
+            />
+          );
         return (
           <Roll
             players={config.players}
@@ -206,7 +224,14 @@ export function App() {
           />
         );
       case 'choose':
-        return <ChooseStarter config={config} state={state} onChoose={match.startNextGame} />;
+        return (
+          <ChooseStarter
+            config={config}
+            state={state}
+            onChoose={match.startNextGame}
+            waiting={remote?.mode === 'dual' && state.chooser !== null && !controls(config, state.chooser)}
+          />
+        );
       case 'finished':
         return (
           <MatchEnd

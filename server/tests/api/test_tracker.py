@@ -259,3 +259,49 @@ async def test_tracker_rules(client, session):
     await groups.add_member(session, group_id=group.id, user=anna)
     await as_user(client, session, anna)
     assert is_problem(await client.post(urls(t, m)[0], json={"mode": "shared"}), 403)
+
+
+async def test_dual_lobby_seats_and_rolls(client, session):  # TC-41a
+    _, _, t, m, _ = await started(client, session, mode="dual")
+    tracker_url, _ = urls(t, m)
+    a, b = m["player_a_id"], m["player_b_id"]
+    seat = f"{tracker_url}/seats"
+
+    r = await client.put(f"{seat}/{a}", json={"device_id": "handy-a"})
+    assert r.status_code == 200, r.text
+    assert r.json()["seats"] == [{"player_id": a, "device_id": "handy-a", "roll": None}]
+    # Würfeln erst, wenn der Gegner da ist
+    assert is_problem(
+        await client.put(f"{seat}/{a}/roll", json={"device_id": "handy-a", "value": 5}), 409
+    )
+    # Ein zweites Handy kann Spieler A nicht einfach übernehmen
+    assert is_problem(await client.put(f"{seat}/{a}", json={"device_id": "handy-x"}), 409)
+    await client.put(f"{seat}/{b}", json={"device_id": "handy-b"})
+
+    # Jeder würfelt nur für sich
+    assert is_problem(
+        await client.put(f"{seat}/{b}/roll", json={"device_id": "handy-a", "value": 5}), 403
+    )
+    await client.put(f"{seat}/{a}/roll", json={"device_id": "handy-a", "value": 9})
+    assert is_problem(
+        await client.put(f"{seat}/{a}/roll", json={"device_id": "handy-a", "value": 3}), 409
+    )
+    r = await client.put(f"{seat}/{b}/roll", json={"device_id": "handy-b", "value": 9})
+    assert r.json()["tie"] == 9  # Gleichstand: beide neu
+    assert all(s["roll"] is None for s in r.json()["seats"])
+    await client.put(f"{seat}/{a}/roll", json={"device_id": "handy-a", "value": 17})
+    r = await client.put(f"{seat}/{b}/roll", json={"device_id": "handy-b", "value": 4})
+    rolls = {s["player_id"]: s["roll"] for s in r.json()["seats"]}
+    assert rolls == {a: 17, b: 4} and r.json()["tie"] is None
+
+    # Übernehmen mit force, z. B. wenn ein Handy leer ist
+    r = await client.put(f"{seat}/{b}", json={"device_id": "handy-c", "force": True})
+    seats = {s["player_id"]: (s["device_id"], s["roll"]) for s in r.json()["seats"]}
+    assert seats[b] == ("handy-c", None)
+
+
+async def test_lobby_only_in_dual_mode(client, session):
+    _, _, t, m, _ = await started(client, session, mode="shared")
+    tracker_url, _ = urls(t, m)
+    r = await client.put(f"{tracker_url}/seats/{m['player_a_id']}", json={"device_id": "x"})
+    assert is_problem(r, 409)
