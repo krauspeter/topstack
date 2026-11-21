@@ -240,6 +240,13 @@ html, body { overflow-x: hidden; }
 .page > * { min-width: 0; max-width: 100%; }
 input { min-width: 0; max-width: 100%; }
 .row > * { min-width: 0; }
+/* Rasterspalten nie breiter als der Bildschirm: ohne minmax(0, 1fr) wächst die Spalte auf die
+   Mindestbreite des breitesten Inhalts (z. B. Eingabefeld + „Anlegen“) und alles rechts wird
+   abgeschnitten (21.11.2026) */
+.stack, .card, .sheet, .field, .seating, .player-setup, .group-list li, .entry-list { grid-template-columns: minmax(0, 1fr); }
+.stack > *, .card > *, .sheet > * { min-width: 0; }
+.row > button { flex-shrink: 0; }
+.chip { max-width: 100%; }
 .btn { max-width: 100%; }
 .table-graphic { width: 100%; }
 

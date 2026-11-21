@@ -458,3 +458,32 @@ test('Starter bestätigt den Abbruch für Spieler ohne Konto', async ({ page }) 
   await expect(page.getByText('Dieses Turnier wurde abgebrochen und zählt nicht.')).toBeVisible();
   expect(calls).toEqual(['PUT p-ben']);
 });
+
+test('Spieler hinzufügen passt auf ein schmales Handy (360 px)', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  await mockBase(page);
+  const state = tournament('setup', [entry(ME_PLAYER, 'Peter', 'member')], { set_code: 'Test' });
+  await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, 200, state));
+  await page.route(`**/api/v1/groups/${GROUP}/players`, (route) =>
+    json(
+      route,
+      200,
+      ['Andreas', 'Max', 'Sebastian', 'Yannick'].map((name) => ({
+        id: `p-${name}`,
+        display_name: name,
+        kind: 'reserved',
+        is_me: false,
+      })),
+    ),
+  );
+  await page.goto(`/turnier/${TID}`);
+  await page.getByRole('button', { name: 'Spieler hinzufügen' }).click();
+  await expect(page.getByPlaceholder('Neuer Spieler ohne Konto')).toBeVisible();
+  const tooWide = await page.evaluate(() =>
+    [...document.querySelectorAll('main *')]
+      .filter((el) => el.getBoundingClientRect().right > window.innerWidth + 1)
+      .map((el) => `${el.tagName}.${el.className} ${(el.textContent ?? '').slice(0, 30)}`),
+  );
+  expect(tooWide).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+});
