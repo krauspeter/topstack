@@ -113,7 +113,7 @@ test('Rangliste mit Saisonfilter, Zeitraum und Spielerstatistik', async ({ page 
 
   // Zahlen stehen in jeder Zeile genau untereinander
   const rightEdges = await records
-    .locator('li .num:first-of-type')
+    .locator('li > .num:nth-child(2)')
     .evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().right)));
   expect(rightEdges).toHaveLength(3);
   expect(new Set(rightEdges).size).toBe(1);
