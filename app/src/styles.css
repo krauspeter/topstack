@@ -312,9 +312,11 @@ input { min-width: 0; max-width: 100%; }
 .date-range .field { flex: 1; }
 .date-range input { width: 100%; }
 select { min-height: 48px; padding: 0 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); color: var(--text); font: inherit; }
-.stats { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; }
+.stats { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 6px 12px; font-variant-numeric: tabular-nums; }
 .stats dt { color: var(--muted); }
 .stats dd { margin: 0; }
 .color-stats { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.opponents { list-style: none; padding: 0; display: grid; gap: 4px; }
-.opponents li { display: flex; justify-content: space-between; gap: 8px; }
+.records { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-variant-numeric: tabular-nums; }
+.records li { display: grid; grid-template-columns: minmax(0, 1fr) 6ch 7ch; gap: 8px; align-items: center; }
+.records .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.records .num { text-align: right; white-space: nowrap; }

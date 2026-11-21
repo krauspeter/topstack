@@ -292,4 +292,14 @@ export interface PlayerStats {
   colors: { key: string; count: number }[];
   combos: { key: string; count: number }[];
   opponents: (WinRecord & { player_id: string; display_name: string })[];
+  /** Eigene Kombinationen, beste Siegquote zuerst. */
+  with_colors: ColorRecord[];
+  /** Einzelne Gegner-Farben, meiste Niederlagen zuerst. */
+  vs_colors: ColorRecord[];
+}
+
+export interface ColorRecord extends WinRecord {
+  /** Kombination wie „BRG“ oder einzelne Farbe; „C“ = farblos. */
+  key: string;
+  win_rate: number;
 }

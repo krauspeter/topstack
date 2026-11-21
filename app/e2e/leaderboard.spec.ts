@@ -65,7 +65,19 @@ test('Rangliste mit Saisonfilter, Zeitraum und Spielerstatistik', async ({ page 
       game_win_rate: 53.8,
       colors: [{ key: 'G', count: 2 }],
       combos: [{ key: 'G', count: 1 }, { key: 'BG', count: 1 }],
-      opponents: [{ player_id: PETER, display_name: 'Peter', wins: 1, draws: 0, losses: 1 }],
+      opponents: [
+        { player_id: PETER, display_name: 'Peter', wins: 1, draws: 0, losses: 1 },
+        { player_id: 'p-ben', display_name: 'Ben', wins: 1, draws: 0, losses: 1 },
+        { player_id: 'p-sebastian', display_name: 'Sebastian', wins: 0, draws: 0, losses: 1 },
+      ],
+      with_colors: [
+        { key: 'G', wins: 2, draws: 0, losses: 0, win_rate: 100 },
+        { key: 'BG', wins: 1, draws: 0, losses: 3, win_rate: 25 },
+      ],
+      vs_colors: [
+        { key: 'R', wins: 0, draws: 0, losses: 2, win_rate: 0 },
+        { key: 'C', wins: 1, draws: 0, losses: 1, win_rate: 50 },
+      ],
     }),
   );
 
@@ -94,9 +106,38 @@ test('Rangliste mit Saisonfilter, Zeitraum und Spielerstatistik', async ({ page 
   const stats = page.getByTestId('player-stats');
   await expect(stats).toContainText('2 · 1 Sieg');
   await expect(stats).toContainText('1× Platz 1, 1× Platz 3');
-  await expect(stats).toContainText('3-0-3 · 50 % gewonnen');
-  await expect(stats).toContainText('7:6 · 53,8 % gewonnen');
-  await expect(stats.getByRole('listitem')).toContainText('Peter1-0-1');
+  await expect(stats).toContainText('3-0-3 · 50 %');
+  await expect(stats).toContainText('7:6 · 53,8 %');
+  const records = stats.getByTestId('records');
+  await expect(records.getByRole('listitem', { name: 'Peter' })).toContainText('1-0-1');
+
+  // Zahlen stehen in jeder Zeile genau untereinander
+  const rightEdges = await records
+    .locator('li .num:first-of-type')
+    .evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().right)));
+  expect(rightEdges).toHaveLength(3);
+  expect(new Set(rightEdges).size).toBe(1);
+
+  // Mit welchen Farben am besten
+  await stats.getByRole('group', { name: 'Bilanz' }).getByRole('button', { name: 'Meine Farben' }).click();
+  await expect(records.getByRole('listitem')).toHaveCount(2);
+  await expect(records.getByRole('listitem').first()).toHaveAccessibleName('Grün');
+  await expect(records.getByRole('listitem').first()).toContainText('2-0-0');
+  await expect(records.getByRole('listitem').first()).toContainText('100 %');
+
+  // Gegen welche Farben am häufigsten verloren
+  await stats.getByRole('group', { name: 'Bilanz' }).getByRole('button', { name: 'Gegen Farben' }).click();
+  await expect(records.getByRole('listitem').first()).toHaveAccessibleName('Rot');
+  await expect(records.getByRole('listitem').first()).toContainText('0-0-2');
+  await expect(records.getByRole('listitem', { name: 'Farblos' })).toContainText('1-0-1');
+
+  // Auswahl bleibt beim nächsten Öffnen erhalten
+  await stats.getByRole('button', { name: 'Statistik schließen' }).click();
+  await page.getByRole('row', { name: 'Statistik von Chris' }).click();
+  await expect(
+    page.getByTestId('player-stats').getByRole('button', { name: 'Gegen Farben' }),
+  ).toHaveAttribute('aria-pressed', 'true');
+
   // passt auf das Handy
   const tooWide = await page.evaluate(() =>
     [...document.querySelectorAll('main *')].filter((el) => el.getBoundingClientRect().right > window.innerWidth + 1).length,

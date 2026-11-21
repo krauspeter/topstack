@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from topstack.api.deps import CurrentUser, Db
 from topstack.api.problems import problem
 from topstack.db.models import Player
-from topstack.domain.leaderboard import leaderboard, player_stats
+from topstack.domain.leaderboard import Record, leaderboard, player_stats, rate
 from topstack.services import leaderboard as svc
 
 router = APIRouter(tags=["Rangliste"])
@@ -57,6 +57,11 @@ class OpponentOut(RecordOut):
     display_name: str
 
 
+class ColorRecordOut(RecordOut):
+    key: str  # Kombination wie „BRG“ oder einzelne Farbe; „C“ = farblos
+    win_rate: float  # Prozent der Matches gewonnen
+
+
 class CountOut(BaseModel):
     key: str
     count: int
@@ -79,6 +84,8 @@ class PlayerStatsOut(BaseModel):
     colors: list[CountOut]  # einzelne Farben, häufigste zuerst
     combos: list[CountOut]  # Kombinationen, häufigste zuerst
     opponents: list[OpponentOut]
+    with_colors: list[ColorRecordOut]  # eigene Kombinationen, beste Siegquote zuerst
+    vs_colors: list[ColorRecordOut]  # Gegner-Farben, meiste Niederlagen zuerst
 
 
 def _filter(season: uuid.UUID | None, since: date | None, until: date | None) -> svc.Filter:
@@ -163,6 +170,14 @@ async def get_player_stats(
     def counts(c: Counter[str]) -> list[CountOut]:
         return [CountOut(key=k, count=n) for k, n in c.most_common()]
 
+    def color_records(d: dict[str, Record]) -> list[ColorRecordOut]:
+        return [
+            ColorRecordOut(
+                key=k, wins=r.wins, draws=r.draws, losses=r.losses, win_rate=rate(r.wins, r.played)
+            )
+            for k, r in d.items()
+        ]
+
     return PlayerStatsOut(
         player_id=pid,
         display_name=player.display_name,
@@ -191,5 +206,13 @@ async def get_player_stats(
                 for o, r in s.opponents.items()
             ),
             key=lambda x: (-(x.wins + x.draws + x.losses), x.display_name),
+        ),
+        with_colors=sorted(
+            color_records(s.with_combo),
+            key=lambda x: (-x.win_rate, -(x.wins + x.draws + x.losses), x.key),
+        ),
+        vs_colors=sorted(
+            color_records(s.vs_color),
+            key=lambda x: (-x.losses, x.win_rate, x.key),
         ),
     )
