@@ -25,11 +25,17 @@ export function pushSupported(): boolean {
   return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 }
 
-/** Der öffentliche Schlüssel kommt als base64url; der Browser will Bytes. */
-export function urlBase64ToBytes(value: string): Uint8Array {
+/**
+ * Der öffentliche Schlüssel kommt als base64url; der Browser will einen ArrayBuffer.
+ * Bewusst ArrayBuffer statt Uint8Array: Seit TypeScript 5.7 ist Uint8Array generisch, und ein
+ * Uint8Array<ArrayBufferLike> passt nicht mehr zu BufferSource (wie in passkeys.ts).
+ */
+export function urlBase64ToBuffer(value: string): ArrayBuffer {
   const padded = (value + '='.repeat((4 - (value.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');
   const raw = atob(padded);
-  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  return bytes.buffer;
 }
 
 async function registration(): Promise<ServiceWorkerRegistration | null> {
@@ -54,7 +60,7 @@ export async function enablePush(): Promise<NotificationSettings> {
   const reg = await navigator.serviceWorker.ready;
   const sub =
     (await reg.pushManager.getSubscription()) ??
-    (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToBytes(key) }));
+    (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToBuffer(key) }));
   return api<NotificationSettings>('/push/subscriptions', { method: 'POST', body: sub.toJSON() });
 }
 
