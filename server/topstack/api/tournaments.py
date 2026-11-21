@@ -47,7 +47,7 @@ from topstack.api.schemas import (
 from topstack.config import settings
 from topstack.db.models import AppUser, Match, Tournament, TournamentEntry
 from topstack.domain.tournament import Status, allowed_actions
-from topstack.services import rounds, tracker
+from topstack.services import notify, rounds, tracker
 from topstack.services import tournaments as svc
 
 router = APIRouter(tags=["Turniere"])
@@ -189,6 +189,10 @@ async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
     )
 
 
+def _me(ctx: svc.Context) -> uuid.UUID | None:
+    return ctx.my_player.id if ctx.my_player else None
+
+
 async def reload(db: Db, tid: uuid.UUID, user: AppUser) -> TournamentOut:
     """Nach jeder Änderung: speichern, Zuschauer per WebSocket benachrichtigen, Stand zurück."""
     await db.commit()
@@ -279,8 +283,12 @@ async def get_tournament(tid: uuid.UUID, user: CurrentUser, db: Db) -> Tournamen
 @router.post("/tournaments/{tid}/entries")
 async def invite(tid: uuid.UUID, body: InviteBody, user: CurrentUser, db: Db) -> TournamentOut:
     async with errors():
-        await svc.invite(db, await svc.load(db, tid, user, lock=True), body.player_ids)
-        return await reload(db, tid, user)
+        ctx = await svc.load(db, tid, user, lock=True)
+        await svc.invite(db, ctx, body.player_ids)
+        out = await reload(db, tid, user)
+        by = ctx.my_player.display_name if ctx.my_player else user.display_name
+        await notify.invited(db, ctx.tournament, body.player_ids, by)
+        return out
 
 
 @router.put("/tournaments/{tid}/entries/me")
@@ -403,15 +411,23 @@ async def start_round(
             await rounds.start_round_one(db, ctx, confirm=body.confirm)
         else:
             await rounds.next_round(db, ctx, confirm=body.confirm)
-        return await reload(db, tid, user)
+        out = await reload(db, tid, user)
+        if out.current_round is not None:
+            await notify.round_started(db, ctx.tournament, out.current_round, _me(ctx))
+        return out
 
 
 @router.post("/tournaments/{tid}/matches/{mid}/start")
 async def pull_forward(tid: uuid.UUID, mid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
     """Match aus einer späteren Runde vorziehen (UC-09)."""
     async with errors():
-        await rounds.pull_forward(db, await svc.load(db, tid, user, lock=True), mid)
-        return await reload(db, tid, user)
+        ctx = await svc.load(db, tid, user, lock=True)
+        await rounds.pull_forward(db, ctx, mid)
+        out = await reload(db, tid, user)
+        match = await db.get(Match, mid)
+        if match is not None:
+            await notify.match_pulled_forward(db, ctx.tournament, match, _me(ctx))
+        return out
 
 
 @router.put("/tournaments/{tid}/matches/{mid}/result")
@@ -420,16 +436,22 @@ async def report_result(
 ) -> TournamentOut:
     """Ergebnis eintragen; mit ``version`` korrigieren bis Turnierende."""
     async with errors():
-        await rounds.report_result(
+        ctx = await svc.load(db, tid, user, lock=True)
+        before = await db.get(Match, mid)
+        correction = before is not None and before.status == "finished"
+        match = await rounds.report_result(
             db,
-            await svc.load(db, tid, user, lock=True),
+            ctx,
             mid,
             games_a=body.games_a,
             games_b=body.games_b,
             games_drawn=body.games_drawn,
             version=body.version,
         )
-        return await reload(db, tid, user)
+        out = await reload(db, tid, user)
+        if correction:
+            await notify.result_corrected(db, ctx.tournament, match, _me(ctx))
+        return out
 
 
 @router.post("/tournaments/{tid}/pause")
@@ -458,16 +480,22 @@ async def tiebreak(tid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
 async def finish(tid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
     """Abschluss: Endplätze und Ranglistenpunkte festschreiben (UC-17)."""
     async with errors():
-        await rounds.finish(db, await svc.load(db, tid, user, lock=True))
-        return await reload(db, tid, user)
+        ctx = await svc.load(db, tid, user, lock=True)
+        await rounds.finish(db, ctx)
+        out = await reload(db, tid, user)
+        await notify.tournament_finished(db, ctx.tournament, _me(ctx))
+        return out
 
 
 @router.post("/tournaments/{tid}/cancel-request")
 async def request_cancel(tid: uuid.UUID, user: CurrentUser, db: Db) -> TournamentOut:
     """Abbruch per Abstimmung beantragen (Starter oder Admin, ab Runde 1)."""
     async with errors():
-        await rounds.request_cancel(db, await svc.load(db, tid, user, lock=True))
-        return await reload(db, tid, user)
+        ctx = await svc.load(db, tid, user, lock=True)
+        await rounds.request_cancel(db, ctx)
+        out = await reload(db, tid, user)
+        await notify.cancel_requested(db, ctx.tournament, _me(ctx))
+        return out
 
 
 @router.put("/tournaments/{tid}/cancel-request/vote")
