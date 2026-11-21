@@ -23,3 +23,7 @@ updates:
   - package-ecosystem: docker
     directory: /server
     schedule: { interval: monthly }
+    # Python bleibt bei 3.12 (ADR-0004); ein Wechsel ist eine eigene Entscheidung.
+    ignore:
+      - dependency-name: "python"
+        versions: [">=3.13"]
