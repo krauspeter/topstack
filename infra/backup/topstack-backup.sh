@@ -227,10 +227,14 @@ cmd_list() {
   local tier
   for tier in daily weekly monthly manual; do
     echo "== $tier (lokal)"
-    find "$BACKUP_DIR/$tier" -maxdepth 1 -name 'topstack-*.dump' -printf '%f  %k KB\n' 2>/dev/null | sort -r
+    if [ -d "$BACKUP_DIR/$tier" ]; then
+      find "$BACKUP_DIR/$tier" -maxdepth 1 -name 'topstack-*.dump' -printf '%f  %k KB\n' | sort -r
+    else
+      echo "(noch keine)"
+    fi
     if offsite && [ -n "${RCLONE_CONFIG_R2_ENDPOINT:-}" ]; then
       echo "== $tier (R2)"
-      rclone lsf "r2:$R2_BUCKET/$tier/" --include '*.dump.age' 2>/dev/null | sort -r
+      rclone lsf "r2:$R2_BUCKET/$tier/" --include '*.dump.age' 2>/dev/null | sort -r || echo "(nicht lesbar)"
     fi
   done
 }
