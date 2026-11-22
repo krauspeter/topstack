@@ -100,12 +100,12 @@ Grundsatz: Ein Backup gilt erst als vorhanden, wenn es sich wiederherstellen lie
 
 **Einrichten (Peter)**
 
-- [ ] Cloudflare R2 freigeschaltet, Bucket `topstack-backups` mit Speicherort EU, Lifecycle-Regel als Netz, API-Token nur mit „Object Read & Write“ auf diesen Bucket
-- [ ] `age`-Schlüsselpaar erzeugt; der **private** Schlüssel liegt nur im Passwort-Manager (plus Ausdruck), nie auf dem Heimserver
-- [ ] `.env` auf dem Heimserver ergänzt, erstes Backup von Hand, Wiederherstellungstest grün, Timer eingerichtet
-- [ ] Wiederherstellung einmal echt geprobt auf dem Windows-PC mit Docker Desktop (Entscheidung vom 21.11.2026, der Ryzen-PC ist vorerst nicht in Betrieb): Repo frisch von GitHub, Backup aus R2, Schlüssel aus dem Passwort-Manager, Stack ohne Cloudflare Tunnel unter `http://localhost`, Turniere und Rangliste geprüft, danach alles gelöscht. Klon, Backup und Schlüssel liegen dabei **nicht** im OneDrive-Ordner. Ausweichlösung: frischer, getrennter Klon auf dem Heimserver
+- [x] Cloudflare R2 freigeschaltet, Bucket `topstack-backups` mit Speicherort EU, Lifecycle-Regel als Netz, API-Token nur mit „Object Read & Write“ auf diesen Bucket
+- [x] `age`-Schlüsselpaar erzeugt; der **private** Schlüssel liegt nur im Passwort-Manager (plus Ausdruck), nie auf dem Heimserver
+- [x] `.env` auf dem Heimserver ergänzt, erstes Backup von Hand, Wiederherstellungstest grün, Timer eingerichtet und beide Dienste einmal von Hand gestartet (22.11.2026). Dabei fiel auf: Debians rclone 1.60 meldet bei R2 nach jedem Upload „501 Not Implemented“ (Nachfrage mit `?versionId`); seit PR #137 kommt rclone 1.76 aus dem offiziellen Image
+- [x] Wiederherstellung einmal echt geprobt auf dem Windows-PC mit Docker Desktop (Entscheidung vom 21.11.2026, der Ryzen-PC ist vorerst nicht in Betrieb): Repo frisch von GitHub, Backup aus R2, Schlüssel aus dem Passwort-Manager, Stack ohne Cloudflare Tunnel unter `http://localhost`, Turniere und Rangliste geprüft, danach alles gelöscht. Klon, Backup und Schlüssel liegen dabei **nicht** im OneDrive-Ordner. Ausweichlösung: frischer, getrennter Klon auf dem Heimserver. **Bestanden am 22.11.2026:** Zahlen gleich dem Manifest, Anmeldung per Magic-Link, Gruppe mit allen 8 Spielern (TC-94)
 
-**Fertig, wenn:** Ein nächtliches Backup liegt in R2, der Wiederherstellungstest läuft grün, und die Probe auf dem Windows-PC hat geklappt (Teil von G4).
+**Fertig, wenn:** Ein nächtliches Backup liegt in R2, der Wiederherstellungstest läuft grün, und die Probe auf dem Windows-PC hat geklappt (Teil von G4). **Erledigt am 22.11.2026.**
 
 ### AP-2 · Monitoring (ca. 3 h) · Branch `feat/p4-monitoring`
 

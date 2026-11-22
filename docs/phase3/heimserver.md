@@ -270,47 +270,70 @@ ops/restore.sh daily/topstack-<Zeitpunkt>-nightly.dump
 
 ## Ernstfall: auf einem anderen Rechner wiederherstellen
 
-Für den Fall, dass der Mini-PC weg ist, und als Probe für Gate G4 (TC-94). Gebraucht wird nur: das Repo von GitHub, das Backup aus R2 und der Schlüssel aus dem Passwort-Manager. Probe-Rechner ist der Windows-PC mit Docker Desktop (Entscheidung vom 21.11.2026). Alle Befehle **auf dem PC in Git Bash**.
+Für den Fall, dass der Mini-PC weg ist, und als Probe für Gate G4 (TC-94). Gebraucht wird nur: das Repo von GitHub, das Backup aus R2 und der Schlüssel aus dem Passwort-Manager. Probe-Rechner ist der Windows-PC mit Docker Desktop (Entscheidung vom 21.11.2026). So am 22.11.2026 erfolgreich durchgespielt. Alle Befehle **auf dem PC in Git Bash**.
 
 **Wichtig:** Alles liegt in `C:\topstack-probe`, **nicht** im OneDrive-Ordner. Backup und Schlüssel enthalten Spielerdaten bzw. öffnen sie und dürfen nicht in die Cloud synchronisiert werden.
 
-1. Docker Desktop installieren und starten.
-2. Repo frisch holen:
+**Vorbereiten**
+
+1. Docker Desktop installieren (Windows AMD64, mit WSL 2) und starten, bis „Engine running“ erscheint.
+2. In jeder neuen Git-Bash-Sitzung zuerst, sonst schreibt Git Bash Pfade wie `/backups/…` in Windows-Pfade um:
+   ```bash
+   export MSYS_NO_PATHCONV=1
+   ```
+3. Repo frisch holen:
    ```bash
    mkdir -p /c/topstack-probe/backups && cd /c/topstack-probe
    git clone https://github.com/krauspeter/topstack.git
    cd topstack/infra
    ```
-3. Im Browser: Cloudflare → R2 → `topstack-backups` → `daily` → die neueste `.dump.age` **und** die gleichnamige `.json` herunterladen und nach `C:\topstack-probe\backups` verschieben.
-4. Den Schlüssel aus dem Passwort-Manager (alle drei Zeilen) in eine neue Datei `C:\topstack-probe\backups\key.txt` kopieren.
-5. Minimale `.env` für die Probe, ohne Tunnel und ohne echte Geheimnisse:
+4. Im Browser: Cloudflare → R2 → `topstack-backups` → `daily` → die neueste `.dump.age` **und** die gleichnamige `.json` herunterladen und nach `C:\topstack-probe\backups` verschieben.
+5. Den Schlüssel aus dem Passwort-Manager in eine Datei schreiben, **nicht** mit Notepad:
+   ```bash
+   cat > /c/topstack-probe/backups/key.txt
+   ```
+   Einfügen, Enter, Strg+D. Prüfen: `grep -c AGE-SECRET-KEY /c/topstack-probe/backups/key.txt` ergibt `1`. Entscheidend ist die Zeile `AGE-SECRET-KEY-1…`; die beiden Kommentarzeilen mit `#` sind optional. Die R2-Zugangsdaten werden für die Probe nicht gebraucht.
+6. Minimale `.env` (ohne Tunnel, ohne echte Geheimnisse) und Passwortdatei für MQTT, das die API beim Start braucht:
    ```bash
    printf 'POSTGRES_PASSWORD=probe\nTOPSTACK_PUBLIC_ORIGIN=http://localhost\nCF_TUNNEL_TOKEN=unbenutzt\nBACKUP_DIR=C:/topstack-probe/backups\nBACKUP_OFFSITE=off\n' > .env
+   docker run --rm -v "$(pwd -W)":/work eclipse-mosquitto:2 mosquitto_passwd -c -b /work/mosquitto.passwd topstack probe
    ```
-6. Stack ohne Tunnel und ohne MQTT starten, dann die API wieder anhalten:
+
+**Wiederherstellen**
+
+7. Stack ohne Tunnel starten, dann die API anhalten:
    ```bash
-   docker compose --env-file .env up -d --wait caddy api db
+   docker compose --env-file .env up -d --wait caddy api db mqtt
    docker compose --env-file .env stop api
    ```
-7. Entschlüsseln und einspielen (`MSYS_NO_PATHCONV=1` verhindert, dass Git Bash die Pfade im Container umschreibt):
+8. Entschlüsseln und einspielen:
    ```bash
-   export MSYS_NO_PATHCONV=1
-   docker compose --env-file .env --profile ops run --rm -T --entrypoint age backup \
-     -d -i /backups/key.txt -o /backups/probe.dump /backups/<Dateiname>.dump.age
+   f=$(cd /c/topstack-probe/backups && ls *.dump.age | head -1)
+   docker compose --env-file .env --profile ops run --rm -T --entrypoint age backup -d -i /backups/key.txt -o /backups/probe.dump "/backups/$f"
    docker compose --env-file .env --profile ops run --rm -T backup restore /backups/probe.dump
    docker compose --env-file .env start api
    ```
-8. Prüfen: Die Zahlen müssen mit `counts` in der heruntergeladenen `.json` übereinstimmen.
+
+**Prüfen**
+
+9. Die Zahlen müssen mit `counts` in der `.json` übereinstimmen:
    ```bash
    docker compose --env-file .env exec -T db psql -U topstack -Atc \
-     "select 'tournament', count(*) from tournament union all select 'player', count(*) from player union all select 'game_event', count(*) from game_event"
+     "select 'app_user', count(*) from app_user union all select 'player', count(*) from player union all select 'tournament', count(*) from tournament union all select 'match', count(*) from match union all select 'game_event', count(*) from game_event"
+   grep counts /c/topstack-probe/backups/*.json
    ```
-   Dann im Browser `http://localhost` öffnen und per Magic-Link anmelden. Ohne Resend steht die Anmelde-Mail samt Link im Log: `docker compose --env-file .env logs api | grep -A5 "nicht verschickt"`. Das geht nur mit einer E-Mail-Adresse, die im Backup ein Konto hat. Turniere und Rangliste müssen wie auf `https://topstack.win` aussehen.
-9. Aufräumen:
-   ```bash
-   docker compose --env-file .env --profile ops down -v
-   cd /c && rm -rf /c/topstack-probe
-   ```
-   Danach prüfen, dass `C:\topstack-probe` wirklich weg ist, und den Papierkorb leeren, falls dort etwas gelandet ist.
+10. `http://localhost` öffnen und mit der eigenen E-Mail-Adresse anmelden. Es wird keine Mail verschickt; der Link steht im Log:
+    ```bash
+    docker compose --env-file .env logs api | grep -A6 "nicht verschickt"
+    ```
+    Den Link `http://localhost/anmelden?token=…` im selben Browser öffnen. Ein Passkey geht hier nicht, er ist an `topstack.win` gebunden. Profil, Gruppe, Turniere und Rangliste müssen wie auf `https://topstack.win` aussehen.
 
-**Ausweichlösung**, falls Docker Desktop nicht geht: dieselben Schritte auf dem Heimserver in einem frischen Klon unter `/tmp/topstack-probe`, mit eigenem Projektnamen (`docker compose -p topstack-probe …`) und ohne die bestehende `.env`. Port 80 ist dort belegt, deshalb in Schritt 6 nur `db` starten und Schritt 8 nur mit `psql` prüfen.
+**Aufräumen**
+
+11. Stack mit Daten löschen, dann den ganzen Probe-Ordner samt Schlüssel (`rm` in Git Bash umgeht den Papierkorb):
+    ```bash
+    docker compose --env-file .env --profile ops down -v
+    cd /c && rm -rf /c/topstack-probe && ls /c/topstack-probe 2>/dev/null || echo "Probe-Ordner gelöscht"
+    ```
+
+**Ausweichlösung**, falls Docker Desktop nicht geht: dieselben Schritte auf dem Heimserver in einem frischen Klon unter `/tmp/topstack-probe`, mit eigenem Projektnamen (`docker compose -p topstack-probe …`) und ohne die bestehende `.env`. Port 80 ist dort belegt, deshalb in Schritt 7 nur `db` starten und nur mit `psql` prüfen.
