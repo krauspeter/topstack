@@ -183,6 +183,30 @@ jobs:
           docker compose --env-file .env start db
           for i in $(seq 1 30); do curl -fsS http://localhost/api/v1/health >/dev/null && break; sleep 2; done
           curl -fsS http://localhost/api/v1/health | grep -q '"status":"ok"'
+      - name: Automatisches Deployment mit Rollback (AP-3)
+        env:
+          DEPLOY_SKIP_GIT: "1"
+          DEPLOY_SKIP_PULL: "1"
+          DEPLOY_STATE_DIR: /tmp/deploy-state
+          DEPLOY_HEALTH_TIMEOUT: "60"
+        run: |
+          api=ghcr.io/krauspeter/topstack-api:latest
+          good=$(docker image inspect -f '{{.Id}}' "$api")
+          running() { docker inspect -f '{{.Image}}' "$(docker compose --env-file .env ps -q api)"; }
+          echo "== 1. nichts Neues"
+          ops/deploy.sh | tee /tmp/d1
+          grep -q "Keine Änderung" /tmp/d1
+          echo "== 2. kaputtes API-Image: Rollback"
+          printf 'FROM busybox\nCMD ["sleep", "3600"]\n' | docker build -q -t "$api" -
+          if ops/deploy.sh; then echo "Deployment hätte scheitern müssen"; exit 1; fi
+          test "$(running)" = "$good"
+          curl -fsS http://localhost/api/v1/health | grep -q '"status":"ok"'
+          ls /tmp/topstack-backups/manual | grep -q pre-deploy
+          echo "== 3. derselbe kaputte Stand wird nicht noch einmal versucht"
+          printf 'FROM busybox\nCMD ["sleep", "3600"]\n' | docker build -q -t "$api" -
+          ops/deploy.sh | tee /tmp/d3
+          grep -q "übersprungen" /tmp/d3
+          test "$(running)" = "$good"
       - name: Logs bei Fehler
         if: failure()
         run: docker compose --env-file .env logs --no-color
@@ -238,7 +262,8 @@ jobs:
             BUILD_PR=${{ steps.build.outputs.pr }}
             BUILD_SHA=${{ github.sha }}
             BUILD_TIME=${{ steps.build.outputs.time }}
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest,ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
+          # main = jeder Merge (Beta-Kanal); latest und Versionsnummern setzt release.yml beim Tag v*
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:main,ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}

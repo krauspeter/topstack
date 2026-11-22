@@ -142,17 +142,68 @@ Prüfen, dass von außen nichts offen ist (vom Handy im Mobilfunknetz, nicht im 
 
 ## 7. Aktualisieren
 
-Nach jedem Merge in `main` baut die CI ein neues API-Image in ghcr.io.
+Seit Phase 4 (AP-3, [ADR-0016](../adr/0016-betrieb-backup-monitoring-deployment.md)) aktualisiert sich der Heimserver selbst. Der Timer `topstack-deploy.timer` ruft alle 5 Minuten `infra/ops/deploy.sh` auf:
+
+1. Repo und Images zum Kanal aus `TOPSTACK_VERSION` holen: `main` (jeder Merge, Beta), `latest` (letzte Release-Version, ab v1.0) oder eine feste Version wie `1.0.0`.
+2. Hat sich nichts geändert, ist das Skript fertig.
+3. Sonst: Backup (`manual/…-pre-deploy`), neuen Stand starten, bis zu 2 Minuten auf `/api/v1/health` warten.
+4. Antwortet die API: Push „TopStack: Update #… eingespielt“.
+5. Antwortet sie nicht: zurück auf den alten Stand, Push „Update fehlgeschlagen, zurückgerollt“. Genau dieser Stand wird danach nicht noch einmal versucht, erst der nächste.
+
+Nach einem Merge steht das Update also nach etwa 10 bis 15 Minuten auf dem Startbildschirm: ein paar Minuten CI, dann höchstens 5 Minuten bis zum nächsten Lauf.
+
+Automatisch kommen nur die eigenen Images (`topstack-api`, `topstack-web`, `topstack-backup`). Fremde Images wie PostgreSQL, Mosquitto, cloudflared und Uptime Kuma ab und zu von Hand aktualisieren, am besten mit gesetzter Deploy-Sperre: `docker compose --env-file .env --profile ops pull && docker compose --env-file .env up -d`.
+
+### Einrichten (einmalig, auf dem Heimserver)
 
 ```bash
-cd ~/topstack
-git pull
-cd infra
-docker compose --env-file .env pull
-docker compose --env-file .env up -d
+cd ~/topstack && git pull && cd infra
+nano .env
 ```
 
-Die API spielt fehlende Datenbank-Migrationen beim Start selbst ein (ADR-0014). Automatisches Ausrollen aus der CI kommt in Phase 4 (AP-3).
+Ändern bzw. ergänzen (Themenname von ntfy aus dem Passwort-Manager):
+
+```
+TOPSTACK_VERSION=main
+NTFY_URL=https://ntfy.sh/<Themenname>
+```
+
+Dann einmal von Hand laufen lassen und die Timer neu einrichten:
+
+```bash
+ops/deploy.sh
+ops/install-timers.sh
+```
+
+`deploy.sh` meldet beim ersten Lauf einen neuen Stand, weil die Images ab jetzt aus dem Kanal `main` kommen, und schickt danach den Push „Update #… eingespielt“. `install-timers.sh` zeigt anschließend drei Timer, darunter `topstack-deploy.timer`.
+
+### Deploy-Sperre am Spieleabend
+
+Damit kein Update mitten im Turnier kommt:
+
+```bash
+touch ~/topstack-state/deploy.lock     # Sperre setzen
+rm ~/topstack-state/deploy.lock        # Sperre aufheben
+```
+
+### Von Hand nachsehen
+
+```bash
+journalctl -u topstack-deploy.service -n 30 --no-pager -q   # was der Timer zuletzt getan hat
+~/topstack/infra/ops/deploy.sh                               # sofort nach einem Update sehen
+```
+
+### Wenn auch der Rollback scheitert
+
+Dann kommt der Push „Update und Rollback fehlgeschlagen“. Meist hat der neue Stand die Datenbank migriert, und der alte Stand passt nicht mehr dazu. Erst die Sperre setzen, dann das Backup von vor dem Update zurückspielen:
+
+```bash
+touch ~/topstack-state/deploy.lock
+cd ~/topstack/infra && ops/backup.sh list
+ops/restore.sh manual/topstack-<Zeitpunkt>-pre-deploy.dump
+```
+
+Danach den Fehler im Repo beheben und die Sperre wieder aufheben.
 
 ## 8. Wenn etwas nicht geht
 
@@ -171,9 +222,10 @@ Die API spielt fehlende Datenbank-Migrationen beim Start selbst ein (ADR-0014). 
 
 ## Vor dem Spieleabend: Datenbank sichern
 
-Ab Phase 4 sichert der Heimserver jede Nacht automatisch (siehe nächster Abschnitt). Vor einem echten Turnier trotzdem einmal von Hand sichern:
+Ab Phase 4 sichert der Heimserver jede Nacht automatisch (siehe nächster Abschnitt). Vor einem echten Turnier trotzdem die Deploy-Sperre setzen (Abschnitt 7) und einmal von Hand sichern:
 
 ```bash
+touch ~/topstack-state/deploy.lock
 ~/topstack/infra/ops/backup.sh backup manual
 ```
 

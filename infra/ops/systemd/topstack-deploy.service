@@ -1,0 +1,10 @@
+[Unit]
+Description=TopStack: neue Version holen und einspielen (ADR-0016)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=@USER@
+ExecStart=@REPO@/infra/ops/deploy.sh
