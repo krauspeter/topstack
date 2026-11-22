@@ -111,15 +111,21 @@ Grundsatz: Ein Backup gilt erst als vorhanden, wenn es sich wiederherstellen lie
 
 Ein Monitoring auf demselben Rechner kann nicht melden, dass dieser Rechner aus ist. Deshalb zwei Ebenen.
 
-- [ ] `/api/v1/health` prüft zusätzlich die Datenbank (`SELECT 1`, Antwort 503, wenn sie fehlt) und meldet die Alembic-Version
-- [ ] Uptime Kuma als Dienst `uptime-kuma` in `infra/docker-compose.yml`, nur auf `127.0.0.1:3001`; Zugriff per SSH-Tunnel vom PC
-- [ ] Überwachung in Uptime Kuma: `https://topstack.win` (App), `https://topstack.win/api/v1/health` (API und Datenbank, Schlüsselwort `"status":"ok"`), MQTT-Port im Heimnetz, Ablauf des TLS-Zertifikats
-- [ ] Wächter von außen: kostenloses Konto bei healthchecks.io. Uptime Kuma meldet sich alle 5 Minuten dort; bleibt das Signal 15 Minuten aus (Strom, Netz, Mini-PC), schlägt healthchecks.io Alarm
-- [ ] Backup und Wiederherstellungstest melden Erfolg und Fehler an je einen eigenen Check bei healthchecks.io; fehlt das nächtliche Backup, kommt bis 06:00 ein Alarm
-- [ ] Alarm als Push über ntfy (E3): App auf dem Handy, Thema mit zufälligem Namen; die Nachrichten enthalten keine Spielerdaten
-- [ ] Probealarm: Stack stoppen, Netzwerkkabel ziehen, Backup absichtlich scheitern lassen
+**Umsetzung im Repo**
 
-**Fertig, wenn:** Alle drei Probealarme kommen innerhalb von 15 Minuten als Push an.
+- [x] `/api/v1/health` prüft zusätzlich die Datenbank (Alembic-Version lesen, höchstens 3 s) und antwortet mit `503` und `"status":"error"`, wenn sie fehlt oder hängt; die Build-Angaben bleiben sichtbar. Unit-Tests für erreichbar, Fehler und Zeitüberschreitung; im Job `smoke` wird die Datenbank gestoppt und die `503` geprüft
+- [x] Uptime Kuma 2 (`louislam/uptime-kuma:2-slim`) als Dienst `uptime-kuma` in `infra/docker-compose.yml`, nur auf `127.0.0.1:3001`; Zugriff per SSH-Tunnel vom PC
+- [x] Backup und Wiederherstellungstest melden Erfolg und Fehler an healthchecks.io (seit AP-1 über `BACKUP_PING_URL` und `RESTORE_TEST_PING_URL`)
+- [x] Anleitung in `docs/phase3/heimserver.md`, Abschnitt „Monitoring einrichten“: ntfy, healthchecks.io, Uptime Kuma, Probealarme
+
+**Einrichten (Peter)**
+
+- [ ] ntfy auf dem Handy, Thema mit zufälligem Namen; die Nachrichten enthalten keine Spielerdaten (E3)
+- [ ] healthchecks.io: Checks `TopStack Heimserver` (5 min, 10 min Grace), `TopStack Backup` (03:30, 2 h Grace, Alarm bis spätestens 05:30), `TopStack Wiederherstellungstest` (am 1. um 04:30), alle mit ntfy verbunden; Ping-URLs in der `.env`
+- [ ] Uptime Kuma: Monitore `App` (mit Zertifikatsablauf), `API und Datenbank` (Schlüsselwort `"status":"ok"`), `MQTT`, `Wächter healthchecks.io` (meldet sich alle 5 Minuten nach außen); Benachrichtigung über ntfy
+- [ ] Probealarme: Datenbank stoppen, Stack stoppen, Netzwerkkabel ziehen, Backup ausbleiben lassen
+
+**Fertig, wenn:** Alle Probealarme kommen innerhalb von 15 Minuten als Push an.
 
 ### AP-3 · Automatisches Deployment (ca. 4 h) · Branch `feat/p4-deploy`
 
@@ -215,8 +221,9 @@ Kleine Wünsche aus der Beta, die nicht bis v1.1 warten müssen:
 
 Am Ende von Phase 4, vor dem Release-Abend (Entscheidung vom 21.11.2026):
 
-- [ ] Superuser-Werkzeug für den Heimserver-Betreiber als Skript per SSH (`python -m topstack.scripts.admin`), keine neue Rolle in der App: Spieler ohne Konto auflisten und löschen; steht der Spieler in einem Turnier, wird das Löschen verweigert und die Turniere werden genannt. Turniere löschen (für Testturniere). Ohne `--apply` nur Anzeige, mit `--apply` vorher ein Backup. Vor dem Release damit Testturniere und doppelte Testspieler der „Draft-Runde“ entfernen
-- [ ] Offen, bewusst nicht jetzt: Knopf „Persönlicher Link“ bei Spielern ohne Konto (Server kann es schon, ADR-0015) und Auswahl der Gruppe beim Turnier-Start (Voraussetzung für eine eigene Testgruppe, weil der Turnier-Bildschirm heute immer die erste Gruppe nimmt)
+- [ ] Superuser-Werkzeug für den Heimserver-Betreiber als Skript per SSH (`python -m topstack.scripts.admin`), keine neue Rolle in der App: Spieler ohne Konto auflisten und löschen; steht der Spieler in einem Turnier, wird das Löschen verweigert und die Turniere werden genannt. Turniere löschen (für Testturniere). Ohne `--apply` nur Anzeige, mit `--apply` vorher ein Backup. Vor dem Release damit Testturniere und doppelte Testspieler der „Draft-Runde“ entfernen. Andreas bleibt: echter Mitspieler, bekommt später seinen persönlichen Link
+- [ ] Persönliche Einladungslinks über dasselbe Skript (`invite-link <Spieler>`), weil AP-8 sie für alle Spieler ohne Konto braucht und der Knopf in der App zurückgestellt ist (Entscheidung vom 22.11.2026)
+- [ ] Offen, bewusst nicht jetzt: Knopf „Persönlicher Link“ in der App (ersetzt durch das Skript) und Auswahl der Gruppe beim Turnier-Start (Voraussetzung für eine eigene Testgruppe, weil der Turnier-Bildschirm heute immer die erste Gruppe nimmt)
 
 ---
 
@@ -230,7 +237,7 @@ Am Ende von Phase 4, vor dem Release-Abend (Entscheidung vom 21.11.2026):
 | TC-93 | Wiederherstellungstest | Wegwerf-Datenbank aus dem neuesten Backup, Zahlen stimmen mit dem Manifest, R2-Kopie unverändert, Erfolg gemeldet | AP-1 | hoch |
 | TC-94 | Wiederherstellung auf dem Windows-PC | Nur mit Repo, R2 und Schlüssel: App läuft unter `http://localhost` mit allen Turnieren und der Rangliste | AP-1 | hoch |
 | TC-95 | Backup ohne privaten Schlüssel | Datei in R2 lässt sich ohne Schlüssel aus dem Passwort-Manager nicht öffnen | AP-1 | mittel |
-| TC-100 | Health mit Datenbank | Datenbank gestoppt → `/api/v1/health` antwortet 503 | AP-2 | hoch |
+| TC-100 | Health mit Datenbank | Datenbank gestoppt → `/api/v1/health` antwortet 503, Uptime Kuma meldet „API und Datenbank“ down | AP-2 | hoch |
 | TC-101 | Stack gestoppt | Push über ntfy innerhalb von 5 Minuten | AP-2 | hoch |
 | TC-102 | Mini-PC vom Netz | Push von healthchecks.io innerhalb von 15 Minuten | AP-2 | hoch |
 | TC-103 | Backup fehlt | Push bis 06:00 | AP-2 | hoch |

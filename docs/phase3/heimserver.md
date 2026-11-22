@@ -268,6 +268,98 @@ ops/backup.sh list
 ops/restore.sh daily/topstack-<Zeitpunkt>-nightly.dump
 ```
 
+## Monitoring einrichten (Phase 4, AP-2)
+
+Hintergrund: [ADR-0016](../adr/0016-betrieb-backup-monitoring-deployment.md). Zwei Ebenen, weil ein Monitoring auf dem Mini-PC nicht melden kann, dass der Mini-PC selbst aus ist:
+
+```
+Uptime Kuma (Heimserver) ── prüft ──▶ App, API mit Datenbank, MQTT, Zertifikat
+        │ meldet sich alle 5 min
+        ▼
+healthchecks.io (außen) ◀── Backup und Wiederherstellungstest melden sich auch
+        │ bleibt ein Signal aus
+        ▼
+ntfy ──▶ Push aufs Handy        (Uptime Kuma schickt seine Alarme ebenfalls über ntfy)
+```
+
+Alarme enthalten nur Namen von Diensten, keine Spielerdaten.
+
+### 1. ntfy aufs Handy (Handy und Heimserver)
+
+1. Die App **ntfy** aus dem App Store bzw. Play Store installieren.
+2. Auf dem Heimserver einen zufälligen Themennamen erzeugen. Wer den Namen kennt, kann mitlesen, deshalb lang und zufällig:
+   ```bash
+   echo "topstack-$(openssl rand -hex 8)"
+   ```
+3. In der App **+** → **Subscribe to topic** → den Namen eintragen, Server `ntfy.sh`. Den Namen in den Passwort-Manager legen.
+4. Test vom Heimserver:
+   ```bash
+   curl -d "Test vom Heimserver" ntfy.sh/<Themenname>
+   ```
+   Die Nachricht muss nach wenigen Sekunden auf dem Handy erscheinen.
+
+### 2. healthchecks.io (auf dem PC im Browser)
+
+1. Kostenloses Konto bei `healthchecks.io` anlegen.
+2. **Integrations** → **ntfy** → Server `https://ntfy.sh`, Thema wie oben → speichern.
+3. Drei Checks anlegen (**Add Check**), jeweils mit der ntfy-Integration verbunden:
+
+   | Name | Zeitplan | Grace Time | meldet sich |
+   | --- | --- | --- | --- |
+   | `TopStack Heimserver` | Period **5 Minuten** | **10 Minuten** | Uptime Kuma, siehe Schritt 4 |
+   | `TopStack Backup` | Cron `30 3 * * *`, Zeitzone `Europe/Berlin` | **2 Stunden** | Backup jede Nacht |
+   | `TopStack Wiederherstellungstest` | Cron `30 4 1 * *`, Zeitzone `Europe/Berlin` | **2 Stunden** | Test am 1. des Monats |
+
+4. Von `TopStack Backup` und `TopStack Wiederherstellungstest` die **Ping URL** (`https://hc-ping.com/…`) kopieren und auf dem Heimserver in die `.env`:
+   ```
+   BACKUP_PING_URL=https://hc-ping.com/…
+   RESTORE_TEST_PING_URL=https://hc-ping.com/…
+   ```
+   Die Ping-URL von `TopStack Heimserver` kommt in Schritt 4 in Uptime Kuma.
+5. Test: `cd ~/topstack/infra && ops/backup.sh backup manual`. Danach steht der Check `TopStack Backup` auf grün („up“).
+
+### 3. Uptime Kuma starten (auf dem Heimserver)
+
+```bash
+cd ~/topstack && git pull && cd infra
+docker compose --env-file .env pull && docker compose --env-file .env up -d
+docker compose ps uptime-kuma
+```
+
+Die Oberfläche ist nur auf dem Heimserver selbst erreichbar (`127.0.0.1:3001`), nicht über den Tunnel. Zugriff vom PC über einen SSH-Tunnel, **auf dem PC in Git Bash**:
+
+```bash
+ssh -L 3001:localhost:3001 peter@heimserver
+```
+
+Solange diese Verbindung offen ist, im Browser `http://localhost:3001` öffnen. Beim ersten Mal ein Admin-Konto anlegen (Passwort in den Passwort-Manager). Bei der Frage nach der Datenbank **SQLite** wählen.
+
+### 4. Uptime Kuma einrichten (im Browser über den Tunnel)
+
+1. **Einstellungen** → **Benachrichtigungen** → **Benachrichtigung einrichten**: Typ **ntfy**, Server `https://ntfy.sh`, Thema wie oben, **Standardmäßig aktiviert** und **Auf alle bestehenden Monitore anwenden** anhaken, **Test** drücken.
+2. Vier Monitore anlegen (**Neuen Monitor hinzufügen**):
+
+   | Anzeigename | Typ | Ziel | Intervall | Besonderheit |
+   | --- | --- | --- | --- | --- |
+   | `App` | HTTP(s) | `https://topstack.win` | 60 s | „Zertifikatsablauf-Benachrichtigung“ anhaken |
+   | `API und Datenbank` | HTTP(s) – Schlüsselwort | `https://topstack.win/api/v1/health`, Schlüsselwort `"status":"ok"` | 60 s | antwortet 503, wenn die Datenbank fehlt |
+   | `MQTT` | TCP-Port | Host `mqtt`, Port `1883` | 60 s | nur im Docker-Netz |
+   | `Wächter healthchecks.io` | HTTP(s) | Ping-URL von `TopStack Heimserver` | 300 s | meldet „ich lebe“ nach außen |
+
+   Bei allen: **Wiederholungen** 2, damit ein kurzer Aussetzer keinen Alarm auslöst.
+3. Nach ein paar Minuten sind alle vier grün, und der Check `TopStack Heimserver` bei healthchecks.io steht auf „up“.
+
+### 5. Probealarme (TC-100 bis TC-103)
+
+Am besten an einem Abend ohne Spiel, nacheinander:
+
+| Test | Auf dem Heimserver | Erwartet auf dem Handy |
+| --- | --- | --- |
+| Datenbank weg (TC-100) | `docker compose --env-file .env stop db`, nach 5 Minuten `start db` | Uptime Kuma: „API und Datenbank“ down, danach wieder up |
+| Stack weg (TC-101) | `docker compose --env-file .env stop caddy`, nach 5 Minuten `start caddy` | Uptime Kuma: „App“ und „API und Datenbank“ down, danach up |
+| Mini-PC weg (TC-102) | Netzwerkkabel ziehen, nach 20 Minuten wieder einstecken | healthchecks.io: „TopStack Heimserver is DOWN“, danach „UP“ |
+| Backup scheitert (TC-103) | Fehler melden, wie es das Skript bei einem Fehlschlag tut: `curl -fsS "$(sed -n 's/^BACKUP_PING_URL=//p' .env)/fail"`, danach `ops/backup.sh backup manual` | healthchecks.io: „TopStack Backup is DOWN“, nach dem Backup wieder „UP“ |
+
 ## Ernstfall: auf einem anderen Rechner wiederherstellen
 
 Für den Fall, dass der Mini-PC weg ist, und als Probe für Gate G4 (TC-94). Gebraucht wird nur: das Repo von GitHub, das Backup aus R2 und der Schlüssel aus dem Passwort-Manager. Probe-Rechner ist der Windows-PC mit Docker Desktop (Entscheidung vom 21.11.2026). So am 22.11.2026 erfolgreich durchgespielt. Alle Befehle **auf dem PC in Git Bash**.

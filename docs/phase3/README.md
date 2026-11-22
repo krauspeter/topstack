@@ -119,7 +119,7 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 - [x] Port 80 nur noch auf `127.0.0.1` gebunden, von außen geht alles über den Tunnel.
 - [x] CI: Job `smoke` startet den Stack ohne Tunnel und prüft App, API und Migration; Job `images` baut `topstack-api` und `topstack-web` in jedem PR und pusht sie auf `main` nach ghcr.io.
 - [x] Anleitung [heimserver.md](heimserver.md) am 19.11.2026 komplett durchgespielt (AP-0).
-- [ ] Auf dem Heimserver aktualisieren, Gruppe mit `seed_group` anlegen, App auf Android installieren.
+- [x] Auf dem Heimserver aktualisieren, Gruppe mit `seed_group` anlegen, App auf Android installieren.
 
 **Fertig, wenn:** `https://topstack.win` zeigt die App, `https://topstack.win/api/v1/health` antwortet, die App ist auf einem Android-Handy installierbar.
 
@@ -131,7 +131,7 @@ Früh, damit jeder weitere Schritt unter der echten Adresse auf dem Handy testba
 - [x] Einladungslink in die Gruppe erzeugen und annehmen. (PR #58)
 - [x] App: Anmeldeseite (`/anmelden`), Link einlösen mit Angebot „Passkey anlegen“, Einladungsseite (`/einladung/<token>`), Profil (`/profil`) mit Anzeigename, Lieblingsfarben, Passkey, Einladungslink für Admins und Abmelden.
 - [x] Auf dem Heimserver `RESEND_API_KEY` in `infra/.env` eintragen, aktualisieren, selbst per Magic-Link und Passkey anmelden (19.11.2026).
-- [ ] Ein Freund tritt über einen Einladungslink bei → verschoben auf den Rollout von v1.0 in Phase 4 (Entscheidung vom 20.11.2026).
+- [x] Ein Freund tritt über einen Einladungslink bei → verschoben auf den Rollout von v1.0 in Phase 4 (Entscheidung vom 20.11.2026); trotzdem schon passiert: drei Freunde sind über den allgemeinen Gruppenlink beigetreten (Stand 21.11.2026).
 
 **Fertig, wenn:** Ein Freund kann über einen Einladungslink Mitglied werden und bleibt angemeldet; ohne Anmeldung liefert jede geschützte Route `401`. **Erledigt am 20.11.2026** mit eigenem Konto; der Beitritt über eine Einladung ist durch Tests abgedeckt (TC-04, Playwright), der Test mit einem echten Freund folgt in Phase 4.
 
