@@ -27,3 +27,10 @@ updates:
     ignore:
       - dependency-name: "python"
         versions: [">=3.13"]
+  - package-ecosystem: docker
+    directory: /infra/backup
+    schedule: { interval: monthly }
+    # postgres bleibt bei 16 wie die Datenbank; rclone darf mitwachsen.
+    ignore:
+      - dependency-name: "postgres"
+        update-types: ["version-update:semver-major"]
