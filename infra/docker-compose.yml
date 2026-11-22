@@ -60,7 +60,38 @@ services:
       TUNNEL_TOKEN: ${CF_TUNNEL_TOKEN:?CF_TUNNEL_TOKEN fehlt in .env}
     depends_on: [caddy]
 
-  # Ab Phase 4: Backup (pg_dump), Uptime Kuma
+  # Backups (Phase 4, AP-1, ADR-0016). Läuft nur auf Abruf, nachts per systemd-Timer:
+  #   docker compose --env-file .env --profile ops run --rm backup backup nightly
+  backup:
+    image: ghcr.io/${GITHUB_OWNER:-krauspeter}/topstack-backup:${TOPSTACK_VERSION:-latest}
+    build: ./backup
+    profiles: [ops]
+    environment:
+      PGHOST: db
+      PGUSER: topstack
+      PGDATABASE: topstack
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_UID: ${BACKUP_UID:-1000}
+      BACKUP_GID: ${BACKUP_GID:-1000}
+      BACKUP_OFFSITE: ${BACKUP_OFFSITE:-on}
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
+      BACKUP_PING_URL: ${BACKUP_PING_URL:-}
+      RESTORE_TEST_PING_URL: ${RESTORE_TEST_PING_URL:-}
+      R2_BUCKET: ${R2_BUCKET:-topstack-backups}
+      RCLONE_CONFIG_R2_TYPE: s3
+      RCLONE_CONFIG_R2_PROVIDER: Cloudflare
+      RCLONE_CONFIG_R2_ENDPOINT: ${R2_ENDPOINT:-}
+      RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      RCLONE_CONFIG_R2_NO_CHECK_BUCKET: "true"
+    volumes:
+      # außerhalb des Repos, enthält E-Mail-Adressen der Mitspieler
+      # (ohne BACKUP_DIR verweigert infra/ops/backup.sh den Start; der Platzhalter hält nur `docker compose up` lauffähig)
+      - ${BACKUP_DIR:-/tmp/topstack-backup-dir-fehlt}:/backups
+    depends_on:
+      db: { condition: service_healthy }
+
+  # Ab Phase 4, AP-2: Uptime Kuma
 
 volumes:
   caddy-data:

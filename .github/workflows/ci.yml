@@ -161,6 +161,18 @@ jobs:
           curl -fsS http://localhost/manifest.webmanifest | grep -q 'TopStack'
       - name: Migrationen beim Start eingespielt
         run: docker compose --env-file .env exec -T api alembic current | grep -q '(head)'
+      - name: Skripte für den Betrieb prüfen (shellcheck)
+        run: shellcheck --severity=warning backup/topstack-backup.sh ops/*.sh
+      - name: Backup und Wiederherstellungstest (AP-1, ohne R2)
+        run: |
+          mkdir -p /tmp/topstack-backups
+          printf 'BACKUP_DIR=/tmp/topstack-backups\nBACKUP_OFFSITE=off\nBACKUP_UID=%s\nBACKUP_GID=%s\n' "$(id -u)" "$(id -g)" >> .env
+          docker compose --env-file .env --profile ops build backup
+          ops/backup.sh backup nightly
+          ops/backup.sh backup manual
+          ops/backup.sh restore-test
+          ops/backup.sh list
+          test "$(find /tmp/topstack-backups/daily -name '*.dump' | wc -l)" = 1
       - name: Logs bei Fehler
         if: failure()
         run: docker compose --env-file .env logs --no-color
@@ -181,6 +193,7 @@ jobs:
         include:
           - { image: topstack-api, context: server }
           - { image: topstack-web, context: app }
+          - { image: topstack-backup, context: infra/backup }
     env:
       PUSH: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
     steps:

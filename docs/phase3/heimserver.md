@@ -1,6 +1,6 @@
 # Heimserver einrichten
 
-Stand: 18.11.2026 · gehört zu [Phase 3](README.md), Arbeitspaket AP-2 · Hintergrund: [ADR-0007](../adr/0007-betrieb-minipc-docker.md)
+Stand: 22.11.2026 · gehört zu [Phase 3](README.md), Arbeitspaket AP-2; Backups aus [Phase 4](../phase4/README.md), AP-1 · Hintergrund: [ADR-0007](../adr/0007-betrieb-minipc-docker.md)
 
 Ziel: TopStack läuft auf dem Mini-PC und ist unter `https://topstack.win` erreichbar, ohne dass am Router ein Port geöffnet wird.
 
@@ -152,7 +152,7 @@ docker compose --env-file .env pull
 docker compose --env-file .env up -d
 ```
 
-Die API spielt fehlende Datenbank-Migrationen beim Start selbst ein (ADR-0014). Automatisches Ausrollen aus der CI kommt in Phase 4.
+Die API spielt fehlende Datenbank-Migrationen beim Start selbst ein (ADR-0014). Automatisches Ausrollen aus der CI kommt in Phase 4 (AP-3).
 
 ## 8. Wenn etwas nicht geht
 
@@ -171,26 +171,146 @@ Die API spielt fehlende Datenbank-Migrationen beim Start selbst ein (ADR-0014). 
 
 ## Vor dem Spieleabend: Datenbank sichern
 
-Automatische Backups kommen erst in Phase 4. Bis dahin vor jedem echten Turnier einmal von Hand sichern.
-
-**Auf dem Heimserver (SSH):**
+Ab Phase 4 sichert der Heimserver jede Nacht automatisch (siehe nächster Abschnitt). Vor einem echten Turnier trotzdem einmal von Hand sichern:
 
 ```bash
-mkdir -p ~/topstack-backups
-cd ~/topstack/infra
-docker compose exec -T db pg_dump -U topstack -Fc topstack > ~/topstack-backups/topstack-$(date +%F-%H%M).dump
-ls -lh ~/topstack-backups
+~/topstack/infra/ops/backup.sh backup manual
 ```
 
-Die Datei muss größer als 0 Byte sein. Sie liegt bewusst **außerhalb** von `~/topstack`, damit sie nie ins Repository gelangt; sie enthält E-Mail-Adressen der Mitspieler und gehört nicht in Chats oder Issues.
+Die Datei landet unter `BACKUP_DIR/manual/` und, sobald R2 eingerichtet ist, verschlüsselt in R2. Sie liegt bewusst **außerhalb** von `~/topstack`, damit sie nie ins Repository gelangt; sie enthält E-Mail-Adressen der Mitspieler und gehört nicht in Chats oder Issues.
 
-**Nur im Notfall zurückspielen** (überschreibt den aktuellen Stand):
+## Backups einrichten (Phase 4, AP-1)
+
+Hintergrund: [ADR-0016](../adr/0016-betrieb-backup-monitoring-deployment.md). Jede Nacht um 03:30 ein `pg_dump`, lokal unter `BACKUP_DIR` und verschlüsselt in Cloudflare R2. Aufbewahrt werden 7 tägliche, 4 wöchentliche und 6 monatliche Backups, dazu 10 von Hand oder vor Deployments. Am 1. jedes Monats spielt ein Test das neueste Backup in eine Wegwerf-Datenbank ein und vergleicht es mit dem Manifest.
+
+### 1. Cloudflare R2 (auf dem PC im Browser)
+
+1. Cloudflare-Dashboard → **R2 Object Storage** → freischalten. Cloudflare verlangt eine Zahlungsmethode, 10 GB im Monat bleiben kostenlos.
+2. **Create bucket**: Name `topstack-backups`, bei **Location** „Specify jurisdiction“ → **European Union (EU)**. Die Daten bleiben damit in der EU.
+3. Im Bucket → **Settings** → **Object lifecycle rules** → **Add rule**: alle Objekte nach **200 Tagen** löschen. Das Skript räumt selbst auf; die Regel ist nur das Netz, falls es das einmal nicht tut.
+4. R2 → **Manage API tokens** → **Create Account API token**: Name `topstack-heimserver`, Berechtigung **Object Read & Write**, **Apply to specific buckets only** → `topstack-backups`.
+5. Angezeigt werden **Access Key ID**, **Secret Access Key** und die Endpoints. Alle drei in den Passwort-Manager. Gebraucht wird der Endpoint für die EU: `https://<Account-ID>.eu.r2.cloudflarestorage.com`. Den Secret Access Key zeigt Cloudflare nur einmal.
+
+### 2. Schlüssel für die Verschlüsselung erzeugen (auf dem Heimserver)
+
+Das Backup-Image muss einmal geholt werden. Ist es das erste Mal, ist das Paket auf GitHub noch privat und `pull` meldet „denied“: GitHub → Profil → **Packages** → `topstack-backup` → **Package settings** → **Change visibility** → **Public**.
 
 ```bash
 cd ~/topstack/infra
-docker compose stop api
-docker compose exec -T db pg_restore -U topstack -d topstack --clean --if-exists < ~/topstack-backups/<DATEI>.dump
-docker compose start api
+docker compose --env-file .env --profile ops pull backup
+docker compose --env-file .env --profile ops run --rm -T --no-deps --entrypoint age-keygen backup
 ```
 
-Noch nicht dabei und für **Phase 4** geplant: nächtliche Backups mit Wiederherstellungstest, Monitoring mit Uptime Kuma, automatisches Deployment ([Plan](../phase4/README.md), [ADR-0016](../adr/0016-betrieb-backup-monitoring-deployment.md)).
+Die Ausgabe hat drei Zeilen: `# created: …`, `# public key: age1…` und `AGE-SECRET-KEY-1…`.
+
+- **Alle drei Zeilen** als eine Notiz in den Passwort-Manager, Titel „TopStack Backup-Schlüssel“. Zusätzlich ausdrucken und sicher aufbewahren: Ohne diesen Schlüssel sind die Backups in R2 wertlos.
+- Der Schlüssel wird **nirgends** auf dem Server gespeichert. Danach das Terminal leeren: `clear`.
+- Nur der öffentliche Schlüssel (`age1…`) kommt in die `.env`.
+
+### 3. `.env` ergänzen (auf dem Heimserver)
+
+```bash
+cd ~/topstack/infra
+id -u; id -g          # meist 1000 und 1000
+nano .env
+```
+
+Unten anfügen bzw. ausfüllen (Vorlage in `.env.example`):
+
+```
+BACKUP_DIR=/home/peter/topstack-backups
+BACKUP_UID=1000
+BACKUP_GID=1000
+BACKUP_OFFSITE=on
+BACKUP_AGE_RECIPIENT=age1…
+R2_BUCKET=topstack-backups
+R2_ENDPOINT=https://<Account-ID>.eu.r2.cloudflarestorage.com
+R2_ACCESS_KEY_ID=…
+R2_SECRET_ACCESS_KEY=…
+```
+
+Den Pfad bei `BACKUP_DIR` an den eigenen Benutzernamen anpassen (`echo $HOME`). Die von Hand gesicherten Dateien aus Phase 3 dürfen im selben Ordner liegen bleiben.
+
+### 4. Erstes Backup und Test (auf dem Heimserver)
+
+```bash
+cd ~/topstack/infra
+ops/backup.sh backup manual
+ops/backup.sh list
+ops/backup.sh restore-test
+```
+
+Erwartet: „fertig: topstack-…-manual“, die Datei erscheint unter `manual` lokal **und** in R2, der Test endet mit „Wiederherstellungstest bestanden“ und „R2-Kopie ✓“.
+
+### 5. Timer einrichten (einmalig, auf dem Heimserver)
+
+```bash
+~/topstack/infra/ops/install-timers.sh
+```
+
+Fragt nach dem `sudo`-Passwort und zeigt danach die beiden Timer mit dem nächsten Lauf. Später prüfen:
+
+```bash
+systemctl list-timers 'topstack-*'
+journalctl -u topstack-backup.service -n 30        # Ausgabe des letzten Backups
+journalctl -u topstack-restore-test.service -n 30  # Ausgabe des letzten Tests
+```
+
+Bis AP-2 (Monitoring) meldet sich ein fehlgeschlagenes Backup nicht von selbst. Bis dahin ab und zu mit `ops/backup.sh list` nachsehen.
+
+### Ernstfall: auf dem Heimserver zurückspielen
+
+Überschreibt den aktuellen Stand. Das Skript fragt nach, sichert den aktuellen Stand vorher noch einmal und stoppt die API während des Einspielens.
+
+```bash
+cd ~/topstack/infra
+ops/backup.sh list
+ops/restore.sh daily/topstack-<Zeitpunkt>-nightly.dump
+```
+
+## Ernstfall: auf einem anderen Rechner wiederherstellen
+
+Für den Fall, dass der Mini-PC weg ist, und als Probe für Gate G4 (TC-94). Gebraucht wird nur: das Repo von GitHub, das Backup aus R2 und der Schlüssel aus dem Passwort-Manager. Probe-Rechner ist der Windows-PC mit Docker Desktop (Entscheidung vom 21.11.2026). Alle Befehle **auf dem PC in Git Bash**.
+
+**Wichtig:** Alles liegt in `C:\topstack-probe`, **nicht** im OneDrive-Ordner. Backup und Schlüssel enthalten Spielerdaten bzw. öffnen sie und dürfen nicht in die Cloud synchronisiert werden.
+
+1. Docker Desktop installieren und starten.
+2. Repo frisch holen:
+   ```bash
+   mkdir -p /c/topstack-probe/backups && cd /c/topstack-probe
+   git clone https://github.com/krauspeter/topstack.git
+   cd topstack/infra
+   ```
+3. Im Browser: Cloudflare → R2 → `topstack-backups` → `daily` → die neueste `.dump.age` **und** die gleichnamige `.json` herunterladen und nach `C:\topstack-probe\backups` verschieben.
+4. Den Schlüssel aus dem Passwort-Manager (alle drei Zeilen) in eine neue Datei `C:\topstack-probe\backups\key.txt` kopieren.
+5. Minimale `.env` für die Probe, ohne Tunnel und ohne echte Geheimnisse:
+   ```bash
+   printf 'POSTGRES_PASSWORD=probe\nTOPSTACK_PUBLIC_ORIGIN=http://localhost\nCF_TUNNEL_TOKEN=unbenutzt\nBACKUP_DIR=C:/topstack-probe/backups\nBACKUP_OFFSITE=off\n' > .env
+   ```
+6. Stack ohne Tunnel und ohne MQTT starten, dann die API wieder anhalten:
+   ```bash
+   docker compose --env-file .env up -d --wait caddy api db
+   docker compose --env-file .env stop api
+   ```
+7. Entschlüsseln und einspielen (`MSYS_NO_PATHCONV=1` verhindert, dass Git Bash die Pfade im Container umschreibt):
+   ```bash
+   export MSYS_NO_PATHCONV=1
+   docker compose --env-file .env --profile ops run --rm -T --entrypoint age backup \
+     -d -i /backups/key.txt -o /backups/probe.dump /backups/<Dateiname>.dump.age
+   docker compose --env-file .env --profile ops run --rm -T backup restore /backups/probe.dump
+   docker compose --env-file .env start api
+   ```
+8. Prüfen: Die Zahlen müssen mit `counts` in der heruntergeladenen `.json` übereinstimmen.
+   ```bash
+   docker compose --env-file .env exec -T db psql -U topstack -Atc \
+     "select 'tournament', count(*) from tournament union all select 'player', count(*) from player union all select 'game_event', count(*) from game_event"
+   ```
+   Dann im Browser `http://localhost` öffnen und per Magic-Link anmelden. Ohne Resend steht die Anmelde-Mail samt Link im Log: `docker compose --env-file .env logs api | grep -A5 "nicht verschickt"`. Das geht nur mit einer E-Mail-Adresse, die im Backup ein Konto hat. Turniere und Rangliste müssen wie auf `https://topstack.win` aussehen.
+9. Aufräumen:
+   ```bash
+   docker compose --env-file .env --profile ops down -v
+   cd /c && rm -rf /c/topstack-probe
+   ```
+   Danach prüfen, dass `C:\topstack-probe` wirklich weg ist, und den Papierkorb leeren, falls dort etwas gelandet ist.
+
+**Ausweichlösung**, falls Docker Desktop nicht geht: dieselben Schritte auf dem Heimserver in einem frischen Klon unter `/tmp/topstack-probe`, mit eigenem Projektnamen (`docker compose -p topstack-probe …`) und ohne die bestehende `.env`. Port 80 ist dort belegt, deshalb in Schritt 6 nur `db` starten und Schritt 8 nur mit `psql` prüfen.

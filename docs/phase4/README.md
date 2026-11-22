@@ -84,17 +84,26 @@ AP-1 kommt zuerst, weil das automatische Deployment (AP-3) vor jeder Migration e
 
 Grundsatz: Ein Backup gilt erst als vorhanden, wenn es sich wiederherstellen ließ.
 
-- [ ] Image `infra/backup/Dockerfile` auf Basis von `postgres:16` mit `age` und `rclone`; Dienst `backup` in `infra/docker-compose.yml` mit `profiles: [ops]`, damit er nur auf Abruf läuft
-- [ ] Skript `infra/backup/backup.sh`: `pg_dump -Fc`, Prüfung mit `pg_restore --list`, Ablage unter `~/topstack-backups/` (unverschlüsselt, die Daten liegen auf dem Server ohnehin), für R2 verschlüsselt mit `age` an einen öffentlichen Schlüssel und hochgeladen
-- [ ] Aufbewahrung: 7 tägliche, 4 wöchentliche (Sonntag), 6 monatliche (1. des Monats) lokal und in R2; in R2 zusätzlich eine Lifecycle-Regel als Netz
-- [ ] Bucket `topstack-backups` in R2 mit Speicherort EU, API-Token nur mit „Object Read & Write“ auf diesen Bucket
-- [ ] Der **private** `age`-Schlüssel liegt nur im Passwort-Manager, nie auf dem Heimserver: Wer den Server übernimmt, kann die Kopien in R2 nicht lesen
-- [ ] systemd-Timer `topstack-backup.timer` auf dem Heimserver, täglich um 03:30, ruft `docker compose --profile ops run --rm backup` auf
-- [ ] Skript `infra/backup/restore-test.sh`: neuestes Backup aus R2 holen, in einem Wegwerf-PostgreSQL wiederherstellen, prüfen (Alembic-Version gleich `head`, Anzahl Spieler, Turniere und Ereignisse größer 0 und gleich der Live-Datenbank zum Zeitpunkt des Backups), Ergebnis melden
-- [ ] Timer `topstack-restore-test.timer`, monatlich am 1. um 04:30
-- [ ] `infra/backup/restore.sh` für den Ernstfall, ersetzt den Abschnitt „Nur im Notfall zurückspielen“ in `heimserver.md`
-- [ ] Wiederherstellung einmal echt geprobt auf dem Windows-PC mit Docker Desktop (Entscheidung vom 21.11.2026, der Ryzen-PC ist vorerst nicht in Betrieb): Repo frisch von GitHub klonen, neuestes Backup aus R2 laden, mit dem privaten Schlüssel aus dem Passwort-Manager entschlüsseln, Stack **ohne** Cloudflare Tunnel starten, einspielen, unter `http://localhost` Turniere und Rangliste prüfen; danach Stack und Daten wieder löschen. Backup und Klon liegen dabei **nicht** im OneDrive-Ordner, damit keine Spielerdaten in die Cloud synchronisiert werden. Nichts vom Mini-PC darf dafür nötig sein
-- [ ] Anleitung dazu in `heimserver.md`, Abschnitt „Ernstfall: auf einem anderen Rechner wiederherstellen“. Ausweichlösung, falls Docker Desktop nicht geht: auf dem Heimserver in einem frischen Klon mit eigenem Compose-Projekt, ohne die bestehende `.env` und ohne `~/topstack-backups`
+**Umsetzung im Repo**
+
+- [x] Image `topstack-backup` aus `infra/backup/Dockerfile` (Basis `postgres:16` mit `age`, `rclone`, `curl`), gebaut und nach ghcr.io gepusht wie API und App; Dienst `backup` in `infra/docker-compose.yml` mit `profiles: [ops]`, läuft nur auf Abruf
+- [x] Skript `infra/backup/topstack-backup.sh` mit `backup`, `restore-test`, `restore` und `list`:
+  - `pg_dump -Fc`, Prüfung mit `pg_restore --list`, Manifest (`.json`) mit Zeitpunkt, Alembic-Version, Prüfsummen und Zeilenzahl von `app_user`, `player`, `tournament`, `match`, `game_event`
+  - lokal unter `BACKUP_DIR` unverschlüsselt mit Rechten 600 (die Daten liegen auf dem Server ohnehin), für R2 mit `age` an den öffentlichen Schlüssel verschlüsselt
+  - Aufbewahrung lokal und in R2: `daily/` 7, `weekly/` 4 (sonntags), `monthly/` 6 (am 1.), `manual/` 10 (von Hand und vor Deployments)
+  - Schlägt der Upload fehl, bleibt das lokale Backup, das Skript endet mit Fehler und meldet ihn an healthchecks.io (ab AP-2)
+- [x] Wiederherstellungstest: neuestes lokales Backup in einer Wegwerf-PostgreSQL **im Container** einspielen, Prüfsumme, Alembic-Version und Zeilenzahlen gegen das Manifest prüfen; dazu die Kopie in R2 laden und ihre Prüfsumme vergleichen. Entschlüsseln geht nur mit dem privaten Schlüssel, der nicht auf dem Server liegt; das prüft die Probe auf dem Windows-PC
+- [x] `infra/ops/backup.sh` (Aufruf auf dem Heimserver), `infra/ops/restore.sh` für den Ernstfall (fragt nach, sichert vorher, stoppt die API), `infra/ops/install-timers.sh` mit den systemd-Timern `topstack-backup.timer` (täglich 03:30) und `topstack-restore-test.timer` (am 1. um 04:30)
+- [x] CI: `shellcheck` für alle Skripte; im Job `smoke` echtes Backup und Wiederherstellungstest gegen den gestarteten Stack (ohne R2)
+- [x] Lokal geprüft gegen PostgreSQL 16 mit dem Schema aus `docs/schema.sql`: Backup, Aufbewahrung nach 9 Läufen (7 täglich, 4 wöchentlich), Upload und Aufräumen in R2 (mit Test-Ersatz für `rclone`), Entschlüsseln mit `age`, Wiederherstellungstest bestanden; manipulierte Dateien und fehlgeschlagener Upload werden erkannt
+- [x] Anleitung in `docs/phase3/heimserver.md`: „Backups einrichten“ und „Ernstfall: auf einem anderen Rechner wiederherstellen“ (Windows-PC)
+
+**Einrichten (Peter)**
+
+- [ ] Cloudflare R2 freigeschaltet, Bucket `topstack-backups` mit Speicherort EU, Lifecycle-Regel als Netz, API-Token nur mit „Object Read & Write“ auf diesen Bucket
+- [ ] `age`-Schlüsselpaar erzeugt; der **private** Schlüssel liegt nur im Passwort-Manager (plus Ausdruck), nie auf dem Heimserver
+- [ ] `.env` auf dem Heimserver ergänzt, erstes Backup von Hand, Wiederherstellungstest grün, Timer eingerichtet
+- [ ] Wiederherstellung einmal echt geprobt auf dem Windows-PC mit Docker Desktop (Entscheidung vom 21.11.2026, der Ryzen-PC ist vorerst nicht in Betrieb): Repo frisch von GitHub, Backup aus R2, Schlüssel aus dem Passwort-Manager, Stack ohne Cloudflare Tunnel unter `http://localhost`, Turniere und Rangliste geprüft, danach alles gelöscht. Klon, Backup und Schlüssel liegen dabei **nicht** im OneDrive-Ordner. Ausweichlösung: frischer, getrennter Klon auf dem Heimserver
 
 **Fertig, wenn:** Ein nächtliches Backup liegt in R2, der Wiederherstellungstest läuft grün, und die Probe auf dem Windows-PC hat geklappt (Teil von G4).
 
@@ -202,7 +211,12 @@ Letzter Schritt vor v1.0. Dafür braucht es ein geliehenes iPhone mit aktuellem 
 
 Kleine Wünsche aus der Beta, die nicht bis v1.1 warten müssen:
 
-- [ ] Profil zeigt je Gruppe, wer dazugehört: Mitglieder und vorgemerkte Spieler ohne Konto, Gäste nicht (Branch `feat/profil-mitglieder`, 21.11.2026)
+- [x] Profil zeigt je Gruppe, wer dazugehört: Mitglieder und vorgemerkte Spieler ohne Konto, Gäste nicht (PR #135, 21.11.2026)
+
+Am Ende von Phase 4, vor dem Release-Abend (Entscheidung vom 21.11.2026):
+
+- [ ] Superuser-Werkzeug für den Heimserver-Betreiber als Skript per SSH (`python -m topstack.scripts.admin`), keine neue Rolle in der App: Spieler ohne Konto auflisten und löschen; steht der Spieler in einem Turnier, wird das Löschen verweigert und die Turniere werden genannt. Turniere löschen (für Testturniere). Ohne `--apply` nur Anzeige, mit `--apply` vorher ein Backup. Vor dem Release damit Testturniere und doppelte Testspieler der „Draft-Runde“ entfernen
+- [ ] Offen, bewusst nicht jetzt: Knopf „Persönlicher Link“ bei Spielern ohne Konto (Server kann es schon, ADR-0015) und Auswahl der Gruppe beim Turnier-Start (Voraussetzung für eine eigene Testgruppe, weil der Turnier-Bildschirm heute immer die erste Gruppe nimmt)
 
 ---
 
@@ -211,9 +225,9 @@ Kleine Wünsche aus der Beta, die nicht bis v1.1 warten müssen:
 | ID | Fall | Erwartung | AP | Prio |
 | --- | --- | --- | --- | --- |
 | TC-90 | Nächtliches Backup | Datei lokal und in R2, `pg_restore --list` fehlerfrei, Erfolg bei healthchecks.io | AP-1 | hoch |
-| TC-91 | Backup ohne R2 | Lokale Datei bleibt, Alarm über ntfy | AP-1 | hoch |
+| TC-91 | Backup ohne R2 | Lokale Datei bleibt, Skript endet mit Fehler, Alarm über ntfy (ab AP-2) | AP-1 | hoch |
 | TC-92 | Aufbewahrung | Nach simulierten 40 Tagen liegen 7 tägliche, 4 wöchentliche, bis zu 6 monatliche Backups | AP-1 | mittel |
-| TC-93 | Wiederherstellungstest | Wegwerf-Datenbank aus R2, Zahlen stimmen, Erfolg gemeldet | AP-1 | hoch |
+| TC-93 | Wiederherstellungstest | Wegwerf-Datenbank aus dem neuesten Backup, Zahlen stimmen mit dem Manifest, R2-Kopie unverändert, Erfolg gemeldet | AP-1 | hoch |
 | TC-94 | Wiederherstellung auf dem Windows-PC | Nur mit Repo, R2 und Schlüssel: App läuft unter `http://localhost` mit allen Turnieren und der Rangliste | AP-1 | hoch |
 | TC-95 | Backup ohne privaten Schlüssel | Datei in R2 lässt sich ohne Schlüssel aus dem Passwort-Manager nicht öffnen | AP-1 | mittel |
 | TC-100 | Health mit Datenbank | Datenbank gestoppt → `/api/v1/health` antwortet 503 | AP-2 | hoch |

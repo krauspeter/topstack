@@ -1,0 +1,10 @@
+[Unit]
+Description=TopStack: Wiederherstellungstest des neuesten Backups (ADR-0016)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=@USER@
+ExecStart=@REPO@/infra/ops/backup.sh restore-test

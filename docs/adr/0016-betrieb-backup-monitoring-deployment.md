@@ -13,7 +13,7 @@ Ab v1.0 nutzt die ganze Gruppe TopStack, und die Rangliste soll über Jahre wach
 - Zu jedem Backup eine kleine Manifest-Datei mit Zeitpunkt, Alembic-Version und Anzahl der Zeilen in den wichtigsten Tabellen.
 - Lokal unter `~/topstack-backups/`, außer Haus in Cloudflare R2 (Bucket mit Speicherort EU). In R2 nur verschlüsselt mit `age`; der private Schlüssel liegt nicht auf dem Server.
 - Aufbewahrung 7 täglich, 4 wöchentlich, 6 monatlich.
-- Monatlich ein automatischer Wiederherstellungstest in einem Wegwerf-PostgreSQL, der das Ergebnis gegen das Manifest prüft.
+- Monatlich ein automatischer Wiederherstellungstest in einem Wegwerf-PostgreSQL, der das Ergebnis gegen das Manifest prüft und die Prüfsumme der Kopie in R2 vergleicht. Ob sich die R2-Kopie entschlüsseln lässt, kann der Server nicht prüfen, weil der private Schlüssel dort nicht liegt; das zeigt die Probe auf einem anderen Rechner (Windows-PC, geändert am 22.11.2026).
 
 **Monitoring (E3)**
 - Uptime Kuma auf dem Heimserver prüft App, API mit Datenbank, MQTT und das Zertifikat.
