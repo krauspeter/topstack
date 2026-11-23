@@ -42,17 +42,28 @@ main() {
   update_repo || return 1
   new_commit=$(git -C "$REPO" rev-parse HEAD)
 
-  if [ "${DEPLOY_SKIP_PULL:-0}" != 1 ]; then
+  # Laufende Images vor dem Pull festhalten. Nach dem Pull hängt der Name am neuen Image; mit dem
+  # containerd-Speicher von Docker ist ein Image ohne Namen sofort weg, auch wenn ein Container es
+  # noch benutzt. Der Rollback braucht es aber.
+  declare -A WANT=() RUN=() PINNED=()
+  local svc changed=0
+  for svc in "${SERVICES[@]}"; do
+    RUN[$svc]=$(running_image "$svc")
+    if [ -n "${RUN[$svc]}" ] && docker tag "${RUN[$svc]}" "topstack-rollback/$svc:previous" 2>/dev/null; then
+      PINNED[$svc]=1
+    fi
+  done
+
+  if [ -n "${DEPLOY_PULL_HOOK:-}" ]; then
+    bash -c "$DEPLOY_PULL_HOOK"  # nur für Tests in der CI: ersetzt den Pull
+  elif [ "${DEPLOY_SKIP_PULL:-0}" != 1 ]; then
     # Nur die eigenen Images aus ghcr.io; Docker Hub begrenzt anonyme Abrufe (postgres, caddy usw.
     # bleiben auf ihrem Stand, bis sie von Hand mit "docker compose pull" aktualisiert werden)
     compose --profile ops pull --quiet api caddy backup || { notify "TopStack: Images konnten nicht geladen werden" warning "Kanal $CHANNEL"; return 1; }
   fi
 
-  declare -A WANT=() RUN=()
-  local svc changed=0
   for svc in "${SERVICES[@]}"; do
     WANT[$svc]=$(docker image inspect -f '{{.Id}}' "${REF[$svc]}" 2>/dev/null || true)
-    RUN[$svc]=$(running_image "$svc")
     [ -n "${WANT[$svc]}" ] || { log "Image ${REF[$svc]} fehlt lokal."; return 1; }
     [ "${WANT[$svc]}" = "${RUN[$svc]}" ] || changed=1
   done
@@ -67,18 +78,11 @@ main() {
     log "Dieser Stand ist schon einmal gescheitert und wird übersprungen."
     [ "$old_commit" = "$new_commit" ] || git -C "$REPO" reset -q --hard "$old_commit"
     # Tags wieder auf die laufenden Images, damit ein späteres "docker compose up -d" nichts Kaputtes startet
-    for svc in "${SERVICES[@]}"; do
-      [ -z "${RUN[$svc]}" ] || docker tag "${RUN[$svc]}" "${REF[$svc]}"
-    done
+    restore_tags
     return 0
   fi
 
   log "Neuer Stand: Commit ${new_commit:0:7}, API ${WANT[api]:7:12}, Web ${WANT[caddy]:7:12}"
-  # Laufende Images festhalten: Nach dem Pull hängt an ihnen kein Name mehr, und sobald
-  # "up -d" die Container ersetzt, würde Docker sie löschen. Der Rollback braucht sie aber.
-  for svc in "${SERVICES[@]}"; do
-    [ -z "${RUN[$svc]}" ] || docker tag "${RUN[$svc]}" "topstack-rollback/$svc:previous"
-  done
   if ! "$INFRA/ops/backup.sh" backup pre-deploy; then
     notify "TopStack: Update abgebrochen" warning "Das Backup vor dem Update ist fehlgeschlagen. Nichts geändert."
     [ "$old_commit" = "$new_commit" ] || git -C "$REPO" reset -q --hard "$old_commit"
@@ -100,9 +104,7 @@ main() {
   log "Die API antwortet nicht. Zurück auf den vorherigen Stand."
   echo "$candidate" >"$STATE/bad"
   [ "$old_commit" = "$new_commit" ] || git -C "$REPO" reset -q --hard "$old_commit"
-  for svc in "${SERVICES[@]}"; do
-    [ -z "${RUN[$svc]}" ] || docker tag "topstack-rollback/$svc:previous" "${REF[$svc]}"
-  done
+  restore_tags
   compose up -d || log "docker compose up meldet einen Fehler"
   if wait_healthy; then
     notify "TopStack: Update fehlgeschlagen, zurückgerollt" warning \
@@ -115,6 +117,17 @@ main() {
 }
 
 log() { printf '%s %s\n' "$(date +%H:%M:%S)" "$*"; }
+
+restore_tags() {  # Image-Namen zurück auf die festgehaltenen, vorher laufenden Images
+  local svc
+  for svc in "${SERVICES[@]}"; do
+    if [ -n "${PINNED[$svc]:-}" ]; then
+      docker tag "topstack-rollback/$svc:previous" "${REF[$svc]}"
+    else
+      log "Für $svc gibt es kein festgehaltenes Image, der Name bleibt."
+    fi
+  done
+}
 
 compose() { docker compose --env-file "$INFRA/.env" "$@"; }
 
