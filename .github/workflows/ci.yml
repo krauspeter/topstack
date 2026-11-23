@@ -248,6 +248,7 @@ jobs:
           check "API läuft weiter mit dem alten Image" '[ "$(running)" = "$good" ]'
       - name: Staging-Stack neben der Produktion (AP-3b)
         run: |
+          set -o pipefail  # sonst zählt bei „deploy.sh | tee“ nur tee
           check() { if eval "$2"; then echo "  ✓ $1"; else echo "  ✗ $1"; return 1; fi; }
           # Eigener Klon wie auf dem Heimserver (~/topstack-beta); gebaut wurde oben mit dem Tag latest
           beta=/tmp/topstack-beta
