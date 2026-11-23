@@ -12,7 +12,7 @@ interface Props {
   onProfile(): void;
 }
 
-export function Home({ account, onNewMatch, onLogin, onProfile, onTournaments, onLeaderboard }: Props) {
+export function Home({ account, onNewMatch, onSeating, onLogin, onProfile, onTournaments, onLeaderboard }: Props) {
   return (
     <main className="page home">
       <header className="brand">
@@ -39,6 +39,9 @@ export function Home({ account, onNewMatch, onLogin, onProfile, onTournaments, o
             </button>
           </>
         )}
+        <button className="btn big" onClick={onSeating}>
+          Draftplätze auslosen
+        </button>
       </nav>
 
       <footer className="stack">
