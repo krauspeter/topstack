@@ -196,8 +196,12 @@ jobs:
           echo "== 1. nichts Neues"
           ops/deploy.sh | tee /tmp/d1
           grep -q "Keine Änderung" /tmp/d1
-          # Das kaputte Image kommt dort ins Spiel, wo sonst der Pull läuft, wie auf dem Heimserver
-          broken="printf 'FROM busybox\\nCMD [\"sleep\", \"3600\"]\\n' | docker build -q -t $api -"
+          # Das kaputte Image kommt dort ins Spiel, wo sonst der Pull läuft, wie auf dem Heimserver.
+          # Einmal bauen und danach nur noch umbenennen: Jeder neue Build hätte mit containerd eine
+          # neue ID und wäre für das Skript ein neuer Stand, auf dem Heimserver kommt dagegen immer
+          # dasselbe Image aus ghcr.io.
+          printf 'FROM busybox\nCMD ["sleep", "3600"]\n' | docker build -q -t topstack-test/broken -
+          broken="docker tag topstack-test/broken $api"
           echo "== 2. kaputtes API-Image: Rollback"
           if DEPLOY_PULL_HOOK="$broken" ops/deploy.sh; then echo "Deployment hätte scheitern müssen"; exit 1; fi
           check() { if eval "$2"; then echo "  ✓ $1"; else echo "  ✗ $1"; return 1; fi; }
