@@ -200,13 +200,17 @@ jobs:
           broken="printf 'FROM busybox\\nCMD [\"sleep\", \"3600\"]\\n' | docker build -q -t $api -"
           echo "== 2. kaputtes API-Image: Rollback"
           if DEPLOY_PULL_HOOK="$broken" ops/deploy.sh; then echo "Deployment hätte scheitern müssen"; exit 1; fi
-          test "$(running)" = "$good"
-          curl -fsS http://localhost/api/v1/health | grep -q '"status":"ok"'
-          ls /tmp/topstack-backups/manual | grep -q pre-deploy
+          check() { if eval "$2"; then echo "  ✓ $1"; else echo "  ✗ $1"; return 1; fi; }
+          echo "  läuft:    $(running)"
+          echo "  erwartet: $good"
+          echo "  Name:     $(docker image inspect -f '{{.Id}}' "$api")"
+          check "API läuft wieder mit dem alten Image" '[ "$(running)" = "$good" ]'
+          check "API antwortet" "curl -fsS http://localhost/api/v1/health | grep -q '\"status\":\"ok\"'"
+          check "Backup vor dem Update vorhanden" "ls /tmp/topstack-backups/manual | grep -q pre-deploy"
           echo "== 3. derselbe kaputte Stand wird nicht noch einmal versucht"
           DEPLOY_PULL_HOOK="$broken" ops/deploy.sh | tee /tmp/d3
-          grep -q "übersprungen" /tmp/d3
-          test "$(running)" = "$good"
+          check "übersprungen" 'grep -q "übersprungen" /tmp/d3'
+          check "API läuft weiter mit dem alten Image" '[ "$(running)" = "$good" ]'
       - name: Logs bei Fehler
         if: failure()
         run: docker compose --env-file .env logs --no-color
