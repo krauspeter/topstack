@@ -1,43 +1,105 @@
 name: Release
 
-# Ein Tag vX.Y.Z auf einem Commit in main macht dessen schon getestete Images zur Release-Version:
-# ghcr.io/<owner>/<image>:<sha> bekommt zusätzlich X.Y.Z, X.Y und latest (ADR-0016, AP-3).
-# Nichts wird neu gebaut. Den GitHub-Release mit dem Changelog ergänzt AP-4.
+# Ein Release ist ein normaler PR, den scripts/release.sh vorbereitet (AP-4): Er setzt die
+# Version in app/package.json und macht aus „Unreleased“ im CHANGELOG.md den Abschnitt der
+# Version. Nach dem Merge in main macht dieser Workflow daraus das Release:
+#   1. wartet auf die schon getesteten Images dieses Commits (ci.yml baut sie mit dem SHA)
+#   2. versieht sie mit X.Y.Z, bei einer Endversion zusätzlich mit X.Y und latest (ADR-0016)
+#   3. legt den Tag vX.Y.Z an und das GitHub-Release mit dem Changelog-Abschnitt
+# Nichts wird neu gebaut. Gibt es den Tag schon, passiert nichts. Tags bitte nicht von Hand
+# anlegen; zum Wiederholen nach einem Fehler: „Run workflow“ auf main.
 on:
   push:
-    tags: ['v*.*.*']
+    branches: [main]
+    paths: [app/package.json]
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
-  images:
+  release:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Version lesen
+        id: version
+        run: |
+          bash scripts/check-version.sh
+          version=$(sed -n 's/^  "version": "\(.*\)",$/\1/p' app/package.json | head -n1)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          case "$version" in *-*) pre=true ;; *) pre=false ;; esac
+          echo "prerelease=$pre" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "v$version gibt es schon, nichts zu tun." >> "$GITHUB_STEP_SUMMARY"
+          elif ! grep -q "^## \[$version\]" CHANGELOG.md; then
+            # Kein Release-PR, z. B. ein Dependabot-Update in package.json vor dem ersten Release
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::CHANGELOG.md hat keinen Abschnitt [$version], kein Release"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: docker/setup-buildx-action@v4
+        if: steps.version.outputs.skip == 'false'
       - uses: docker/login-action@v4
+        if: steps.version.outputs.skip == 'false'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Images mit der Versionsnummer versehen
+        if: steps.version.outputs.skip == 'false'
         env:
           OWNER: ${{ github.repository_owner }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
         run: |
-          version=${GITHUB_REF_NAME#v}
-          minor=${version%.*}
+          minor=$(printf '%s' "$VERSION" | cut -d. -f1,2)
           for image in topstack-api topstack-web topstack-backup; do
             src="ghcr.io/$OWNER/$image:$GITHUB_SHA"
-            # Kommt der Tag direkt nach dem Merge, baut die CI auf main die Images womöglich noch
-            for _ in $(seq 1 30); do
-              docker buildx imagetools inspect "$src" >/dev/null 2>&1 && break
+            # Die CI auf main baut die Images dieses Commits gerade erst (etwa 6 Minuten)
+            found=false
+            for _ in $(seq 1 45); do
+              if docker buildx imagetools inspect "$src" >/dev/null 2>&1; then found=true; break; fi
               echo "warte auf $src"; sleep 20
             done
-            docker buildx imagetools create \
-              -t "ghcr.io/$OWNER/$image:$version" \
-              -t "ghcr.io/$OWNER/$image:$minor" \
-              -t "ghcr.io/$OWNER/$image:latest" \
-              "$src"
-            echo "$image: $version, $minor, latest ← ${GITHUB_SHA:0:7}" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$found" != true ]; then echo "::error::$src nicht gefunden, ist die CI auf main grün?"; exit 1; fi
+            tags=(-t "ghcr.io/$OWNER/$image:$VERSION")
+            # Vorabversionen (1.0.0-rc.1) bekommen nur ihre eigene Nummer, nie latest
+            if [ "$PRERELEASE" = false ]; then
+              tags+=(-t "ghcr.io/$OWNER/$image:$minor" -t "ghcr.io/$OWNER/$image:latest")
+            fi
+            docker buildx imagetools create "${tags[@]}" "$src"
+            echo "$image: ${tags[*]//-t /} ← ${GITHUB_SHA:0:7}" >> "$GITHUB_STEP_SUMMARY"
           done
+
+      - name: Tag und GitHub-Release
+        if: steps.version.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+        run: |
+          # Abschnitt der Version aus dem Changelog, ohne die Überschrift
+          awk -v v="$VERSION" '
+            index($0, "## [" v "]") == 1 { f = 1; next }
+            f && /^## \[/ { exit }
+            f && /^\[[^]]+\]: / { exit }
+            f { print }
+          ' CHANGELOG.md > notes.md
+          printf '\n---\nImages: `ghcr.io/%s/topstack-{api,web,backup}:%s`\n' "$GITHUB_REPOSITORY_OWNER" "$VERSION" >> notes.md
+          git tag "v$VERSION" "$GITHUB_SHA"
+          git push origin "v$VERSION"
+          flags=(--title "v$VERSION" --notes-file notes.md --verify-tag)
+          [ "$PRERELEASE" = true ] && flags+=(--prerelease) || flags+=(--latest)
+          gh release create "v$VERSION" "${flags[@]}"
+          echo "Release v$VERSION angelegt" >> "$GITHUB_STEP_SUMMARY"

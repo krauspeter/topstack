@@ -1,4 +1,5 @@
 import { type Page, expect, test } from '@playwright/test';
+import { whatsNewEntries } from '../src/whatsNew';
 
 async function startMatch(page: Page, options: { timeLimit?: string; colors?: [string[], string[]] } = {}) {
   await page.goto('/');
@@ -116,5 +117,31 @@ test('Startbildschirm zeigt, welches Update läuft', async ({ page }) => {
   const build = page.getByTestId('build');
   // Lokal und in der CI ohne Build-Angaben: Entwicklungsstand; der Server meldet ein anderes Update
   await expect(build).toContainText('Entwicklungsstand');
+  await expect(build).toContainText(/v\d+\.\d+\.\d+/);
   await expect(build).toContainText('Server #999');
+});
+
+test('Was ist neu erscheint nach einem Update einmal', async ({ page }) => {
+  // Beim ersten Start nichts, die Version wird nur gemerkt
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Neues Match' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Was ist neu' })).toHaveCount(0);
+  const version = await page.evaluate(() => localStorage.getItem('topstack.seenVersion'));
+  expect(version).toMatch(/^\d+\.\d+\.\d+/);
+
+  // Als käme man von einer älteren Version: Hinweis nur, wenn es Einträge zur Version gibt
+  await page.evaluate(() => localStorage.setItem('topstack.seenVersion', '0.0.1'));
+  await page.reload();
+  const entries = whatsNewEntries(version!);
+  const dialog = page.getByRole('dialog', { name: 'Was ist neu' });
+  if (entries.length === 0) {
+    await expect(dialog).toHaveCount(0);
+    return;
+  }
+  await expect(dialog).toContainText(entries[0]);
+  await dialog.getByRole('button', { name: 'Alles klar' }).click();
+  await expect(dialog).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Neues Match' })).toBeVisible();
+  await expect(dialog).toHaveCount(0);
 });

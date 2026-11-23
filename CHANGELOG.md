@@ -1,0 +1,44 @@
+# Changelog
+
+All notable changes to TopStack are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+App and server share one version. Until the release night the versions are `0.9.x`
+(beta); the release night gets `1.0.0`.
+
+Every pull request adds a line under **Unreleased**. `scripts/release.sh` turns that
+section into a release; a short German "Was ist neu" for the app lives in
+`app/src/whatsNew.ts`.
+
+## [Unreleased]
+
+### Added
+
+- Versions and changelog: one version for app and server, `scripts/release.sh`,
+  automatic tag, images and GitHub release after merging a release PR; the start
+  screen shows the version and a one-time "Was ist neu" after an update (#143)
+- Automatic deployment: the home server pulls new images every 5 minutes, takes a
+  backup first, rolls back on failure and does not retry a bad state; deploy lock
+  for game nights; push notification via ntfy (#140)
+- Monitoring: `/api/v1/health` returns 503 without the database; Uptime Kuma,
+  healthchecks.io and ntfy alerts (#139)
+- Backups: nightly `pg_dump` with retention 7/4/6, encrypted copy in Cloudflare R2
+  (`age`), monthly restore test, restore on another machine documented (#136, #137)
+- Profile shows who belongs to each group, including players without an account (#135)
+- Rankings and basic statistics, including colour records (#122, #123)
+- Web Push for "your turn", new round and tournament end (#119, #120)
+- Live view and break view over WebSocket; the start screen shows the running update
+  (#114, #115, #118)
+- Life tracker on the server: outbox, sync and two phones per match (#111, #112,
+  #116, #117)
+- Draft tournaments: start, invite, guests, seat draw, colours, schedule, pulling
+  matches forward, results with corrections, cancelling and the award ceremony
+  (#61, #62, #64, #107, #108, #109, #110)
+- Sign-in with magic link and passkey, group invitations (#58, #59, #60)
+- Home server: app and API at `https://topstack.win` via Cloudflare Tunnel, database
+  migrations on start (#53, #54, #55, #56, #57)
+- Offline life tracker as PWA: best-of-3, d20 roll, time limit, multicolour and
+  colourless decks, undo, seat draw with pass direction (#49, #50, #51)
+
+[Unreleased]: https://github.com/krauspeter/topstack/commits/main

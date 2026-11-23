@@ -29,6 +29,28 @@ jobs:
             firmware: ['firmware/**', '.github/workflows/ci.yml']
             docs: ['docs/**', '.github/workflows/ci.yml']
             infra: ['infra/**', '.github/workflows/ci.yml']
+      # Läuft bei jedem PR, weil es fast nichts kostet (AP-4)
+      - name: Version einheitlich und Changelog passend
+        run: bash scripts/check-version.sh
+      - name: Skripte im Repo prüfen (shellcheck)
+        run: shellcheck --severity=warning scripts/*.sh
+      - name: Release-Skript in einer Wegwerf-Kopie
+        run: |
+          git config --global user.name ci && git config --global user.email ci@example.invalid
+          work=$(mktemp -d) && git clone -q . "$work" && cd "$work"
+          check() { if eval "$2"; then echo "✓ $1"; else echo "✗ $1"; exit 1; fi; }
+          check "ungültige Version abgelehnt" "! bash scripts/release.sh 1.0 --no-branch 2>/dev/null"
+          check "kleinere Version abgelehnt" "! bash scripts/release.sh 0.0.1 --no-branch 2>/dev/null"
+          cur=$(sed -n 's/^  "version": "\(.*\)",$/\1/p' app/package.json | head -n1)
+          next=$(printf '%s' "${cur%%-*}" | awk -F. '{print $1"."$2"."$3+1}')
+          if awk '/^## \[Unreleased\]/{f=1;next} /^## \[/{f=0} f' CHANGELOG.md | grep -q '^- '; then
+            check "Release $next vorbereitet" "bash scripts/release.sh $next --no-branch >/dev/null"
+            check "Version überall $next" "bash scripts/check-version.sh | grep -q '✓ Version $next'"
+            check "Changelog-Abschnitt $next" "grep -q '^## \[$next\] - ' CHANGELOG.md && grep -q '^## \[Unreleased\]' CHANGELOG.md"
+            check "leerer Abschnitt Unreleased abgelehnt" "! bash scripts/release.sh $next-rc.9 --no-branch 2>/dev/null"
+          else
+            check "leerer Abschnitt Unreleased abgelehnt" "! bash scripts/release.sh $next --no-branch 2>/dev/null"
+          fi
 
   app:
     needs: changes
