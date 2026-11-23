@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { BUILD } from './build';
+import { EnvBand } from './EnvBand';
 import { rememberStartupVersion } from './whatsNew';
 import './styles.css';
 
@@ -11,5 +12,6 @@ rememberStartupVersion(BUILD.version);
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
+    <EnvBand />
   </StrictMode>,
 );

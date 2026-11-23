@@ -1,0 +1,59 @@
+# Staging-Umgebung beta.topstack.win (Phase 4, AP-3b). Läuft auf dem Heimserver neben der
+# Produktion, in einem eigenen Klon des Repos (~/topstack-beta) mit eigener infra/.env:
+#   TOPSTACK_STACK=staging   → deploy.sh nimmt diese Datei, eigenen Zustand, kein Backup
+#   TOPSTACK_VERSION=main    → jeder Merge; pr-<Nummer> = Stand eines Pull Requests (scripts/stage.sh)
+# Start von Hand: docker compose -f docker-compose.staging.yml --env-file .env up -d
+#
+# Kein eigener Tunnel und kein MQTT: Den Tunnel stellt die Produktion (Netz topstack-edge), MQTT
+# braucht die API noch nicht; das Steuergerät bekommt in v3.0 einen eigenen Bereich.
+name: topstack-beta
+
+services:
+  beta-caddy:
+    image: ghcr.io/${GITHUB_OWNER:-krauspeter}/topstack-web:${TOPSTACK_VERSION:-main}
+    restart: unless-stopped
+    ports: ["127.0.0.1:8081:80"]  # nur lokal, für deploy.sh; von außen über Tunnel und Cloudflare Access
+    volumes:
+      - ./staging/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    # Eigener Dienstname, weil Tunnel und Monitor der Produktion im Netz edge sonst zwei
+    # Dienste „caddy“ sähen; der Tunnel zeigt auf http://beta-caddy:80
+    networks: [default, edge]
+    depends_on: [api]
+
+  api:
+    image: ghcr.io/${GITHUB_OWNER:-krauspeter}/topstack-api:${TOPSTACK_VERSION:-main}
+    restart: unless-stopped
+    environment:
+      TOPSTACK_ENVIRONMENT: staging
+      TOPSTACK_DATABASE_URL: postgresql+asyncpg://topstack:${POSTGRES_PASSWORD}@db:5432/topstack
+      TOPSTACK_PUBLIC_ORIGIN: ${TOPSTACK_PUBLIC_ORIGIN:-https://beta.topstack.win}
+      TOPSTACK_RESEND_API_KEY: ${RESEND_API_KEY:-}
+      TOPSTACK_MAIL_FROM: ${MAIL_FROM:-TopStack Beta <login@topstack.win>}
+      # Pflicht auf Staging: nur an diese Adressen werden Anmeldelinks wirklich verschickt
+      TOPSTACK_MAIL_ALLOWLIST: ${MAIL_ALLOWLIST:?MAIL_ALLOWLIST fehlt in .env (kommagetrennte Adressen)}
+      # Kein Web Push auf Staging (keine VAPID-Schlüssel)
+    depends_on:
+      db: { condition: service_healthy }
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: topstack
+      POSTGRES_DB: topstack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD fehlt in .env}
+    volumes: [db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U topstack"]
+      interval: 10s
+      retries: 5
+
+volumes:
+  caddy-data:
+  db-data:
+
+networks:
+  edge:
+    name: topstack-edge
+    external: true  # legt die Produktion an (docker-compose.yml)

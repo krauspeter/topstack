@@ -412,6 +412,74 @@ Am besten an einem Abend ohne Spiel, nacheinander:
 | Mini-PC weg (TC-102) | Netzwerkkabel ziehen, nach 20 Minuten wieder einstecken | healthchecks.io: „TopStack Heimserver is DOWN“, danach „UP“ |
 | Backup scheitert (TC-103) | Fehler melden, wie es das Skript bei einem Fehlschlag tut: `curl -fsS "$(sed -n 's/^BACKUP_PING_URL=//p' .env)/fail"`, danach `ops/backup.sh backup manual` | healthchecks.io: „TopStack Backup is DOWN“, nach dem Backup wieder „UP“ |
 
+## Staging beta.topstack.win (Phase 4, AP-3b)
+
+Eine zweite Umgebung auf demselben Heimserver, mit eigener Datenbank. Sie folgt `main` und kann vor dem Merge den Stand eines Pull Requests zeigen. Hintergrund in [ADR-0017](../adr/0017-staging.md).
+
+### 1. Cloudflare (auf dem PC im Browser)
+
+1. **Zero Trust → Networks → Tunnels → `topstack` → Public Hostname → Add:** Subdomain `beta`, Domain `topstack.win`, Service `HTTP` und `beta-caddy:80`.
+2. **Zero Trust → Access → Applications → Add → Self-hosted:** Name „TopStack Beta“, Domain `beta.topstack.win`. Policy „Allow“, Include „Emails“ mit deiner Adresse (später die der Tester). Anmeldung per „One-time PIN“ reicht.
+3. Im Browser `https://beta.topstack.win` öffnen: Es muss die Anmeldeseite von Cloudflare Access kommen. Solange Staging noch nicht läuft, folgt danach ein Fehler 502.
+
+### 2. Produktion einmal neu starten (auf dem Heimserver)
+
+Dadurch wird das gemeinsame Netz `topstack-edge` angelegt, über das der Tunnel Staging erreicht. Das macht auch der nächste automatische Deploy, so geht es aber sofort:
+
+```bash
+cd ~/topstack/infra && docker compose --env-file .env up -d
+docker network ls | grep topstack-edge
+```
+
+### 3. Zweiter Klon und `.env` (auf dem Heimserver)
+
+```bash
+git clone https://github.com/krauspeter/topstack.git ~/topstack-beta
+cd ~/topstack-beta/infra
+cp staging/.env.example .env && chmod 600 .env
+nano .env   # POSTGRES_PASSWORD neu erzeugen (openssl rand -base64 32), RESEND_API_KEY und NTFY_URL wie in ~/topstack/infra/.env, MAIL_ALLOWLIST mit deiner Adresse
+```
+
+### 4. Starten und Timer (auf dem Heimserver)
+
+```bash
+cd ~/topstack-beta/infra
+docker compose -f docker-compose.staging.yml --env-file .env up -d --wait
+curl -s http://127.0.0.1:8081/api/v1/health    # "environment":"staging"
+~/topstack-beta/infra/ops/install-timers.sh    # richtet nur topstack-beta-deploy.timer ein
+```
+
+### 5. Testgruppe und Monitor
+
+```bash
+# auf dem Heimserver: Testgruppe mit dir als Admin (wie in Abschnitt 5, nur im Staging-Stack)
+cd ~/topstack-beta/infra
+docker compose -f docker-compose.staging.yml --env-file .env exec api python -m topstack.scripts.seed_group   --group "Testgruppe" --admin-email du@example.org --admin-name Peter
+```
+
+In Uptime Kuma (Abschnitt „Monitoring einrichten“) einen Monitor „Beta“ anlegen: Typ HTTP(s) – Keyword, URL `http://beta-caddy/api/v1/health`, Keyword `"status":"ok"`, Intervall 5 Minuten. Damit Staging nachts nicht weckt: unter **Wartung** ein wiederkehrendes Fenster 22 bis 8 Uhr nur für diesen Monitor.
+
+### 6. Auf dem Handy
+
+`https://beta.topstack.win` öffnen, über Cloudflare Access anmelden, dann „Zum Home-Bildschirm“. Die App heißt „TopStack Beta“, hat ein Icon mit orangem Band und oben das Band „BETA · Testumgebung“. Anmeldung, Daten und Passkeys sind getrennt von der echten App.
+
+### Einen Pull Request auf Staging ansehen (auf dem PC)
+
+Die CI baut zu jedem PR aus dem eigenen Repo die Images `pr-<Nummer>` (nur wenn `app/`, `server/` oder `infra/` geändert wurde).
+
+```bash
+bash scripts/stage.sh 145      # Staging zeigt PR #145, unten „Update #145“
+bash scripts/stage.sh status   # was läuft gerade?
+bash scripts/stage.sh main     # zurück; nach Merge oder Schließen des PRs passiert das von selbst
+```
+
+`stage.sh` meldet sich per SSH als `peter@heimserver` an. Ein anderer Name geht mit `TOPSTACK_SSH=benutzer@rechner bash scripts/stage.sh …`.
+
+**Gut zu wissen:**
+- Bis v1.0 folgen Produktion und Staging beide `main` und teilen sich auf dem Heimserver die Image-Namen `…:main`. Scheitert ein Stand auf Staging und wird zurückgerollt, merkt das auch die Produktion beim nächsten Durchlauf. Ab v1.0 (Produktion auf `latest`) sind beide getrennt.
+- Staging wird nicht gesichert. Ist die Datenbank kaputt: `docker compose -f docker-compose.staging.yml --env-file .env down -v`, dann neu starten und die Testgruppe neu anlegen.
+- Eine Migration aus einem PR bleibt in der Staging-Datenbank, auch wenn der PR nie gemergt wird. Dann ebenfalls `down -v`.
+
 ## Ernstfall: auf einem anderen Rechner wiederherstellen
 
 Für den Fall, dass der Mini-PC weg ist, und als Probe für Gate G4 (TC-94). Gebraucht wird nur: das Repo von GitHub, das Backup aus R2 und der Schlüssel aus dem Passwort-Manager. Probe-Rechner ist der Windows-PC mit Docker Desktop (Entscheidung vom 21.11.2026). So am 22.11.2026 erfolgreich durchgespielt. Alle Befehle **auf dem PC in Git Bash**.

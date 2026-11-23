@@ -1,0 +1,10 @@
+[Unit]
+Description=TopStack Beta: neuen Stand für beta.topstack.win holen und einspielen (AP-3b)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=@USER@
+ExecStart=@REPO@/infra/ops/deploy.sh

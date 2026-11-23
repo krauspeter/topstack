@@ -13,6 +13,13 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ## [Unreleased]
 
+### Added
+
+- Staging at `beta.topstack.win`: a second stack on the home server with its own
+  database that follows `main`; pull requests get images `pr-<number>` and can be
+  shown there before the merge with `scripts/stage.sh`; the app shows a beta band
+  and installs as "TopStack Beta"; no push, sign-in mails only to an allowlist (#145)
+
 ## [0.9.0] - 2026-11-23
 
 ### Added

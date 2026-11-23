@@ -25,6 +25,8 @@ export default defineConfig({
       workbox: {
         // App-Shell komplett vorhalten, damit der Life-Tracker ohne Netz startet (N-01)
         globPatterns: ['**/*.{js,css,html,svg,png,woff,webmanifest}'],
+        // Beta-Icons und -Manifest liefert nur Caddy auf Staging aus (AP-3b), nicht vorhalten
+        globIgnores: ['beta/**'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/ws/],
         // Push-Nachrichten anzeigen, auch wenn die App geschlossen ist (AP-8)

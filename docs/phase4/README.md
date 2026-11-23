@@ -1,6 +1,6 @@
 # Phase 4 – Beta mit Freunden & Betrieb (v1.0)
 
-Stand: 21.11.2026 · Status: **gestartet am 21.11.2026** · Entscheidungen E1 bis E4 getroffen (Abschnitt 6)
+Stand: 23.11.2026 · Status: **gestartet am 21.11.2026**, AP-3b Staging ergänzt am 23.11.2026 · Entscheidungen E1 bis E4 getroffen (Abschnitt 6)
 
 Phase 4 macht aus der Turnier-App einen Dienst, auf den sich die Gruppe verlassen kann: Die Daten werden jede Nacht gesichert und außer Haus gelagert, ein Ausfall fällt auf, bevor jemand anruft, und eine neue Version kommt ohne SSH auf den Heimserver. Am Ende steht der Release-Abend von v1.0, an dem auch Gate G3 aus Phase 3 abgenommen wird.
 
@@ -11,8 +11,9 @@ Weitere Unterlagen zu dieser Phase:
 | Dokument | Inhalt |
 | --- | --- |
 | [ADR-0016](../adr/0016-betrieb-backup-monitoring-deployment.md) | Backups, Monitoring und Deployment auf dem Heimserver |
+| [ADR-0017](../adr/0017-staging.md) | Staging-Umgebung `beta.topstack.win` |
 | [Heimserver einrichten](../phase3/heimserver.md) | Grundeinrichtung; bekommt in AP-1 bis AP-3 neue Abschnitte |
-| [Testplan Phase 3](../phase3/testplan.md) | Abnahmeszenario G3; neue Testfälle TC-90 bis TC-117 stehen unten |
+| [Testplan Phase 3](../phase3/testplan.md) | Abnahmeszenario G3; neue Testfälle TC-90 bis TC-121 stehen unten |
 
 ---
 
@@ -23,6 +24,7 @@ Weitere Unterlagen zu dieser Phase:
 - Nächtliche Backups mit verschlüsselter Kopie in Cloudflare R2 und regelmäßig geprüfter Wiederherstellung
 - Monitoring mit Uptime Kuma und einem Wächter von außen, Alarm als Push über ntfy
 - Automatisches Deployment: Der Heimserver holt neue Images selbst, sichert vorher und rollt bei Fehlern zurück
+- Staging `beta.topstack.win`: zweite Umgebung für jeden neuen Stand und für Pull Requests vor dem Merge
 - Semantic Versioning, Changelog und GitHub-Releases
 - Feedback-Button in der App, aus dem ein GitHub-Issue wird
 - README fürs Portfolio
@@ -61,6 +63,7 @@ flowchart LR
     AP0 --> AP4[AP-4<br/>Versionen]
     AP1 --> AP2[AP-2<br/>Monitoring]
     AP1 --> AP3[AP-3<br/>Deployment]
+    AP3 --> AP3b[AP-3b<br/>Staging]
     AP4 --> AP3
     AP0 --> AP5[AP-5<br/>Feedback]
     AP3 --> AP7[AP-7<br/>iPhone]
@@ -156,6 +159,38 @@ Der Heimserver holt neue Versionen selbst (E2). Es gibt keinen Zugang von außen
 
 **Fertig, wenn:** Ein Merge in `main` steht nach spätestens 15 Minuten ohne SSH auf dem Startbildschirm, und ein absichtlich kaputtes Image wird automatisch zurückgerollt (in der CI geprüft). **Erledigt am 23.11.2026.**
 
+### AP-3b · Staging `beta.topstack.win` (ca. 4 h) · Branch `feat/p4-staging` · ergänzt am 23.11.2026
+
+Ab v1.0 bekommt die echte App nur noch Releases (`latest`). Damit jeder neue Stand trotzdem sofort im Browser und auf dem Handy ausprobiert werden kann, läuft daneben eine zweite Umgebung. Entscheidungen in [ADR-0017](../adr/0017-staging.md).
+
+| Umgebung | Adresse | Läuft mit | Daten | Wer |
+| --- | --- | --- | --- | --- |
+| Produktion | `topstack.win` | `latest` (bis v1.0 noch `main`) | echte Gruppe | alle |
+| Staging | `beta.topstack.win` | `main`, auf Wunsch ein Pull Request (`pr-<Nummer>`) | eigene Datenbank mit Testgruppe | Peter und ausgewählte Tester |
+
+**Umsetzung im Repo**
+
+- [x] `infra/docker-compose.staging.yml` (Projekt `topstack-beta`): Web-Dienst `beta-caddy`, API, eigene PostgreSQL; kein Tunnel, kein MQTT, kein Backup. Erreichbar für den Tunnel der Produktion über das gemeinsame Netz `topstack-edge` (dort heißt nur der Staging-Dienst `beta-caddy`, damit `caddy` eindeutig bleibt), lokal über `127.0.0.1:8081`
+- [x] `infra/staging/Caddyfile`: wie die Produktion, dazu Manifest und Icons „TopStack Beta“ aus `/srv/app/beta` und `X-Robots-Tag: noindex`; die CI prüft, dass beide Dateien sonst gleich bleiben
+- [x] Dasselbe Image in beiden Umgebungen: Die API meldet `environment: staging`, die App zeigt dann ein Band „BETA · Testumgebung“ und heißt beim Hinzufügen zum Home-Bildschirm „TopStack Beta“; Passkeys gehören über `TOPSTACK_PUBLIC_ORIGIN` zu `beta.topstack.win`
+- [x] Kein Push (keine VAPID-Schlüssel) und Anmeldelinks nur an Adressen aus `MAIL_ALLOWLIST` (Pflicht), alle anderen landen im Log
+- [x] `deploy.sh` mit `TOPSTACK_STACK=staging`: eigene Compose-Datei, eigener Zustand `~/topstack-beta-state`, Health-Check über Port 8081, kein Backup, Meldungen „TopStack Beta: …“. Kanal `pr-<Nummer>` holt den Stand des PRs und springt nach Merge oder Schließen von selbst zurück auf `main`; die Produktion lehnt `pr-…` ab
+- [x] `install-timers.sh` erkennt den Staging-Klon und richtet nur `topstack-beta-deploy.timer` ein
+- [x] CI: Images `pr-<Nummer>` für PRs aus dem eigenen Repo (nicht für Dependabot); im Job `smoke` läuft Staging neben der Produktion (Band, Manifest, Icons, Netz, `deploy.sh` mit geschlossenem PR, Produktion lehnt `pr-…` ab)
+- [x] `scripts/stage.sh <Nummer>|main|status` am PC: prüft, ob die Images da sind, setzt den Kanal per SSH und spielt sofort ein
+- [x] Anleitung: [Heimserver, „Staging beta.topstack.win“](../phase3/heimserver.md#staging-betatopstackwin-phase-4-ap-3b)
+
+**Einrichten (Peter)**
+
+- [ ] Cloudflare: Hostname `beta.topstack.win` im Tunnel auf `http://beta-caddy:80`, Cloudflare Access davor (nur deine Adresse)
+- [ ] Heimserver: Produktion einmal mit `docker compose up -d` neu starten (legt das Netz `topstack-edge` an), zweiter Klon `~/topstack-beta`, `.env` aus `infra/staging/.env.example`, Start, `install-timers.sh` im Klon
+- [ ] Testgruppe mit `seed_group` auf Staging, Monitor „Beta“ in Uptime Kuma
+- [ ] Abnahme: ein Pull Request läuft vor dem Merge mit `scripts/stage.sh` auf dem Handy unter `beta.topstack.win`, die echte App bleibt unberührt (TC-118 bis TC-121)
+
+**Später, nicht in AP-3b:** Staging spielt jede Nacht das letzte Backup der Produktion ein; alte `pr-…`-Images in ghcr.io aufräumen; eigener MQTT-Bereich fürs Steuergerät (v3.0).
+
+**Fertig, wenn:** Ein PR läuft vor dem Merge auf `beta.topstack.win`, springt nach dem Merge von selbst auf `main`, und die Produktion merkt davon nichts.
+
 ### AP-4 · Versionen und Changelog (ca. 2 h) · Branch `feat/p4-versions`
 
 Festgelegt in der Befragung vom 22.11.2026: Changelog auf Englisch im Repo, auf Deutsch in der App als kurzes, einmaliges „Was ist neu“; etwa eine Woche vor dem Release-Abend `v1.0.0-rc.1`.
@@ -182,7 +217,7 @@ bash scripts/push.sh -u origin release/v0.9.0
 
 Danach den PR auf GitHub mergen. Etwa 10 Minuten später stehen Tag, Images und Release auf GitHub. Tags nie von Hand anlegen; schlägt `release.yml` fehl, auf GitHub unter Actions → Release → „Run workflow“ wiederholen.
 
-**Fertig, wenn:** Der Merge des Release-PRs `v0.9.0` erzeugt Tag, GitHub-Release, Images `0.9.0`, `0.9` und `latest`, und die App zeigt „v0.9.0“ (TC-107).
+**Fertig, wenn:** Der Merge des Release-PRs `v0.9.0` erzeugt Tag, GitHub-Release, Images `0.9.0`, `0.9` und `latest`, und die App zeigt „v0.9.0“ (TC-107). **Erledigt am 23.11.2026:** Release-PR #144, Tag und Release `v0.9.0`, Heimserver meldet 0.9.0.
 
 ### AP-5 · Feedback aus der App (ca. 2 h) · Branch `feat/p4-feedback`
 
@@ -282,6 +317,10 @@ Am Ende von Phase 4, vor dem Release-Abend (Entscheidung vom 21.11.2026):
 | TC-115 | iPhone und Android | Ein Match mit je einem Handy, Lebenspunkte in unter 2 s auf beiden | AP-7 | hoch |
 | TC-116 | iPhone: Update | Neues Update erscheint nach Neustart der App, Startbildschirm zeigt die Nummer | AP-7 | mittel |
 | TC-117 | iPhone: Darstellung | Notch und Home-Leiste verdecken keine Tasten, gedrehte Hälfte richtig | AP-7 | mittel |
+| TC-118 | Staging folgt main | Merge in `main` → nach höchstens 5 Minuten auf `beta.topstack.win`, Band „BETA“ sichtbar | AP-3b | hoch |
+| TC-119 | PR auf Staging | `scripts/stage.sh <Nummer>` → Staging zeigt „Update #<Nummer>“; nach dem Merge wieder `main` | AP-3b | hoch |
+| TC-120 | Getrennte Apps | Auf dem Handy „TopStack Beta“ mit Beta-Icon neben „TopStack“; Anmeldung, Daten und Passkeys getrennt | AP-3b | hoch |
+| TC-121 | Staging abgeschirmt | Ohne Cloudflare-Access-Anmeldung kein Zugriff; Anmeldelink an eine Adresse außerhalb der Allowlist kommt nicht an | AP-3b | mittel |
 
 ---
 
@@ -291,9 +330,9 @@ Am Ende von Phase 4, vor dem Release-Abend (Entscheidung vom 21.11.2026):
 | --- | --- | --- |
 | 1 | AP-0, AP-1 | 5 h |
 | 2 | AP-2, AP-4 | 5 h |
-| 3 | AP-3, AP-5 | 6 h |
+| 3 | AP-3, AP-3b, AP-5 | 10 h |
 | 4 | AP-6, AP-7, AP-8 | 7 h |
-| **gesamt** | | **ca. 23 h** |
+| **gesamt** | | **ca. 27 h** |
 
 Bei 6 Stunden pro Woche passt das in die geplanten 4 Wochen. Der Termin des Release-Abends hängt an der Gruppe und an einem geliehenen iPhone für AP-7.
 

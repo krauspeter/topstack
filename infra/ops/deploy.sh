@@ -4,21 +4,38 @@
 # Läuft alle 5 Minuten per systemd-Timer (topstack-deploy.timer) und von Hand:
 #   infra/ops/deploy.sh
 # Ablauf: Repo und Images zum Kanal aus TOPSTACK_VERSION holen (main = jeder Merge,
-# latest = letzte Release-Version, 1.2.3 = feste Version). Nur wenn sich etwas geändert hat:
+# latest = letzte Release-Version, 1.2.3 = feste Version, pr-<Nummer> = Stand eines Pull
+# Requests, nur Staging). Nur wenn sich etwas geändert hat:
 # Backup, neuer Stand, auf die API warten. Antwortet sie nicht, zurück auf den alten Stand
 # und diesen neuen Stand nicht noch einmal versuchen. Meldungen über ntfy (NTFY_URL).
 #
 # Deploy-Sperre für Spieleabende:  touch ~/topstack-state/deploy.lock   (aufheben: rm …)
+#
+# Staging (AP-3b): derselbe Ablauf in einem zweiten Klon (~/topstack-beta) mit
+# TOPSTACK_STACK=staging in dessen infra/.env: docker-compose.staging.yml, Zustand in
+# ~/topstack-beta-state, Health-Check über 127.0.0.1:8081, kein Backup vorher. Ein
+# pr-<Nummer>-Kanal springt nach Merge oder Schließen des Pull Requests von selbst auf main.
 set -euo pipefail
 
 main() {
   INFRA=$(cd "$(dirname "$0")/.." && pwd)
   REPO=$(cd "$INFRA/.." && pwd)
-  STATE=${DEPLOY_STATE_DIR:-$HOME/topstack-state}
-  HEALTH_URL=${DEPLOY_HEALTH_URL:-http://127.0.0.1/api/v1/health}
+  cd "$INFRA"
+  local state_default health_default
+  STACK=$(env_get TOPSTACK_STACK prod)
+  case "$STACK" in
+    prod)
+      COMPOSE_FILE_NAME=docker-compose.yml WEB=caddy LABEL=TopStack BACKUP=1
+      state_default=$HOME/topstack-state health_default=http://127.0.0.1/api/v1/health ;;
+    staging)
+      COMPOSE_FILE_NAME=docker-compose.staging.yml WEB=beta-caddy LABEL="TopStack Beta" BACKUP=0
+      state_default=$HOME/topstack-beta-state health_default=http://127.0.0.1:8081/api/v1/health ;;
+    *) log "Unbekannter TOPSTACK_STACK=$STACK (prod oder staging)."; return 1 ;;
+  esac
+  STATE=${DEPLOY_STATE_DIR:-$state_default}
+  HEALTH_URL=${DEPLOY_HEALTH_URL:-$health_default}
   HEALTH_TIMEOUT=${DEPLOY_HEALTH_TIMEOUT:-120}
   mkdir -p "$STATE"
-  cd "$INFRA"
 
   exec 9>"$STATE/deploy.flock"
   flock -n 9 || { log "Ein anderes Deployment läuft gerade."; return 0; }
@@ -31,15 +48,17 @@ main() {
   CHANNEL=$(env_get TOPSTACK_VERSION latest)
   OWNER=$(env_get GITHUB_OWNER krauspeter)
   NTFY_URL=$(env_get NTFY_URL "")
-  SERVICES=(api caddy)
-  declare -A REF=(
-    [api]="ghcr.io/$OWNER/topstack-api:$CHANNEL"
-    [caddy]="ghcr.io/$OWNER/topstack-web:$CHANNEL"
-  )
-
+  if [[ "$CHANNEL" == pr-* ]]; then
+    pr_channel || return 1  # setzt nach Merge oder Schließen des PRs CHANNEL=main
+  fi
   local old_commit new_commit
   old_commit=$(git -C "$REPO" rev-parse HEAD)
   update_repo || return 1
+  SERVICES=(api "$WEB")
+  declare -A REF=(
+    [api]="ghcr.io/$OWNER/topstack-api:$CHANNEL"
+    [$WEB]="ghcr.io/$OWNER/topstack-web:$CHANNEL"
+  )
   new_commit=$(git -C "$REPO" rev-parse HEAD)
 
   # Laufende Images vor dem Pull festhalten. Nach dem Pull hängt der Name am neuen Image; mit dem
@@ -49,7 +68,7 @@ main() {
   local svc changed=0
   for svc in "${SERVICES[@]}"; do
     RUN[$svc]=$(running_image "$svc")
-    if [ -n "${RUN[$svc]}" ] && docker tag "${RUN[$svc]}" "topstack-rollback/$svc:previous" 2>/dev/null; then
+    if [ -n "${RUN[$svc]}" ] && docker tag "${RUN[$svc]}" "topstack-rollback/$STACK-$svc:previous" 2>/dev/null; then
       PINNED[$svc]=1
     fi
   done
@@ -59,7 +78,9 @@ main() {
   elif [ "${DEPLOY_SKIP_PULL:-0}" != 1 ]; then
     # Nur die eigenen Images aus ghcr.io; Docker Hub begrenzt anonyme Abrufe (postgres, caddy usw.
     # bleiben auf ihrem Stand, bis sie von Hand mit "docker compose pull" aktualisiert werden)
-    compose --profile ops pull --quiet api caddy backup || { notify "TopStack: Images konnten nicht geladen werden" warning "Kanal $CHANNEL"; return 1; }
+    local pull=(pull --quiet api "$WEB")
+    [ "$STACK" = prod ] && pull=(--profile ops pull --quiet api caddy backup)
+    compose "${pull[@]}" || { notify "$LABEL: Images konnten nicht geladen werden" warning "Kanal $CHANNEL"; return 1; }
   fi
 
   for svc in "${SERVICES[@]}"; do
@@ -73,7 +94,7 @@ main() {
     return 0
   fi
 
-  local candidate="$new_commit ${WANT[api]} ${WANT[caddy]}"
+  local candidate="$new_commit ${WANT[api]} ${WANT[$WEB]}"
   if [ -f "$STATE/bad" ] && [ "$(cat "$STATE/bad")" = "$candidate" ]; then
     log "Dieser Stand ist schon einmal gescheitert und wird übersprungen."
     [ "$old_commit" = "$new_commit" ] || git -C "$REPO" reset -q --hard "$old_commit"
@@ -82,9 +103,11 @@ main() {
     return 0
   fi
 
-  log "Neuer Stand: Commit ${new_commit:0:7}, API ${WANT[api]:7:12}, Web ${WANT[caddy]:7:12}"
-  if ! "$INFRA/ops/backup.sh" backup pre-deploy; then
-    notify "TopStack: Update abgebrochen" warning "Das Backup vor dem Update ist fehlgeschlagen. Nichts geändert."
+  log "Neuer Stand: Commit ${new_commit:0:7}, API ${WANT[api]:7:12}, Web ${WANT[$WEB]:7:12}"
+  if [ "$BACKUP" = 0 ]; then
+    log "Staging: kein Backup vor dem Update."
+  elif ! "$INFRA/ops/backup.sh" backup pre-deploy; then
+    notify "$LABEL: Update abgebrochen" warning "Das Backup vor dem Update ist fehlgeschlagen. Nichts geändert."
     [ "$old_commit" = "$new_commit" ] || git -C "$REPO" reset -q --hard "$old_commit"
     return 1
   fi
@@ -97,7 +120,7 @@ main() {
     build=$(printf '%s' "$health" | sed -n 's/.*"pr":"\([0-9]*\)".*/\1/p')
     version=$(printf '%s' "$health" | sed -n 's/.*"version":"\([^"]*\)".*/\1/p')
     log "Update eingespielt (v${version:-?}, Update #${build:-?})."
-    notify "TopStack: Update #${build:-?} eingespielt" white_check_mark "v${version:-?}, Kanal $CHANNEL, Commit ${new_commit:0:7}"
+    notify "$LABEL: Update #${build:-?} eingespielt" white_check_mark "v${version:-?}, Kanal $CHANNEL, Commit ${new_commit:0:7}"
     rm -f "$STATE/bad"
     return 0
   fi
@@ -109,11 +132,13 @@ main() {
   restore_tags
   compose up -d || log "docker compose up meldet einen Fehler"
   if wait_healthy; then
-    notify "TopStack: Update fehlgeschlagen, zurückgerollt" warning \
+    notify "$LABEL: Update fehlgeschlagen, zurückgerollt" warning \
       "Der neue Stand (Commit ${new_commit:0:7}) hat nicht geantwortet. Der alte Stand läuft wieder; der neue wird nicht erneut versucht."
   else
-    notify "TopStack: Update und Rollback fehlgeschlagen" rotating_light \
-      "Vermutlich hat eine Migration die Datenbank verändert. Auf dem Heimserver: infra/ops/backup.sh list, dann infra/ops/restore.sh manual/<neuestes …-pre-deploy.dump>"
+    local hint="Auf dem Heimserver: infra/ops/backup.sh list, dann infra/ops/restore.sh manual/<neuestes …-pre-deploy.dump>"
+    [ "$STACK" = prod ] || hint="Staging hat kein Backup: Datenbank neu anlegen (docker compose -f docker-compose.staging.yml --env-file .env down -v) oder mit scripts/stage.sh einen anderen Stand wählen"
+    notify "$LABEL: Update und Rollback fehlgeschlagen" rotating_light \
+      "Vermutlich hat eine Migration die Datenbank verändert. $hint"
   fi
   return 1
 }
@@ -124,14 +149,14 @@ restore_tags() {  # Image-Namen zurück auf die festgehaltenen, vorher laufenden
   local svc
   for svc in "${SERVICES[@]}"; do
     if [ -n "${PINNED[$svc]:-}" ]; then
-      docker tag "topstack-rollback/$svc:previous" "${REF[$svc]}"
+      docker tag "topstack-rollback/$STACK-$svc:previous" "${REF[$svc]}"
     else
       log "Für $svc gibt es kein festgehaltenes Image, der Name bleibt."
     fi
   done
 }
 
-compose() { docker compose --env-file "$INFRA/.env" "$@"; }
+compose() { docker compose -f "$INFRA/$COMPOSE_FILE_NAME" --env-file "$INFRA/.env" "$@"; }
 
 env_get() {  # env_get <name> <standard>: Wert aus infra/.env
   local v
@@ -148,10 +173,15 @@ running_image() {  # Image-ID des laufenden Containers eines Dienstes, sonst lee
 update_repo() {
   [ "${DEPLOY_SKIP_GIT:-0}" != 1 ] || return 0
   if [ -n "$(git -C "$REPO" status --porcelain --untracked-files=no)" ]; then
-    notify "TopStack: Update angehalten" warning "Im Repo auf dem Heimserver gibt es lokale Änderungen. Bitte prüfen: git -C $REPO status"
+    notify "$LABEL: Update angehalten" warning "Im Repo auf dem Heimserver gibt es lokale Änderungen. Bitte prüfen: git -C $REPO status"
     return 1
   fi
   case "$CHANNEL" in
+    pr-*)
+      # Stand eines Pull Requests (nur Staging, gesetzt mit scripts/stage.sh)
+      git -C "$REPO" fetch -q origin "pull/${CHANNEL#pr-}/head"
+      git -C "$REPO" checkout -q --detach FETCH_HEAD
+      ;;
     main)
       git -C "$REPO" fetch -q origin main
       if [ "$(git -C "$REPO" rev-parse --abbrev-ref HEAD)" != main ]; then git -C "$REPO" checkout -q main; fi
@@ -169,6 +199,22 @@ update_repo() {
       git -C "$REPO" checkout -q "v$CHANNEL"
       ;;
   esac
+}
+
+pr_channel() {  # pr-<Nummer>: nach Merge oder Schließen des PRs zurück auf main
+  if [ "$STACK" != staging ]; then
+    notify "$LABEL: Kanal $CHANNEL nur für Staging" warning "In der Produktion gibt es keine Stände aus Pull Requests. Bitte TOPSTACK_VERSION in infra/.env prüfen."
+    return 1
+  fi
+  local state
+  state=$(curl -fsS -m 10 "https://api.github.com/repos/$OWNER/topstack/pulls/${CHANNEL#pr-}" 2>/dev/null \
+    | sed -n 's/^  "state": "\([a-z]*\)",$/\1/p' | head -n1 || true)
+  if [ "$state" = closed ]; then
+    sed -i "s/^TOPSTACK_VERSION=.*/TOPSTACK_VERSION=main/" "$INFRA/.env"
+    notify "$LABEL: zurück auf main" information_source "Pull Request #${CHANNEL#pr-} ist gemergt oder geschlossen, Staging folgt wieder main."
+    CHANNEL=main
+  fi
+  return 0
 }
 
 wait_healthy() {

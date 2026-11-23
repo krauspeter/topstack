@@ -59,6 +59,8 @@ services:
     environment:
       TUNNEL_TOKEN: ${CF_TUNNEL_TOKEN:?CF_TUNNEL_TOKEN fehlt in .env}
     depends_on: [caddy]
+    # edge: erreicht auch Staging (beta.topstack.win → http://beta-caddy:80, AP-3b)
+    networks: [default, edge]
 
   # Backups (Phase 4, AP-1, ADR-0016). Läuft nur auf Abruf, nachts per systemd-Timer:
   #   docker compose --env-file .env --profile ops run --rm backup backup nightly
@@ -98,6 +100,12 @@ services:
     restart: unless-stopped
     ports: ["127.0.0.1:3001:3001"]
     volumes: [uptime-kuma-data:/app/data]
+    networks: [default, edge]  # Monitor für Staging: http://beta-caddy/api/v1/health
+
+# Gemeinsames Netz mit dem Staging-Stack (docker-compose.staging.yml), nur für Tunnel und Monitor
+networks:
+  edge:
+    name: topstack-edge
 
 volumes:
   uptime-kuma-data:
