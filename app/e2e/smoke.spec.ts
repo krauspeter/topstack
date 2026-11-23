@@ -73,7 +73,8 @@ test('Best-of-3 bis zum Matchsieg', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Neues Match' })).toBeVisible();
 });
 
-test('Draftplätze auslosen', async ({ page }) => {
+// Test: Button auf der Startseite vorübergehend entfernt (AP-3-Probe), danach wieder aktivieren.
+test.skip('Draftplätze auslosen', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Draftplätze auslosen' }).click();
   for (const name of ['Anna', 'Ben', 'Chris', 'Dana', 'Eli']) {
