@@ -62,8 +62,35 @@ class ResendMailer:
             raise MailError(f"Resend antwortet {response.status_code}: {response.text[:200]}")
 
 
+class AllowlistMailer:
+    """Staging (AP-3b): verschickt nur an freigegebene Adressen, alles andere landet im Log.
+
+    So kann auf ``beta.topstack.win`` niemand versehentlich echte Mitspieler anschreiben.
+    """
+
+    def __init__(self, inner: Mailer, allowed: frozenset[str]) -> None:
+        self._inner = inner
+        self._allowed = allowed
+
+    async def send(self, mail: Mail) -> None:
+        if mail.to.strip().lower() in self._allowed:
+            await self._inner.send(mail)
+            return
+        log.warning(
+            "E-Mail an %s zurückgehalten (nicht auf der Allowlist): %s\n%s",
+            mail.to,
+            mail.subject,
+            mail.text,
+        )
+
+
 def get_mailer() -> Mailer:
     """FastAPI-Abhängigkeit; Tests ersetzen sie durch einen Mailer, der Mails sammelt."""
-    if settings.resend_api_key:
-        return ResendMailer(settings.resend_api_key, settings.mail_from)
-    return LogMailer()
+    inner: Mailer = (
+        ResendMailer(settings.resend_api_key, settings.mail_from)
+        if settings.resend_api_key
+        else LogMailer()
+    )
+    if settings.mail_allowed:
+        return AllowlistMailer(inner, settings.mail_allowed)
+    return inner

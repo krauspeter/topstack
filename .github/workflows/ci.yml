@@ -34,6 +34,15 @@ jobs:
         run: bash scripts/check-version.sh
       - name: Skripte im Repo prüfen (shellcheck)
         run: shellcheck --severity=warning scripts/*.sh
+      - name: Staging-Caddyfile gleich der Produktion bis auf den Beta-Block (AP-3b)
+        run: diff <(sed '/# BETA-START/,/# BETA-END/d; 1d' infra/staging/Caddyfile) <(sed 1d infra/Caddyfile)
+      - name: stage.sh erkennt vorhandene und fehlende Images (AP-3b)
+        run: |
+          owner=${{ github.repository_owner }}
+          eval "$(sed -n '/^image_exists()/,/^}/p' scripts/stage.sh)"
+          image_exists topstack-api 0.9.0 && echo "✓ 0.9.0 vorhanden"
+          if image_exists topstack-api pr-0 2>/dev/null; then echo "✗ pr-0 dürfte es nicht geben"; exit 1; fi
+          echo "✓ pr-0 fehlt"
       - name: Release-Skript in einer Wegwerf-Kopie
         run: |
           git config --global user.name ci && git config --global user.email ci@example.invalid
@@ -237,6 +246,41 @@ jobs:
           DEPLOY_PULL_HOOK="$broken" ops/deploy.sh | tee /tmp/d3
           check "übersprungen" 'grep -q "übersprungen" /tmp/d3'
           check "API läuft weiter mit dem alten Image" '[ "$(running)" = "$good" ]'
+      - name: Staging-Stack neben der Produktion (AP-3b)
+        run: |
+          check() { if eval "$2"; then echo "  ✓ $1"; else echo "  ✗ $1"; return 1; fi; }
+          # Eigener Klon wie auf dem Heimserver (~/topstack-beta); gebaut wurde oben mit dem Tag latest
+          beta=/tmp/topstack-beta
+          git clone -q .. "$beta"
+          printf 'TOPSTACK_STACK=staging\nTOPSTACK_VERSION=latest\nTOPSTACK_PUBLIC_ORIGIN=http://localhost:8081\nPOSTGRES_PASSWORD=ci-beta\nMAIL_ALLOWLIST=peter@example.com\n' > "$beta/infra/.env"
+          docker network create topstack-edge 2>/dev/null || true
+          cd "$beta/infra"
+          docker compose -f docker-compose.staging.yml --env-file .env up -d --wait --wait-timeout 180
+          check "Staging meldet environment staging" "curl -fsS http://localhost:8081/api/v1/health | grep -q '\"environment\":\"staging\"'"
+          check "Manifest „TopStack Beta“" "curl -fsS http://localhost:8081/manifest.webmanifest | grep -q 'TopStack Beta'"
+          check "Beta-Icon statt des normalen" "curl -fsS -o /tmp/beta.png http://localhost:8081/icon-512.png && ! cmp -s /tmp/beta.png $GITHUB_WORKSPACE/app/public/icon-512.png"
+          check "keine Suchmaschinen" "curl -fsSI http://localhost:8081/ | grep -qi 'x-robots-tag: noindex'"
+          check "Produktion bleibt prod" "curl -fsS http://localhost/api/v1/health | grep -q '\"environment\":\"prod\"'"
+          check "Produktion mit normalem Manifest" "! curl -fsS http://localhost/manifest.webmanifest | grep -q Beta"
+          check "Tunnel-Netz erreicht beta-caddy" "docker run --rm --network topstack-edge curlimages/curl -fsS http://beta-caddy/api/v1/health | grep -q staging"
+          check "im Tunnel-Netz kein zweiter Dienst caddy" "! docker run --rm --network topstack-edge busybox nslookup caddy >/dev/null 2>&1"
+          echo "== deploy.sh auf Staging: nichts Neues, kein Backup"
+          cd "$beta"
+          DEPLOY_SKIP_GIT=1 DEPLOY_SKIP_PULL=1 DEPLOY_HEALTH_TIMEOUT=60 infra/ops/deploy.sh | tee /tmp/b1
+          check "keine Änderung" 'grep -q "Keine Änderung (Kanal latest)" /tmp/b1'
+          echo "== geschlossener Pull Request: Kanal springt auf main"
+          sed -i 's/^TOPSTACK_VERSION=.*/TOPSTACK_VERSION=pr-141/' infra/.env
+          DEPLOY_SKIP_GIT=1 DEPLOY_SKIP_PULL=1 infra/ops/deploy.sh | tee /tmp/b2 || true
+          check "zurück auf main" "grep -q '^TOPSTACK_VERSION=main' infra/.env && grep -q 'zurück auf main' /tmp/b2"
+          echo "== Produktion lehnt pr-Kanäle ab"
+          prod_env=$GITHUB_WORKSPACE/infra/.env
+          cp "$prod_env" /tmp/prod.env
+          echo 'TOPSTACK_VERSION=pr-141' >> "$prod_env"
+          if DEPLOY_SKIP_GIT=1 DEPLOY_SKIP_PULL=1 DEPLOY_STATE_DIR=/tmp/deploy-state "$GITHUB_WORKSPACE/infra/ops/deploy.sh" | tee /tmp/b3; then
+            echo "  ✗ hätte abgelehnt werden müssen"; exit 1
+          fi
+          cp /tmp/prod.env "$prod_env"
+          check "abgelehnt" 'grep -q "nur für Staging" /tmp/b3'
       - name: Logs bei Fehler
         if: failure()
         run: docker compose --env-file .env logs --no-color
@@ -259,7 +303,14 @@ jobs:
           - { image: topstack-web, context: app }
           - { image: topstack-backup, context: infra/backup }
     env:
-      PUSH: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+      MAIN: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+      # Staging (AP-3b): PRs aus dem eigenen Repo bekommen ein Image pr-<Nummer> für scripts/stage.sh;
+      # nicht für Forks und Dependabot (deren Token darf keine Pakete schreiben)
+      PUSH: >-
+        ${{ (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+        (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.actor != 'dependabot[bot]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v4
@@ -292,8 +343,11 @@ jobs:
             BUILD_PR=${{ steps.build.outputs.pr }}
             BUILD_SHA=${{ github.sha }}
             BUILD_TIME=${{ steps.build.outputs.time }}
-          # main = jeder Merge (Beta-Kanal); latest und Versionsnummern setzt release.yml beim Tag v*
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:main,ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
+          # main = jeder Merge; latest und Versionsnummern setzt release.yml; pr-<Nummer> für Staging
+          tags: >-
+            ${{ env.MAIN == 'true'
+            && format('ghcr.io/{0}/{1}:main,ghcr.io/{0}/{1}:{2}', github.repository_owner, matrix.image, github.sha)
+            || format('ghcr.io/{0}/{1}:pr-{2}', github.repository_owner, matrix.image, github.event.pull_request.number) }}
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}

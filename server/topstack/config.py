@@ -21,11 +21,17 @@ class Settings(BaseSettings):
     # E-Mail über Resend (Entscheidung E2); ohne Schlüssel landen Links nur im Log
     resend_api_key: str | None = None
     mail_from: str = "TopStack <login@topstack.win>"
+    # Staging (AP-3b): nur an diese Adressen wirklich senden, kommagetrennt; leer = an alle
+    mail_allowlist: str = ""
 
     # Web Push (AP-8): Schlüssel aus `python -m topstack.scripts.vapid_keys`; leer = kein Push
     vapid_public_key: str | None = None
     vapid_private_key: str | None = None
     vapid_subject: str = "mailto:admin@topstack.win"
+
+    @property
+    def mail_allowed(self) -> frozenset[str]:
+        return frozenset(a.strip().lower() for a in self.mail_allowlist.split(",") if a.strip())
 
     @property
     def secure_cookies(self) -> bool:

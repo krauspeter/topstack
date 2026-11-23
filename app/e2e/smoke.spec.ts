@@ -145,3 +145,23 @@ test('Was ist neu erscheint nach einem Update einmal', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Neues Match' })).toBeVisible();
   await expect(dialog).toHaveCount(0);
 });
+
+test('Staging zeigt das Beta-Band, Produktion nicht', async ({ page }) => {
+  let env = 'staging';
+  await page.route('**/api/v1/health', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 'ok', environment: env, build: { pr: '', sha: '', time: '' } }),
+    }),
+  );
+  await page.goto('/');
+  const band = page.getByRole('note', { name: 'Testumgebung' });
+  await expect(band).toBeVisible();
+  await expect(page).toHaveTitle('TopStack Beta');
+
+  env = 'prod';
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Neues Match' })).toBeVisible();
+  await expect(band).toHaveCount(0);
+});

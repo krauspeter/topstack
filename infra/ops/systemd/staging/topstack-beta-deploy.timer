@@ -1,0 +1,9 @@
+[Unit]
+Description=TopStack Beta: alle 5 Minuten nach einem neuen Stand sehen
+
+[Timer]
+OnBootSec=4min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

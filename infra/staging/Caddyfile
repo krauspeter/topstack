@@ -1,0 +1,39 @@
+# Staging beta.topstack.win (AP-3b). TLS und Cloudflare Access davor übernimmt Cloudflare.
+:80 {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	handle /ws {
+		reverse_proxy api:8000
+	}
+	# BETA-START: nur Staging (AP-3b). Eigenes Manifest und Icons „TopStack Beta“ aus /srv/app/beta.
+	# Sonst gleich wie infra/Caddyfile; die CI prüft das.
+	@beta path /manifest.webmanifest /apple-touch-icon.png /icon-192.png /icon-512.png /icon-maskable-512.png /icon.svg
+	handle @beta {
+		root * /srv/app/beta
+		header Cache-Control "no-cache"
+		file_server
+	}
+	# Keine Suchmaschinen auf der Testumgebung
+	header X-Robots-Tag "noindex, nofollow"
+	# BETA-END
+	handle {
+		root * /srv/app
+		# Dateien mit Hash im Namen dürfen ewig im Cache bleiben,
+		# alles andere (index.html, sw.js, Manifest) wird immer neu geprüft.
+		@hashed path /assets/*
+		@other not path /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		header @other Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+}
