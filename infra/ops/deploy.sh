@@ -74,6 +74,11 @@ main() {
   fi
 
   log "Neuer Stand: Commit ${new_commit:0:7}, API ${WANT[api]:7:12}, Web ${WANT[caddy]:7:12}"
+  # Laufende Images festhalten: Nach dem Pull hängt an ihnen kein Name mehr, und sobald
+  # "up -d" die Container ersetzt, würde Docker sie löschen. Der Rollback braucht sie aber.
+  for svc in "${SERVICES[@]}"; do
+    [ -z "${RUN[$svc]}" ] || docker tag "${RUN[$svc]}" "topstack-rollback/$svc:previous"
+  done
   if ! "$INFRA/ops/backup.sh" backup pre-deploy; then
     notify "TopStack: Update abgebrochen" warning "Das Backup vor dem Update ist fehlgeschlagen. Nichts geändert."
     [ "$old_commit" = "$new_commit" ] || git -C "$REPO" reset -q --hard "$old_commit"
@@ -96,7 +101,7 @@ main() {
   echo "$candidate" >"$STATE/bad"
   [ "$old_commit" = "$new_commit" ] || git -C "$REPO" reset -q --hard "$old_commit"
   for svc in "${SERVICES[@]}"; do
-    [ -z "${RUN[$svc]}" ] || docker tag "${RUN[$svc]}" "${REF[$svc]}"
+    [ -z "${RUN[$svc]}" ] || docker tag "topstack-rollback/$svc:previous" "${REF[$svc]}"
   done
   compose up -d || log "docker compose up meldet einen Fehler"
   if wait_healthy; then
