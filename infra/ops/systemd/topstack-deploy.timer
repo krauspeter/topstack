@@ -1,0 +1,9 @@
+[Unit]
+Description=TopStack: alle 5 Minuten nach einer neuen Version sehen
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

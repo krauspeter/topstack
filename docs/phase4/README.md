@@ -120,31 +120,41 @@ Ein Monitoring auf demselben Rechner kann nicht melden, dass dieser Rechner aus 
 
 **Einrichten (Peter)**
 
-- [ ] ntfy auf dem Handy, Thema mit zufälligem Namen; die Nachrichten enthalten keine Spielerdaten (E3)
-- [ ] healthchecks.io: Checks `TopStack Heimserver` (5 min, 10 min Grace), `TopStack Backup` (03:30, 2 h Grace, Alarm bis spätestens 05:30), `TopStack Wiederherstellungstest` (am 1. um 04:30), alle mit ntfy verbunden; Ping-URLs in der `.env`
-- [ ] Uptime Kuma: Monitore `App` (mit Zertifikatsablauf), `API und Datenbank` (Schlüsselwort `"status":"ok"`), `MQTT`, `Wächter healthchecks.io` (meldet sich alle 5 Minuten nach außen); Benachrichtigung über ntfy
-- [ ] Probealarme: Datenbank stoppen, Stack stoppen, Netzwerkkabel ziehen, Backup ausbleiben lassen
+- [x] ntfy auf dem Handy, Thema mit zufälligem Namen; die Nachrichten enthalten keine Spielerdaten (E3)
+- [x] healthchecks.io: Checks `TopStack Heimserver` (5 min, 10 min Grace), `TopStack Backup` (03:30, 2 h Grace, Alarm bis spätestens 05:30), `TopStack Wiederherstellungstest` (am 1. um 04:30), alle mit ntfy verbunden; Ping-URLs in der `.env`
+- [x] Uptime Kuma: Monitore `App` (mit Zertifikatsablauf), `API und Datenbank` (Schlüsselwort `"status":"ok"`), `MQTT`, `Wächter healthchecks.io` (meldet sich alle 5 Minuten nach außen); Benachrichtigung über ntfy
+- [x] Probealarme: Datenbank stoppen, Stack stoppen, Netzwerkkabel ziehen, Backup als fehlgeschlagen melden; alle DOWN- und UP-Meldungen kamen an (22.11.2026)
 
-**Fertig, wenn:** Alle Probealarme kommen innerhalb von 15 Minuten als Push an.
+**Fertig, wenn:** Alle Probealarme kommen innerhalb von 15 Minuten als Push an. **Erledigt am 22.11.2026.**
 
 ### AP-3 · Automatisches Deployment (ca. 4 h) · Branch `feat/p4-deploy`
 
 Der Heimserver holt neue Versionen selbst (E2). Es gibt keinen Zugang von außen und keinen Runner mit Rechten auf dem Server.
 
-- [ ] CI-Tags: auf `main` wie bisher Commit-SHA plus neu `main`; bei einem Git-Tag `v*` zusätzlich `1.0.0`, `1.0` und `latest`. `latest` heißt damit „letzte Release-Version“
-- [ ] Kanal in der `.env` des Heimservers: `TOPSTACK_VERSION=main` während der Beta, ab v1.0 `latest`
-- [ ] Skript `infra/ops/deploy.sh`: Repo aktualisieren (Kanal `main`: `git pull --ff-only`; Kanal `latest`: neuesten Tag auschecken), `docker compose pull`, Digests vergleichen; nur wenn sich etwas geändert hat:
-  1. Backup wie in AP-1 (Grund `pre-deploy`)
-  2. bisherige Digests nach `~/topstack-state/last-good.env` schreiben
-  3. `docker compose up -d`
-  4. bis zu 2 Minuten auf `/api/v1/health` mit der neuen Version warten
-  5. bei Erfolg Push über ntfy mit der neuen Update-Nummer, bei Fehler Rollback auf `last-good.env` und Alarm
-- [ ] Migrationen, die sich nicht zurückrollen lassen: Rollback stellt dann zusätzlich das `pre-deploy`-Backup wieder her (nur nach Bestätigung, Skript bricht sonst mit Anleitung ab)
-- [ ] Deploy-Sperre: Liegt `~/topstack-state/deploy.lock`, wird nichts ausgerollt. Gedacht für Spieleabende, damit kein Update mitten im Turnier kommt
-- [ ] systemd-Timer `topstack-deploy.timer` alle 5 Minuten
-- [ ] `heimserver.md`, Abschnitt 7 „Aktualisieren“ neu: automatisch, Sperre, Rollback von Hand
+**Umsetzung im Repo**
 
-**Fertig, wenn:** Ein Merge in `main` steht nach spätestens 15 Minuten ohne SSH auf dem Startbildschirm, und ein absichtlich kaputtes Image wird automatisch zurückgerollt.
+- [x] CI-Tags: auf `main` Commit-SHA und `main`; der neue Workflow `release.yml` versieht bei einem Git-Tag `vX.Y.Z` die schon getesteten Images dieses Commits mit `X.Y.Z`, `X.Y` und `latest`, ohne neu zu bauen. `latest` heißt damit „letzte Release-Version“
+- [x] Kanal in der `.env` des Heimservers: `TOPSTACK_VERSION=main` während der Beta, ab v1.0 `latest`
+- [x] Skript `infra/ops/deploy.sh`:
+  1. Repo zum Kanal aktualisieren (`main`: Fast-Forward; `latest`: neuester Tag `v*`; feste Version: dieser Tag); lokale Änderungen im Repo halten das Update an
+  2. nur die eigenen Images aus ghcr.io holen (Docker Hub begrenzt anonyme Abrufe) und mit den laufenden Containern vergleichen
+  3. nur bei Änderung: Backup `pre-deploy`, `docker compose up -d`, bis zu 2 Minuten auf `/api/v1/health` warten
+  4. Erfolg: Push über ntfy mit der Update-Nummer
+  5. Fehler: Repo und Images auf den alten Stand, Push „zurückgerollt“; dieser Stand wird nicht erneut versucht
+- [x] Migrationen, die sich nicht zurückrollen lassen: Scheitert auch der Rollback, kommt ein Push mit der Anleitung für `infra/ops/restore.sh` und dem `pre-deploy`-Backup; zurückgespielt wird nur von Hand
+- [x] Deploy-Sperre: Liegt `~/topstack-state/deploy.lock`, wird nichts ausgerollt
+- [x] Gleiche Meldung höchstens alle 6 Stunden, damit ein Dauerproblem (Internet weg, lokale Änderung) nicht alle 5 Minuten einen Push auslöst
+- [x] systemd-Timer `topstack-deploy.timer` alle 5 Minuten, eingerichtet mit `install-timers.sh`
+- [x] CI: im Job `smoke` echte Durchläufe ohne Änderung, mit kaputtem API-Image (Rollback, Backup vorher) und mit demselben kaputten Image noch einmal (übersprungen)
+- [x] Lokal geprüft mit nachgebautem Docker: neues Image, kaputtes Image mit Rollback, Überspringen, Sperre, gescheitertes Backup; mit echtem Git: neuer Commit, kaputter Commit mit Zurücksetzen, lokale Änderung
+- [x] `heimserver.md`, Abschnitt 7 „Aktualisieren“ neu: Ablauf, Einrichtung, Sperre, Rollback von Hand
+
+**Einrichten (Peter)**
+
+- [ ] `.env`: `TOPSTACK_VERSION=main`, `NTFY_URL`; `deploy.sh` einmal von Hand, `install-timers.sh` erneut
+- [ ] Ein echter Merge kommt ohne SSH auf dem Startbildschirm an
+
+**Fertig, wenn:** Ein Merge in `main` steht nach spätestens 15 Minuten ohne SSH auf dem Startbildschirm, und ein absichtlich kaputtes Image wird automatisch zurückgerollt (in der CI geprüft).
 
 ### AP-4 · Versionen und Changelog (ca. 2 h) · Branch `chore/p4-versioning`
 
