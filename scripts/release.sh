@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1111  # deutsche Anführungszeichen „…“ in Meldungen sind gewollt
 # Bereitet ein Release vor (AP-4): Version setzen, Changelog-Abschnitt anlegen, Branch und Commit.
 # Aufruf auf dem PC im Repo:  bash scripts/release.sh 0.9.0      (oder 1.0.0-rc.1, 1.0.0 …)
 #

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1111  # deutsche Anführungszeichen „…“ in Meldungen sind gewollt
 # Prüft, dass App und Server dieselbe Version tragen und der Changelog dazu passt (AP-4).
 # Aufruf: bash scripts/check-version.sh   (läuft in der CI bei jedem PR)
 #
