@@ -13,6 +13,8 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-23
+
 ### Added
 
 - Versions and changelog: one version for app and server, `scripts/release.sh`,
@@ -41,4 +43,5 @@ section into a release; a short German "Was ist neu" for the app lives in
 - Offline life tracker as PWA: best-of-3, d20 roll, time limit, multicolour and
   colourless decks, undo, seat draw with pass direction (#49, #50, #51)
 
-[Unreleased]: https://github.com/krauspeter/topstack/commits/main
+[Unreleased]: https://github.com/krauspeter/topstack/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/krauspeter/topstack/releases/tag/v0.9.0
