@@ -21,7 +21,7 @@ Ab v1.0 nutzt die ganze Gruppe TopStack, und die Rangliste soll über Jahre wach
 - Alarme als Push über ntfy, ohne Spielerdaten in den Nachrichten.
 
 **Deployment (E2)**
-- Die CI pusht Images mit Commit-SHA und `main` für jeden Merge, bei einem Tag `v*` zusätzlich die Versionsnummern und `latest`.
+- Die CI pusht Images mit Commit-SHA und `main` für jeden Merge; nach dem Merge eines Release-PRs (`scripts/release.sh`) setzt `release.yml` Tag `v*`, Versionsnummern und `latest` (Vorabversionen nie `latest`; ergänzt in AP-4).
 - Der Heimserver holt alle 5 Minuten per systemd-Timer (`infra/ops/deploy.sh`), was zu seinem Kanal passt (`main` in der Beta, `latest` ab v1.0). Nur bei neuen Digests: Backup, letzte gute Digests merken, `up -d`, auf die neue Version im Health-Check warten, sonst automatischer Rollback der Images und Alarm.
 - Eine Sperrdatei verhindert Deployments während eines Spieleabends.
 

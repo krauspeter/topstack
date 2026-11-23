@@ -133,7 +133,7 @@ Der Heimserver holt neue Versionen selbst (E2). Es gibt keinen Zugang von außen
 
 **Umsetzung im Repo**
 
-- [x] CI-Tags: auf `main` Commit-SHA und `main`; der neue Workflow `release.yml` versieht bei einem Git-Tag `vX.Y.Z` die schon getesteten Images dieses Commits mit `X.Y.Z`, `X.Y` und `latest`, ohne neu zu bauen. `latest` heißt damit „letzte Release-Version“
+- [x] CI-Tags: auf `main` Commit-SHA und `main`; der neue Workflow `release.yml` versieht die schon getesteten Images eines Release-Commits mit `X.Y.Z`, `X.Y` und `latest`, ohne neu zu bauen (seit AP-4 ausgelöst durch den Merge des Release-PRs). `latest` heißt damit „letzte Release-Version“
 - [x] Kanal in der `.env` des Heimservers: `TOPSTACK_VERSION=main` während der Beta, ab v1.0 `latest`
 - [x] Skript `infra/ops/deploy.sh`:
   1. Repo zum Kanal aktualisieren (`main`: Fast-Forward; `latest`: neuester Tag `v*`; feste Version: dieser Tag); lokale Änderungen im Repo halten das Update an
@@ -151,21 +151,38 @@ Der Heimserver holt neue Versionen selbst (E2). Es gibt keinen Zugang von außen
 
 **Einrichten (Peter)**
 
-- [ ] `.env`: `TOPSTACK_VERSION=main`, `NTFY_URL`; `deploy.sh` einmal von Hand, `install-timers.sh` erneut
-- [ ] Ein echter Merge kommt ohne SSH auf dem Startbildschirm an
+- [x] `.env`: `TOPSTACK_VERSION=main`, `NTFY_URL`; `deploy.sh` einmal von Hand (Update #140 mit Backup vorher), `install-timers.sh` erneut (23.11.2026)
+- [x] Ein echter Merge kommt ohne SSH auf dem Startbildschirm an: Probe mit #141 (Button „Draftplätze auslosen“ entfernt) und #142 (zurück), beide ohne SSH angekommen (23.11.2026)
 
-**Fertig, wenn:** Ein Merge in `main` steht nach spätestens 15 Minuten ohne SSH auf dem Startbildschirm, und ein absichtlich kaputtes Image wird automatisch zurückgerollt (in der CI geprüft).
+**Fertig, wenn:** Ein Merge in `main` steht nach spätestens 15 Minuten ohne SSH auf dem Startbildschirm, und ein absichtlich kaputtes Image wird automatisch zurückgerollt (in der CI geprüft). **Erledigt am 23.11.2026.**
 
-### AP-4 · Versionen und Changelog (ca. 2 h) · Branch `chore/p4-versioning`
+### AP-4 · Versionen und Changelog (ca. 2 h) · Branch `feat/p4-versions`
 
-- [ ] Semantic Versioning für App und API gemeinsam: eine Version für das ganze Repo, Git-Tag `vMAJOR.MINOR.PATCH`
-- [ ] Bis zum Release `0.9.x` als Beta, der Release-Abend bekommt `v1.0.0`
-- [ ] `CHANGELOG.md` nach „Keep a Changelog“, auf Deutsch, Abschnitt „Unveröffentlicht“ wird in jedem PR ergänzt; Hinweis im PR-Template
-- [ ] Skript `scripts/release.sh 1.0.0`: Version in `app/package.json` und `server/pyproject.toml` setzen, Changelog-Abschnitt umbenennen, Commit und Tag anlegen
-- [ ] Workflow `release.yml`: bei Tag `v*` GitHub-Release mit dem passenden Changelog-Abschnitt
-- [ ] Startbildschirm zeigt die Version vor der Update-Nummer, zum Beispiel „v1.0.0 · Update #140“
+Festgelegt in der Befragung vom 22.11.2026: Changelog auf Englisch im Repo, auf Deutsch in der App als kurzes, einmaliges „Was ist neu“; etwa eine Woche vor dem Release-Abend `v1.0.0-rc.1`.
 
-**Fertig, wenn:** Ein Tag `v0.9.0` erzeugt ein GitHub-Release, Images mit der Versionsnummer und die Anzeige in der App.
+**Umsetzung im Repo**
+
+- [x] Semantic Versioning für App und API gemeinsam: eine Version für das ganze Repo in `app/package.json`, `server/pyproject.toml` und `server/topstack/__init__.py`; `scripts/check-version.sh` prüft in jedem PR, dass alle gleich sind und zum Changelog passen
+- [x] Bis zum Release-Abend `0.9.x` als Beta, eine Woche vorher `1.0.0-rc.1`, der Release-Abend bekommt `1.0.0`
+- [x] `CHANGELOG.md` nach „Keep a Changelog“ auf Englisch; jeder PR ergänzt eine Zeile unter „Unreleased“ (Hinweis im PR-Template); bisherige Geschichte als erster Eintrag
+- [x] „Was ist neu“ auf Deutsch in `app/src/whatsNew.ts`, höchstens vier Punkte pro Version; erscheint nach einem Update auf eine neue Version einmal, nicht auf ganz neuen Geräten
+- [x] Skript `scripts/release.sh 0.9.0`: Branch `release/v0.9.0`, Version an allen Stellen, „Unreleased“ wird zum Abschnitt der Version, Commit; prüft Format, Reihenfolge und dass es Einträge gibt
+- [x] Workflow `release.yml` nach dem Merge des Release-PRs: wartet auf die getesteten Images des Commits, versieht sie mit `X.Y.Z` (Endversion zusätzlich `X.Y` und `latest`), legt den Tag `vX.Y.Z` und das GitHub-Release mit dem Changelog-Abschnitt an. Vorabversionen werden als Pre-Release markiert und nie `latest`, auch nicht in `deploy.sh`
+- [x] Startbildschirm zeigt die Version vor der Update-Nummer, z. B. „v0.9.0 · Update #144 · 23.11.2026, 17:10“; der Push nach einem Deployment nennt die Version
+- [x] CI: Unit-Tests für Anzeige und „Was ist neu“, E2E-Test für den einmaligen Hinweis, Release-Skript in einer Wegwerf-Kopie, `shellcheck` für `scripts/`
+
+**Ein Release erstellen (Peter, auf dem PC)**
+
+```bash
+git switch main && git pull
+bash scripts/release.sh 0.9.0                 # legt den Branch release/v0.9.0 an
+# optional vorher: „Was ist neu“ in app/src/whatsNew.ts ergänzen
+bash scripts/push.sh -u origin release/v0.9.0
+```
+
+Danach den PR auf GitHub mergen. Etwa 10 Minuten später stehen Tag, Images und Release auf GitHub. Tags nie von Hand anlegen; schlägt `release.yml` fehl, auf GitHub unter Actions → Release → „Run workflow“ wiederholen.
+
+**Fertig, wenn:** Der Merge des Release-PRs `v0.9.0` erzeugt Tag, GitHub-Release, Images `0.9.0`, `0.9` und `latest`, und die App zeigt „v0.9.0“ (TC-107).
 
 ### AP-5 · Feedback aus der App (ca. 2 h) · Branch `feat/p4-feedback`
 
@@ -254,7 +271,7 @@ Am Ende von Phase 4, vor dem Release-Abend (Entscheidung vom 21.11.2026):
 | TC-104 | Merge in `main` | Neue Update-Nummer nach spätestens 15 Minuten, Push „Update #… eingespielt“ | AP-3 | hoch |
 | TC-105 | Kaputtes Image | Health schlägt fehl, Rollback auf den letzten guten Stand, Alarm | AP-3 | hoch |
 | TC-106 | Deploy-Sperre | Mit `deploy.lock` wird nichts ausgerollt, ohne Sperre beim nächsten Lauf | AP-3 | hoch |
-| TC-107 | Release-Tag | Tag `v0.9.0` → Release auf GitHub, Images `0.9.0`, `0.9`, `latest`, Anzeige in der App | AP-4 | hoch |
+| TC-107 | Release | Release-PR `v0.9.0` gemergt → Tag und Release auf GitHub, Images `0.9.0`, `0.9`, `latest`, Anzeige „v0.9.0“ und einmal „Was ist neu“ in der App | AP-4 | hoch |
 | TC-108 | Feedback | Formular → Issue mit Labels, ohne E-Mail-Adresse | AP-5 | hoch |
 | TC-109 | Feedback ohne GitHub | Eintrag bleibt in der Datenbank, wird später nachgeschickt | AP-5 | mittel |
 | TC-110 | iPhone: installieren | Safari → „Zum Home-Bildschirm“, App startet im Vollbild mit Icon | AP-7 | hoch |

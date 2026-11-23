@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BUILD, buildLabel } from '../build';
+import { markVersionSeen, pendingWhatsNew, seenAtStartup } from '../whatsNew';
 import type { Account } from '../store/useAccount';
 
 interface Props {
@@ -58,7 +59,33 @@ export function Home({ account, onNewMatch, onSeating, onLogin, onProfile, onTou
         <p className="muted small">Läuft auch ohne Internet · Spielstand bleibt auf diesem Gerät gespeichert</p>
         <BuildLine />
       </footer>
+      <WhatsNew />
     </main>
+  );
+}
+
+/** Nach einem Update auf eine neue Version einmal kurz zeigen, was neu ist (AP-4). */
+function WhatsNew() {
+  const [entries, setEntries] = useState(() => pendingWhatsNew(BUILD.version, seenAtStartup()));
+  if (entries.length === 0) return null;
+  const close = () => {
+    markVersionSeen(BUILD.version);
+    setEntries([]);
+  };
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-label="Was ist neu">
+      <div className="sheet whats-new">
+        <h2>Was ist neu in v{BUILD.version}</h2>
+        <ul>
+          {entries.map((e) => (
+            <li key={e}>{e}</li>
+          ))}
+        </ul>
+        <button className="btn primary big" onClick={close}>
+          Alles klar
+        </button>
+      </div>
+    </div>
   );
 }
 

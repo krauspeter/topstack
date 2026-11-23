@@ -7,7 +7,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 declare const process: { env: Record<string, string | undefined> };
 
 // Woher dieser Build kommt; die CI setzt die Werte beim Image-Bau (siehe Dockerfile)
+// Die Version kommt aus package.json: npm setzt npm_package_version bei jedem „npm run …“
 const build = {
+  version: process.env.npm_package_version ?? '',
   pr: process.env.BUILD_PR ?? '',
   sha: (process.env.BUILD_SHA ?? '').slice(0, 7),
   time: process.env.BUILD_TIME ?? '',

@@ -1,16 +1,18 @@
 /**
- * Welches Update läuft gerade? Die CI schreibt beim Image-Bau die Nummer des Pull
- * Requests, den Commit und die Uhrzeit hinein (BUILD_PR, BUILD_SHA, BUILD_TIME).
+ * Welches Update läuft gerade? Die Version kommt aus package.json (gesetzt von
+ * scripts/release.sh), die CI schreibt beim Image-Bau die Nummer des Pull Requests,
+ * den Commit und die Uhrzeit hinein (BUILD_PR, BUILD_SHA, BUILD_TIME).
  */
-declare const __BUILD__: { pr: string; sha: string; time: string };
+declare const __BUILD__: BuildInfo;
 
 export interface BuildInfo {
+  version: string;
   pr: string;
   sha: string;
   time: string;
 }
 
-export const BUILD: BuildInfo = typeof __BUILD__ === 'undefined' ? { pr: '', sha: '', time: '' } : __BUILD__;
+export const BUILD: BuildInfo = typeof __BUILD__ === 'undefined' ? { version: '', pr: '', sha: '', time: '' } : __BUILD__;
 
 /** Zeit in deutscher Schreibweise und deutscher Zeitzone, z. B. „21.11.2026, 12:40“. */
 export function buildTime(iso: string): string {
@@ -26,9 +28,8 @@ export function buildTime(iso: string): string {
   });
 }
 
-/** Kurzer Text für den Startbildschirm, z. B. „Update #118 · 21.11.2026, 12:40“. */
+/** Kurzer Text für den Startbildschirm, z. B. „v0.9.0 · Update #143 · 23.11.2026, 16:40“. */
 export function buildLabel(b: BuildInfo): string {
   const name = b.pr ? `Update #${b.pr}` : b.sha ? `Stand ${b.sha}` : 'Entwicklungsstand';
-  const time = buildTime(b.time);
-  return time ? `${name} · ${time}` : name;
+  return [b.version && `v${b.version}`, name, buildTime(b.time)].filter(Boolean).join(' · ');
 }

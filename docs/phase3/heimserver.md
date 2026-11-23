@@ -144,7 +144,7 @@ Prüfen, dass von außen nichts offen ist (vom Handy im Mobilfunknetz, nicht im 
 
 Seit Phase 4 (AP-3, [ADR-0016](../adr/0016-betrieb-backup-monitoring-deployment.md)) aktualisiert sich der Heimserver selbst. Der Timer `topstack-deploy.timer` ruft alle 5 Minuten `infra/ops/deploy.sh` auf:
 
-1. Repo und Images zum Kanal aus `TOPSTACK_VERSION` holen: `main` (jeder Merge, Beta), `latest` (letzte Release-Version, ab v1.0) oder eine feste Version wie `1.0.0`.
+1. Repo und Images zum Kanal aus `TOPSTACK_VERSION` holen: `main` (jeder Merge, Beta), `latest` (letzte Release-Version ohne Vorabversionen wie `1.0.0-rc.1`, ab v1.0) oder eine feste Version wie `1.0.0`.
 2. Hat sich nichts geändert, ist das Skript fertig.
 3. Sonst: Backup (`manual/…-pre-deploy`), neuen Stand starten, bis zu 2 Minuten auf `/api/v1/health` warten.
 4. Antwortet die API: Push „TopStack: Update #… eingespielt“.

@@ -178,6 +178,7 @@ input {
 .overlay { position: fixed; inset: 0; background: rgb(0 0 0 / 0.6); display: grid; place-items: center; padding: var(--space); z-index: 10; }
 .sheet { width: min(420px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: grid; gap: 12px; text-align: center; }
 .sheet p { line-height: 1.5; margin-bottom: 4px; }
+.whats-new ul { text-align: left; padding-left: 1.2em; display: grid; gap: 8px; line-height: 1.5; }
 
 /* ---------- Match-Ende ---------- */
 .trophy .cup { width: 64px; justify-self: center; fill: var(--gold); stroke: var(--gold); stroke-width: 3; }

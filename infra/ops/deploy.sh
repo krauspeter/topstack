@@ -92,10 +92,12 @@ main() {
   # Fehler beim Start entscheidet der Health-Check, nicht set -e
   compose up -d || log "docker compose up meldet einen Fehler"
   if wait_healthy; then
-    local build
-    build=$(curl -fsS -m 5 "$HEALTH_URL" | sed -n 's/.*"pr":"\([0-9]*\)".*/\1/p')
-    log "Update eingespielt (Update #${build:-?})."
-    notify "TopStack: Update #${build:-?} eingespielt" white_check_mark "Kanal $CHANNEL, Commit ${new_commit:0:7}"
+    local health build version
+    health=$(curl -fsS -m 5 "$HEALTH_URL" || true)
+    build=$(printf '%s' "$health" | sed -n 's/.*"pr":"\([0-9]*\)".*/\1/p')
+    version=$(printf '%s' "$health" | sed -n 's/.*"version":"\([^"]*\)".*/\1/p')
+    log "Update eingespielt (v${version:-?}, Update #${build:-?})."
+    notify "TopStack: Update #${build:-?} eingespielt" white_check_mark "v${version:-?}, Kanal $CHANNEL, Commit ${new_commit:0:7}"
     rm -f "$STATE/bad"
     return 0
   fi
@@ -158,7 +160,8 @@ update_repo() {
     latest)
       git -C "$REPO" fetch -q --tags origin
       local tag
-      tag=$(git -C "$REPO" tag -l 'v*' --sort=-v:refname | head -n1)
+      # Vorabversionen (v1.0.0-rc.1) zählen nicht als latest, wie in release.yml
+      tag=$(git -C "$REPO" tag -l 'v*' --sort=-v:refname | grep -v -- - | head -n1 || true)
       if [ -n "$tag" ]; then git -C "$REPO" checkout -q "$tag"; else log "Noch keine Release-Version, Repo bleibt."; fi
       ;;
     *)
