@@ -186,7 +186,7 @@ Ab v1.0 bekommt die echte App nur noch Releases (`latest`). Damit jeder neue Sta
 - [x] Zweite Access-Anwendung „TopStack Beta – Installation“ mit **Bypass** für `manifest.webmanifest` und die Icons: Der Browser lädt das Manifest ohne Cookie, hinter Access war die App deshalb nicht installierbar (24.11.2026)
 - [x] Heimserver: Netz `topstack-edge`, zweiter Klon `~/topstack-beta`, `.env` aus `infra/staging/.env.example`, Start, `install-timers.sh` im Klon (vier Timer aktiv, 23.11.2026)
 - [x] Testgruppe mit `seed_group` auf Staging, Anmeldung mit Magic-Link und Passkey, App „TopStack Beta“ auf dem Handy installiert (24.11.2026); Monitor „Beta“ in Uptime Kuma mit Wartung 22 bis 8 Uhr
-- [ ] Abnahme: ein Pull Request läuft vor dem Merge mit `scripts/stage.sh` auf dem Handy unter `beta.topstack.win`, die echte App bleibt unberührt (TC-118 bis TC-121)
+- [x] Abnahme: PR #146 lief vor dem Merge mit `scripts/stage.sh 146` auf dem Handy unter `beta.topstack.win`, die echte App blieb auf #145; nach dem Merge zurück auf `main` (TC-118 bis TC-121, 24.11.2026). Dabei aufgefallen: ein einzelner Timeout von ghcr.io löste einen Alarm aus, seit PR #147 drei Versuche. **AP-3b erledigt 24.11.2026**
 
 **Später, nicht in AP-3b:** Staging spielt jede Nacht das letzte Backup der Produktion ein; alte `pr-…`-Images in ghcr.io aufräumen; eigener MQTT-Bereich fürs Steuergerät (v3.0).
 
@@ -233,18 +233,18 @@ Geändert in der Befragung vom 22.11.2026: Im öffentlichen Issue steht nur eine
 - [x] Nicht übertragene Einträge gehen beim nächsten Feedback, beim Start der API und danach alle 30 Minuten raus
 - [x] Skript `python -m topstack.scripts.feedback list|show|screenshot|resend` für den Heimserver (Absender und Screenshot nur dort)
 - [x] Staging ohne Token: Feedback bleibt dort in der Datenbank
-- [ ] Einrichten: Fine-grained Token nur für `krauspeter/topstack`, nur „Issues: Read and write“, als `FEEDBACK_GITHUB_TOKEN` in `~/topstack/infra/.env` ([Heimserver, „Feedback einrichten“](../phase3/heimserver.md#feedback-einrichten-phase-4-ap-5))
+- [x] Einrichten: Fine-grained Token nur für `krauspeter/topstack`, nur „Issues: Read and write“, als `FEEDBACK_GITHUB_TOKEN` in `~/topstack/infra/.env` ([Heimserver, „Feedback einrichten“](../phase3/heimserver.md#feedback-einrichten-phase-4-ap-5)); Issues #148 und #149 aus der App, #148 vor dem Token abgeschickt und danach selbst nachgeschickt (TC-108, TC-109, 24.11.2026). **AP-5 erledigt 24.11.2026**
 - [ ] Ablauf alle zwei Wochen: offene `feedback`-Issues sichten, Labels und Meilenstein setzen, Fehler für die nächste Version einplanen
 
 **Fertig, wenn:** Feedback vom Handy erscheint als Issue, auch wenn GitHub beim Absenden kurz nicht erreichbar war (TC-108, TC-109; in der CI mit nachgebautem GitHub geprüft).
 
 ### AP-6 · README fürs Portfolio (ca. 2 h) · Branch `docs/p4-readme`
 
-- [ ] Einleitung in zwei Sätzen, Screenshots (Life-Tracker, Tischgrafik, Live-Ansicht, Rangliste) aus Playwright erzeugt, damit sie aktuell bleiben
-- [ ] Architekturbild als Mermaid aus `docs/architektur.md`
-- [ ] Abschnitte: Funktionen, Tech-Stack, Architekturentscheidungen (Liste der ADRs), Tests und CI, Betrieb, Roadmap
-- [ ] Badges: CI, Lizenz, neueste Version
-- [ ] Englische Fassung `README.en.md`, da das Portfolio auch für englischsprachige Bewerbungen gedacht ist
+- [x] Einleitung in zwei Sätzen, Screenshots (Life-Tracker, Tischgrafik, Live-Ansicht, Rangliste) aus Playwright mit erfundenen Daten: `app/e2e/screenshots.spec.ts`, nur mit `SCREENSHOTS=1`; der Workflow „Screenshots“ legt sie nach `docs/img/` auf den Branch (läuft von selbst, wenn sich die Datei ändert, sonst von Hand)
+- [x] Architekturbild als Mermaid, erweitert um Staging, CI, ghcr.io, Backups und Monitoring
+- [x] Abschnitte: Funktionen, Architektur, Tech-Stack, Architekturentscheidungen (Liste der ADRs), Tests und CI, Betrieb, Roadmap, Aufbau, Lokal entwickeln
+- [x] Badges: CI, neueste Version, Lizenz
+- [x] Englische Fassung `README.en.md`, da das Portfolio auch für englischsprachige Bewerbungen gedacht ist; Hinweis auf die Fan Content Policy in beiden
 
 **Fertig, wenn:** Das README zeigt auf GitHub alle Screenshots und das Architekturbild.
 
