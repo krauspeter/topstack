@@ -28,10 +28,10 @@ export function Home({
   onOpenTournament,
 }: Props) {
   const me = account.status === 'signed-in' ? account.me : null;
-  const cards = useHomeCards(me);
+  const { cards, reload } = useHomeCards(me);
   const inGroup = me !== null && me.groups.length > 0;
-  // Gold gehört dem nächsten Schritt (ADR-0011): im Turnier der Knopf der Karte, sonst das freie Match
-  const matchPrimary = !cards.some((c) => c.primary);
+  // Gold (ADR-0011): im laufenden Turnier gehört es der Karte, sonst dem freien Match
+  const matchPrimary = !cards.some((c) => c.hot || c.primary);
 
   if (cards.length > 0) {
     return (
@@ -46,7 +46,7 @@ export function Home({
         </header>
 
         {cards.map((c) => (
-          <TournamentCard key={c.id} card={c} onOpen={onOpenTournament} />
+          <TournamentCard key={c.id} card={c} onOpen={onOpenTournament} onChanged={reload} />
         ))}
 
         <nav className="stack">

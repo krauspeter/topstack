@@ -1,15 +1,15 @@
 import { type ReactNode, useCallback, useEffect, useState } from 'react';
-import { api } from '../api/client';
+import { ApiError, api, errorText } from '../api/client';
 import { useLive } from '../api/live';
 import type { Me, Tournament, TournamentSummary } from '../api/types';
-import { type HomeCard, homeCard, localToday, showOnHome } from '../domain/homeCard';
+import { type HomeCard, type LiveLine, homeCard, showOnHome, sortCards } from '../domain/homeCard';
 
 /**
  * Laufende Turniere, in denen ich eingetragen bin, als Karte auf der Startseite (Vorschlag A,
  * eingeschoben in Phase 4 am 24.11.2026). Daten aus den bestehenden Endpunkten; aktualisiert
  * sich live über den WebSocket und beim Zurückkehren in die App.
  */
-export function useHomeCards(me: Me | null): HomeCard[] {
+export function useHomeCards(me: Me | null): { cards: HomeCard[]; reload(): void } {
   const [cards, setCards] = useState<HomeCard[]>([]);
 
   const load = useCallback(async () => {
@@ -18,14 +18,10 @@ export function useHomeCards(me: Me | null): HomeCard[] {
       return;
     }
     try {
-      const today = localToday();
       const lists = await Promise.all(me.groups.map((g) => api<TournamentSummary[]>(`/groups/${g.id}/tournaments`)));
-      const ids = lists.flat().filter((t) => showOnHome(t.status, t.held_on, today)).map((t) => t.id);
+      const ids = lists.flat().filter((t) => showOnHome(t.status, t.finished_at)).map((t) => t.id);
       const details = await Promise.all(ids.map((id) => api<Tournament>(`/tournaments/${id}`)));
-      const found = details.map(homeCard).filter((c): c is HomeCard => c !== null);
-      // Laufendes vor beendetem, höchstens zwei Karten
-      found.sort((a, b) => Number(a.state.kind === 'finished') - Number(b.state.kind === 'finished'));
-      setCards(found.slice(0, 2));
+      setCards(sortCards(details.map(homeCard).filter((c): c is HomeCard => c !== null)));
     } catch {
       // offline oder Server weg: Startseite ohne Karte, der Rest funktioniert weiter
     }
@@ -44,12 +40,14 @@ export function useHomeCards(me: Me | null): HomeCard[] {
   useLive(cards[0]?.id ?? null, () => void load());
   useLive(cards[1]?.id ?? null, () => void load());
 
-  return cards;
+  return { cards, reload: () => void load() };
 }
 
 interface CardProps {
   card: HomeCard;
   onOpen(id: string): void;
+  /** Nach einer Aktion auf der Karte neu laden (falls man auf der Startseite bleibt). */
+  onChanged(): void;
 }
 
 function scoreText(mine: number, theirs: number): string {
@@ -58,14 +56,117 @@ function scoreText(mine: number, theirs: number): string {
   return `${mine}:${theirs}`;
 }
 
-export function TournamentCard({ card, onOpen }: CardProps) {
+function LiveList({ live }: { live: LiveLine[] }) {
+  if (live.length === 0) return null;
+  return (
+    <ul className="tc-others" aria-label="Laufende Matches">
+      {live.map((l) => (
+        <li key={`${l.a}-${l.b}`}>
+          <span>{l.a}</span>
+          <strong>{l.lifeA !== null && l.lifeB !== null ? `${l.lifeA} : ${l.lifeB}` : '–'}</strong>
+          <span>{l.b}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Kurze Rückfrage vor „Match vorziehen“ und „Nächste Runde starten“ direkt auf der Startseite. */
+function useCardAction(card: HomeCard, onOpen: (id: string) => void, onChanged: () => void) {
+  const [ask, setAsk] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const a = card.action;
+
+  const post = async (path: string, body?: unknown) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api<Tournament>(`/tournaments/${card.id}${path}`, { method: 'POST', body });
+      setAsk(null);
+      setWarning(null);
+      onOpen(card.id);
+    } catch (err) {
+      const code = err instanceof ApiError ? err.extra.code : undefined;
+      if (path === '/rounds/next' && (code === 'missing_colors' || code === 'open_matches')) {
+        setWarning((err as ApiError).message);
+      } else {
+        setError(errorText(err));
+        onChanged();
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirm = () => {
+    if (a.kind === 'pull') void post(`/matches/${a.matchId}/start`);
+    if (a.kind === 'next_round') void post('/rounds/next', { confirm: warning !== null });
+  };
+
+  const trigger = () => {
+    if (a.kind === 'pull') setAsk(`Match gegen ${a.opponent} aus Runde ${a.round} jetzt vorziehen?`);
+    else if (a.kind === 'next_round') setAsk(`Runde ${a.round} jetzt starten?`);
+    else onOpen(card.id);
+  };
+
+  const dialog =
+    ask !== null ? (
+      <div className="overlay" role="dialog" aria-modal="true" aria-label="Bestätigen">
+        <div className="sheet">
+          <p>{warning ?? ask}</p>
+          {error && (
+            <p className="warn" role="alert">
+              {error}
+            </p>
+          )}
+          <button className="btn primary big" disabled={busy} onClick={confirm}>
+            {warning ? 'Trotzdem starten' : a.kind === 'pull' ? 'Vorziehen' : 'Starten'}
+          </button>
+          <button
+            className="btn big"
+            onClick={() => {
+              setAsk(null);
+              setWarning(null);
+              setError(null);
+            }}
+          >
+            Zurück
+          </button>
+        </div>
+      </div>
+    ) : null;
+
+  return { trigger, dialog };
+}
+
+export function TournamentCard({ card, onOpen, onChanged }: CardProps) {
   const s = card.state;
+  const a = card.action;
   const open = () => onOpen(card.id);
+  const { trigger, dialog } = useCardAction(card, onOpen, onChanged);
   let label: string;
   let title: string;
   let text: string | null = null;
   let action: string;
   let extra: ReactNode = null;
+
+  // Aktion in Pause und nach dem eigenen Match
+  const freeAction =
+    a.kind === 'next_round'
+      ? `Runde ${a.round} starten`
+      : a.kind === 'pull'
+        ? 'Match vorziehen'
+        : a.kind === 'live'
+          ? 'Live-Ansicht öffnen'
+          : 'Zum Turnier';
+  const pullHint =
+    a.kind === 'pull' ? (
+      <p className="tc-text">
+        Dein Match gegen <strong>{a.opponent}</strong> aus Runde {a.round} kann vorgezogen werden.
+      </p>
+    ) : null;
 
   switch (s.kind) {
     case 'invited':
@@ -100,23 +201,33 @@ export function TournamentCard({ card, onOpen }: CardProps) {
       break;
     case 'done':
       label = 'TURNIER LÄUFT';
-      title = 'Dein Match ist fertig';
-      text = s.canNextRound
-        ? 'Alle Matches dieser Runde sind fertig.'
-        : `Noch ${s.openMatches} ${s.openMatches === 1 ? 'Match' : 'Matches'} in dieser Runde offen.`;
-      action = s.canNextRound ? 'Nächste Runde starten' : 'Zum Turnier';
-      break;
-    case 'bye':
-      [label, title, action] = ['PAUSE', 'Du hast gerade frei', 'Live-Ansicht öffnen'];
+      title = a.kind === 'next_round' ? 'Runde fertig' : 'Dein Match ist fertig';
+      text =
+        a.kind === 'next_round' || s.openMatches === 0
+          ? s.allPlayed
+            ? 'Alle Matches sind gespielt. Abschließen im Turnier.'
+            : 'Alle Matches dieser Runde sind fertig.'
+          : `Noch ${s.openMatches} ${s.openMatches === 1 ? 'Match' : 'Matches'} in dieser Runde offen.`;
+      action = freeAction;
       extra = (
         <>
-          {s.next && (
-            <p className="tc-text muted">
-              Nächster Gegner: {s.next.display_name} (Runde {s.next.round}) · eure Bilanz {s.next.wins}-{s.next.draws}-
-              {s.next.losses}
-            </p>
-          )}
-          {s.live.length > 0 && <p className="tc-text small">Live: {s.live.join(' · ')}</p>}
+          {pullHint}
+          <LiveList live={s.live} />
+        </>
+      );
+      break;
+    case 'bye':
+      [label, title, action] = ['PAUSE', 'Du hast gerade frei', freeAction];
+      extra = (
+        <>
+          {pullHint ??
+            (s.next && (
+              <p className="tc-text muted">
+                Nächster Gegner: {s.next.display_name} (Runde {s.next.round}) · eure Bilanz {s.next.wins}-{s.next.draws}-
+                {s.next.losses}
+              </p>
+            ))}
+          <LiveList live={s.live} />
         </>
       );
       break;
@@ -135,8 +246,9 @@ export function TournamentCard({ card, onOpen }: CardProps) {
 
   const showStats = card.place !== null && s.kind !== 'finished';
   const head = [label, card.setCode, card.roundLabel].filter(Boolean).join(' · ');
+  const isTrigger = a.kind === 'pull' || a.kind === 'next_round';
   return (
-    <section className={card.primary ? 'tournament-card hot' : 'tournament-card'} aria-label={`Turnier ${card.setCode}`}>
+    <section className={card.hot ? 'tournament-card hot' : 'tournament-card'} aria-label={`Turnier ${card.setCode}`}>
       <div className="tc-head">
         <span className={s.kind === 'paused' || s.kind === 'finished' ? 'tc-dot off' : 'tc-dot'} aria-hidden="true" />
         <span>{head}</span>
@@ -160,7 +272,7 @@ export function TournamentCard({ card, onOpen }: CardProps) {
           </div>
         </dl>
       )}
-      <button className={card.primary ? 'btn primary big' : s.kind === 'bye' ? 'btn big gold-outline' : 'btn big'} onClick={open}>
+      <button className={card.primary ? 'btn primary big' : 'btn big'} onClick={isTrigger ? trigger : open}>
         {action}
       </button>
       {action !== 'Zum Turnier' && (
@@ -168,6 +280,7 @@ export function TournamentCard({ card, onOpen }: CardProps) {
           Zum Turnier: Tabelle und Spielplan ›
         </button>
       )}
+      {dialog}
     </section>
   );
 }

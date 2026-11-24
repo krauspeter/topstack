@@ -131,10 +131,53 @@ test('Laufendes Turnier: Karte mit nächstem Schritt in Gold, live aktualisiert'
 
 test('Ohne laufendes Turnier: Startseite wie bisher, „Freies Match“ in Gold', async ({ page }) => {
   await page.route(`**/api/v1/groups/${GROUP}/tournaments`, (route) =>
-    json(route, [{ id: 't-old', set_code: 'MKM', status: 'finished', held_on: '2026-11-01', players: 6 }]),
+    json(route, [
+      { id: 't-old', set_code: 'MKM', status: 'finished', held_on: '2026-11-01', players: 6, finished_at: '2026-11-01T23:10:00Z' },
+    ]),
   );
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Freies Match' })).toHaveClass(/primary/);
   await expect(page.getByRole('button', { name: 'Turnier', exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: /Turnier / })).toHaveCount(0);
+});
+
+test('Pause: Match vorziehen von der Startseite, mit Rückfrage; Rahmen gold, „Freies Match“ grau', async ({ page }) => {
+  const t = tournament({
+    ...match('running', { life_a: 20, life_b: 11 }),
+    id: 'm5',
+    player_a_id: 'p-ben',
+    player_a: 'Ben',
+    player_b_id: 'p-dana',
+    player_b: 'Dana',
+    mine: false,
+  });
+  t.rounds.push({
+    number: 3,
+    status: 'planned',
+    bye: null,
+    matches: [{ ...match('scheduled'), id: 'm7', player_a_id: 'p-chris', player_a: 'Chris' }],
+  });
+  await page.route(`**/api/v1/groups/${GROUP}/tournaments`, (route) =>
+    json(route, [{ id: TID, set_code: 'DSK', status: 'running', held_on: '2026-12-28', players: 4 }]),
+  );
+  await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, t));
+  let pulled = false;
+  await page.route(`**/api/v1/tournaments/${TID}/matches/m7/start`, (route) => {
+    pulled = true;
+    return json(route, t);
+  });
+
+  await page.goto('/');
+  const card = page.getByRole('region', { name: 'Turnier DSK' });
+  await expect(card.getByRole('heading', { name: 'Du hast gerade frei' })).toBeVisible();
+  await expect(card).toHaveClass(/hot/);
+  await expect(page.getByRole('button', { name: 'Freies Match' })).not.toHaveClass(/primary/);
+  await expect(card.getByRole('list', { name: 'Laufende Matches' })).toContainText('Ben20 : 11Dana');
+
+  await card.getByRole('button', { name: 'Match vorziehen' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Bestätigen' });
+  await expect(dialog).toContainText('Match gegen Chris aus Runde 3 jetzt vorziehen?');
+  await dialog.getByRole('button', { name: 'Vorziehen' }).click();
+  await expect(page).toHaveURL(new RegExp(`/turnier/${TID}$`));
+  expect(pulled).toBe(true);
 });

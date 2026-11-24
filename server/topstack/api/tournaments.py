@@ -186,6 +186,7 @@ async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
         suggestion=ov.suggestion.id if ov.suggestion else None,
         cancel_vote=CancelVoteOut(**vars(vote)) if vote else None,
         next_opponent=NextOpponentOut(**vars(nxt)) if nxt else None,
+        finished_at=t.finished_at,
     )
 
 
@@ -263,7 +264,12 @@ async def list_tournaments(gid: uuid.UUID, user: CurrentUser, db: Db) -> list[To
     )
     return [
         TournamentSummary(
-            id=t.id, set_code=t.set_code, status=t.status, held_on=t.held_on, players=n
+            id=t.id,
+            set_code=t.set_code,
+            status=t.status,
+            held_on=t.held_on,
+            players=n,
+            finished_at=t.finished_at,
         )
         for t, n in rows.all()
     ]
