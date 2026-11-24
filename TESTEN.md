@@ -170,7 +170,7 @@ Der Bericht zeigt Screenshots und eine Aufzeichnung des Fehlers.
 
 Eine kurze Checkliste für einen vollständigen Durchlauf:
 
-- [ ] **Neues Match:** Namen, Farben (W U B R G), Startleben, Zeitlimit wählen
+- [ ] **Freies Match:** Namen, Farben (W U B R G), Startleben, Zeitlimit wählen
 - [ ] **W20-Wurf:** beide würfeln; bei Gleichstand neu; der Gewinner wählt, wer beginnt
 - [ ] **Lebenspunkte:** Tippen ±1, Halten ±5, Anzeige der letzten Änderung (z. B. „−7“)
 - [ ] **Rückgängig** (↶) nimmt die letzte Änderung zurück

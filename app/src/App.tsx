@@ -337,6 +337,7 @@ export function App() {
           onLeaderboard={() => navigate('/rangliste')}
           onProfile={() => navigate('/profil')}
           onFeedback={() => navigate('/feedback')}
+          onOpenTournament={(id) => navigate(`/turnier/${id}`)}
         />
       );
   }
