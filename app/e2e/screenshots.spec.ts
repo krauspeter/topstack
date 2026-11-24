@@ -9,7 +9,13 @@ import { type Page, type Route, expect, test } from '@playwright/test';
 // Node-Typen sind im App-Projekt nicht eingebunden, process gibt es zur Laufzeit trotzdem
 declare const process: { env: Record<string, string | undefined> };
 test.skip(!process.env.SCREENSHOTS, 'nur mit SCREENSHOTS=1');
-test.use({ serviceWorkers: 'block', locale: 'de-DE', timezoneId: 'Europe/Berlin' });
+// Datumsfelder nehmen das Format aus der Sprache des Browsers, nicht der Seite: deshalb --lang
+test.use({
+  serviceWorkers: 'block',
+  locale: 'de-DE',
+  timezoneId: 'Europe/Berlin',
+  launchOptions: { args: ['--lang=de-DE'], env: { LANG: 'de_DE.UTF-8', LANGUAGE: 'de' } },
+});
 
 const OUT = '../docs/img';
 const GROUP = 'g-1';
