@@ -519,6 +519,26 @@ docker compose --env-file .env exec api python -m topstack.scripts.feedback rese
 
 Steht in `list` „offen“ mit einem Fehler wie `401` oder `403`, stimmt das Token nicht (abgelaufen, falsches Repo oder Recht fehlt).
 
+## Aufräumen und persönliche Links (Phase 4)
+
+Für den Betreiber des Heimservers gibt es keine eigene Rolle in der App, sondern ein Skript. Alle Befehle **auf dem Heimserver** im Ordner `~/topstack` (für Staging `~/topstack-beta`):
+
+```bash
+infra/ops/admin.sh players                     # Spieler je Gruppe, mit Art und Zahl der Turniere
+infra/ops/admin.sh tournaments                 # Turniere je Gruppe, mit ID-Anfang
+infra/ops/admin.sh delete-tournament 3f2a1b7c  # zeigt nur, was passieren würde
+infra/ops/admin.sh delete-tournament 3f2a1b7c --apply
+infra/ops/admin.sh delete-player Ben --apply
+infra/ops/admin.sh invite-link Andreas         # persönlicher Link, einmal nutzbar
+```
+
+- Spieler gibt man über den Namen oder den Anfang der ID an, Turniere über den Set-Code oder den Anfang der ID. Passt ein Name auf mehrere, nennt das Skript alle und ändert nichts; dann die ID nehmen oder `--group "Draft-Runde"` anhängen.
+- Ohne `--apply` ändert das Skript nichts. Mit `--apply` legt es in der Produktion vorher ein Backup `manual/…-pre-admin.dump` an und bricht ab, wenn das nicht klappt. Zurück geht es wie nach einem Update: `infra/ops/backup.sh list`, dann `infra/ops/restore.sh manual/<Datei>`.
+- Gelöscht werden nur Spieler ohne Konto und Gäste. Steht ein Spieler in einem Turnier, verweigert das Skript und nennt die Turniere. Testturniere also zuerst löschen, dann die Testspieler.
+- Ein abgeschlossenes Turnier zu löschen nimmt seine Ranglistenpunkte mit. Das Skript weist darauf hin.
+- `invite-link` gibt es nur für Spieler ohne Konto. Wer den Link öffnet und sich anmeldet, übernimmt den Spieler samt Ergebnissen (ADR-0015). Gültigkeit wie in der App, mit `--days 30` länger.
+- Deploy-Sperre für den Spieleabend bleibt eine Datei: `touch ~/topstack-state/deploy.lock`, aufheben mit `rm ~/topstack-state/deploy.lock`.
+
 ## Ernstfall: auf einem anderen Rechner wiederherstellen
 
 Für den Fall, dass der Mini-PC weg ist, und als Probe für Gate G4 (TC-94). Gebraucht wird nur: das Repo von GitHub, das Backup aus R2 und der Schlüssel aus dem Passwort-Manager. Probe-Rechner ist der Windows-PC mit Docker Desktop (Entscheidung vom 21.11.2026). So am 22.11.2026 erfolgreich durchgespielt. Alle Befehle **auf dem PC in Git Bash**.
