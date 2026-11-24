@@ -9,7 +9,7 @@ import { type Page, type Route, expect, test } from '@playwright/test';
 // Node-Typen sind im App-Projekt nicht eingebunden, process gibt es zur Laufzeit trotzdem
 declare const process: { env: Record<string, string | undefined> };
 test.skip(!process.env.SCREENSHOTS, 'nur mit SCREENSHOTS=1');
-test.use({ serviceWorkers: 'block' });
+test.use({ serviceWorkers: 'block', locale: 'de-DE', timezoneId: 'Europe/Berlin' });
 
 const OUT = '../docs/img';
 const GROUP = 'g-1';
@@ -48,8 +48,9 @@ test('Life-Tracker', async ({ page }) => {
   await page.getByLabel('Spieler 2', { exact: true }).fill('Ben');
   const colors = (i: number) => page.getByRole('group', { name: `Farben für Spieler ${i}` });
   await colors(1).getByRole('button', { name: 'Rot', exact: true }).click(); // Blau (voreingestellt) plus Rot
-  await colors(2).getByRole('button', { name: 'Rot', exact: true }).click(); // Rot (voreingestellt) abwählen
+  // Erst Grün dazu, dann Rot (voreingestellt) weg: die letzte Farbe lässt sich nicht abwählen
   await colors(2).getByRole('button', { name: 'Grün', exact: true }).click();
+  await colors(2).getByRole('button', { name: 'Rot', exact: true }).click();
   await page.getByRole('button', { name: 'Weiter zum W20-Wurf' }).click();
   const anna = page.getByRole('button', { name: 'Anna würfelt' });
   const ben = page.getByRole('button', { name: 'Ben würfelt' });
@@ -63,6 +64,7 @@ test('Life-Tracker', async ({ page }) => {
   for (let i = 0; i < 7; i++) await page.getByRole('button', { name: 'Ben −1' }).click();
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Anna −1' }).click();
   await expect(page.getByTestId('life-p2')).toHaveText('13');
+  await expect(page.getByRole('img', { name: 'Grün', exact: true })).toBeVisible();
   await shoot(page, 'life-tracker');
 });
 
