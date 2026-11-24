@@ -24,6 +24,11 @@ section into a release; a short German "Was ist neu" for the app lives in
   shown there before the merge with `scripts/stage.sh`; the app shows a beta band
   and installs as "TopStack Beta"; no push, sign-in mails only to an allowlist (#145)
 
+### Fixed
+
+- Deployment: a single timeout from ghcr.io no longer raises an alert; images
+  are pulled up to three times, 30 seconds apart (#147)
+
 ## [0.9.0] - 2026-11-23
 
 ### Added

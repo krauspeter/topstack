@@ -35,6 +35,7 @@ main() {
   STATE=${DEPLOY_STATE_DIR:-$state_default}
   HEALTH_URL=${DEPLOY_HEALTH_URL:-$health_default}
   HEALTH_TIMEOUT=${DEPLOY_HEALTH_TIMEOUT:-120}
+  PULL_RETRY_SECONDS=${DEPLOY_PULL_RETRY_SECONDS:-30}
   mkdir -p "$STATE"
 
   exec 9>"$STATE/deploy.flock"
@@ -80,7 +81,17 @@ main() {
     # bleiben auf ihrem Stand, bis sie von Hand mit "docker compose pull" aktualisiert werden)
     local pull=(pull --quiet api "$WEB")
     [ "$STACK" = prod ] && pull=(--profile ops pull --quiet api caddy backup)
-    compose "${pull[@]}" || { notify "$LABEL: Images konnten nicht geladen werden" warning "Kanal $CHANNEL"; return 1; }
+    # ghcr.io antwortet gelegentlich nicht (z. B. Timeout beim Token): erst nach drei Versuchen melden
+    local try
+    for try in 1 2 3; do
+      compose "${pull[@]}" && break
+      if [ "$try" = 3 ]; then
+        notify "$LABEL: Images konnten nicht geladen werden" warning "Kanal $CHANNEL, drei Versuche"
+        return 1
+      fi
+      log "Laden fehlgeschlagen (Versuch $try von 3), neuer Versuch in ${PULL_RETRY_SECONDS}s."
+      sleep "$PULL_RETRY_SECONDS"
+    done
   fi
 
   for svc in "${SERVICES[@]}"; do
