@@ -288,7 +288,13 @@ Letzter Schritt vor v1.0. Dafür braucht es ein geliehenes iPhone mit aktuellem 
 Kleine Wünsche aus der Beta, die nicht bis v1.1 warten müssen:
 
 - [x] Profil zeigt je Gruppe, wer dazugehört: Mitglieder und vorgemerkte Spieler ohne Konto, Gäste nicht (PR #135, 21.11.2026)
-- [x] Startseite mit Turnier-Karte (Vorschlag A, Entscheidung vom 24.11.2026; Entwürfe: https://claude.ai/artifact/W4yydDccvL8prQdtuc7Ac2): Bin ich in einem laufenden Turnier eingetragen oder eingeladen, zeigt die Startseite oben eine Karte mit Set, Runde, meinem Platz, Punkten, Bilanz und dem nächsten Schritt. Zustände: eingeladen, Vorbereitung, du bist dran, dein Match läuft (Lebenspunkte live), Match fertig bzw. nächste Runde, Pause mit nächstem Gegner, pausiert, beendet (bis Mitternacht). Gold gehört dem nächsten Schritt: im Turnier der Knopf der Karte, sonst das freie Match (ADR-0011). Aktualisiert sich über den WebSocket; keine neuen Endpunkte
+- [x] Startseite mit Turnier-Karte (Vorschlag A, Entscheidung vom 24.11.2026; Entwürfe: https://claude.ai/artifact/W4yydDccvL8prQdtuc7Ac2): Bin ich in einem laufenden Turnier eingetragen oder eingeladen, zeigt die Startseite oben eine Karte mit Set, Runde, meinem Platz, Punkten, Bilanz und dem nächsten Schritt. Zustände: eingeladen, Vorbereitung, du bist dran, dein Match läuft (Lebenspunkte live), Match fertig, Pause, pausiert, beendet. Anforderungen nach Test auf Beta präzisiert (24.11.2026, 10 Fragen):
+  - Gold: Solange ich in einem nicht beendeten Turnier bin, hat die Karte den goldenen Rahmen und „Freies Match“ ist grau. Der Knopf der Karte ist gold, wenn er etwas auslöst (Match starten, Match vorziehen, nächste Runde starten). Bei zwei Karten trägt nur die obere Gold; die mit Aktion steht oben
+  - Pause oder eigenes Match fertig: „Match vorziehen“, wenn mein nächstes Match aus einer späteren Runde vorgezogen werden kann (beide frei); sonst „Live-Ansicht öffnen“. Sind alle Matches der Runde fertig und darf ich es (gleiches Recht wie im Turnier): „Runde X starten“
+  - Vorziehen und nächste Runde mit kurzer Rückfrage direkt auf der Startseite, danach ins Turnier
+  - Pause: alle laufenden Matches mit Namen und Lebenspunkten („Ben 12 : 7 Chris“)
+  - Kennzahlen Platz, Punkte, Bilanz ab dem ersten Ergebnis
+  - Beendete Turniere bleiben 24 Stunden nach dem Abschluss sichtbar (Abende enden oft nach Mitternacht); dafür liefert die API `finished_at` in Liste und Turnieransicht
 - [x] „Neues Match“ heißt jetzt „Freies Match“: grenzt es vom Turnier-Match ab; „Spiel“ bleibt die einzelne Partie im Best-of-3 (Entscheidung vom 24.11.2026)
 - [ ] Startseite mit Karte beim iPhone-Test (AP-7) und am Release-Abend prüfen
 

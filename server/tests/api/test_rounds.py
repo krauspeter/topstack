@@ -285,6 +285,10 @@ async def test_five_players_from_round_one_to_ceremony(client, session):  # TC-2
     ]
     assert all(r["status"] == "finished" for r in t["rounds"])
     assert "finish" not in t["actions"]
+    # Startseite: Abschlusszeit in Ansicht und Liste (24 h sichtbar)
+    assert t["finished_at"] is not None
+    listed = (await client.get(f"/api/v1/groups/{t['group_id']}/tournaments")).json()
+    assert next(x for x in listed if x["id"] == t["id"])["finished_at"] == t["finished_at"]
 
 
 async def test_full_tie_needs_roll(client, session):  # TC-29

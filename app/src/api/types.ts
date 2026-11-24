@@ -158,6 +158,8 @@ export interface Tournament {
   suggestion: string | null;
   cancel_vote: CancelVote | null;
   next_opponent: NextOpponent | null;
+  /** Abschlusszeit (ISO); die Startseite zeigt das Turnier 24 h danach noch. */
+  finished_at?: string | null;
 }
 
 export interface TrackerPlayer {
@@ -220,6 +222,7 @@ export interface TournamentSummary {
   status: TournamentStatus;
   held_on: string;
   players: number;
+  finished_at?: string | null;
 }
 
 export interface GuestLink {

@@ -239,6 +239,7 @@ class TournamentOut(BaseModel):
     suggestion: uuid.UUID | None = None  # Match, das freie Spieler vorziehen können
     cancel_vote: CancelVoteOut | None = None
     next_opponent: NextOpponentOut | None = None  # nur wenn ich gerade frei bin
+    finished_at: datetime | None = None  # Abschluss; Startseite zeigt das Turnier 24 h danach
 
 
 class TournamentSummary(BaseModel):
@@ -247,6 +248,7 @@ class TournamentSummary(BaseModel):
     status: str
     held_on: date
     players: int
+    finished_at: datetime | None = None
 
 
 class InviteBody(BaseModel):

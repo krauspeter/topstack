@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MatchInfo, Standing, Tournament } from '../api/types';
-import { homeCard, localToday, showOnHome } from './homeCard';
+import { type HomeCard, homeCard, showOnHome, sortCards } from './homeCard';
 
 const ME = 'p-anna';
 
@@ -83,13 +83,28 @@ const withMyMatch = (extra: Partial<MatchInfo>) =>
     current_round: 2,
   });
 
+/** Ich (Anna) habe in Runde 2 frei, Ben und Dana spielen; spätere Runden frei wählbar. */
+const bye = (later: MatchInfo[][], extra: Partial<Tournament> = {}) =>
+  tournament({
+    rounds: [
+      {
+        number: 2,
+        status: 'running',
+        bye: 'Anna',
+        matches: [match('m2', ['p-ben', 'Ben'], ['p-dana', 'Dana'], { status: 'running', life_a: 20, life_b: 11 })],
+      },
+      ...later.map((matches, i) => ({ number: 3 + i, status: 'planned' as const, bye: null, matches })),
+    ],
+    ...extra,
+  });
+
 describe('Turnier-Karte auf der Startseite', () => {
-  it('Du bist dran: Gegner, Runde, Platz, Punkte, Bilanz, goldener Knopf', () => {
+  it('Du bist dran: Gegner, Runde, Platz, Punkte, Bilanz, goldener Rahmen und Knopf', () => {
     const card = homeCard(tournament())!;
     expect(card.state).toEqual({ kind: 'your_turn', opponent: 'Ben' });
     expect(card.roundLabel).toBe('RUNDE 2 VON 3');
     expect([card.place, card.matchPoints, card.record]).toEqual([1, 3, '1-0-0']);
-    expect(card.primary).toBe(true);
+    expect([card.hot, card.primary, card.action.kind]).toEqual([true, true, 'open']);
   });
 
   it('Match läuft: Lebenspunkte und Spielstand aus meiner Sicht (ich bin Spieler B)', () => {
@@ -100,35 +115,67 @@ describe('Turnier-Karte auf der Startseite', () => {
     expect(card.primary).toBe(true);
   });
 
-  it('Pause: nächster Gegner und Live-Stand der anderen, kein Gold', () => {
+  it('Vorgezogenes Match läuft: Karte zeigt mein Match, nicht die Pause', () => {
+    const card = homeCard(bye([[match('m3', [ME, 'Anna'], ['p-chris', 'Chris'], { status: 'running', life_a: 17, life_b: 9 })]]))!;
+    expect(card.state).toMatchObject({ kind: 'playing', opponent: 'Chris', myLife: 17, oppLife: 9 });
+  });
+
+  it('Pause ohne Vorziehen: Live-Stand der anderen, Rahmen gold, Knopf grau', () => {
     const card = homeCard(
-      tournament({
-        rounds: [
-          {
-            number: 2,
-            status: 'running',
-            bye: 'Anna',
-            matches: [match('m2', ['p-ben', 'Ben'], ['p-dana', 'Dana'], { status: 'running', life_a: 20, life_b: 11 })],
-          },
-        ],
+      bye([[match('m3', [ME, 'Anna'], ['p-ben', 'Ben'])]], {
         next_opponent: { player_id: 'p-ben', display_name: 'Ben', round: 3, wins: 2, draws: 1, losses: 0 },
       }),
     )!;
-    expect(card.state).toMatchObject({ kind: 'bye', live: ['Ben – Dana 20 : 11'] });
+    expect(card.state).toMatchObject({ kind: 'bye', live: [{ a: 'Ben', b: 'Dana', lifeA: 20, lifeB: 11 }] });
     expect(card.state.kind === 'bye' && card.state.next?.display_name).toBe('Ben');
-    expect(card.primary).toBe(false);
+    expect([card.hot, card.primary, card.action.kind]).toEqual([true, false, 'live']);
   });
 
-  it('Mein Match fertig: nächste Runde golden, sobald alle Matches fertig sind', () => {
-    const open = homeCard(withMyMatch({ status: 'finished', games_b: 2 }))!;
-    expect(open.state).toEqual({ kind: 'done', canNextRound: false, openMatches: 1 });
-    expect(open.primary).toBe(false);
-    const ready = homeCard({ ...withMyMatch({ status: 'finished', games_b: 2 }), open_in_current: 0 })!;
-    expect(ready.state).toEqual({ kind: 'done', canNextRound: true, openMatches: 0 });
-    expect(ready.primary).toBe(true);
+  it('Pause: mein nächstes Match vorziehen, wenn der Gegner frei ist', () => {
+    const card = homeCard(bye([[match('m3', ['p-chris', 'Chris'], [ME, 'Anna'])]]))!;
+    expect(card.action).toEqual({ kind: 'pull', matchId: 'm3', opponent: 'Chris', round: 3 });
+    expect(card.primary).toBe(true);
   });
 
-  it('Beendet: Endplatz, Ranglistenpunkte und Sieger', () => {
+  it('Vorziehen nur für das nächste eigene Match und nur mit Recht zum Eintragen', () => {
+    const later = homeCard(bye([[match('m3', [ME, 'Anna'], ['p-ben', 'Ben'])], [match('m4', [ME, 'Anna'], ['p-chris', 'Chris'])]]))!;
+    expect(later.action.kind).toBe('live');
+    const noRight = homeCard(bye([[match('m3', [ME, 'Anna'], ['p-chris', 'Chris'], { can_report: false })]]))!;
+    expect(noRight.action.kind).toBe('live');
+  });
+
+  it('Mein Match fertig, andere spielen noch: Live-Ansicht, sonst Vorziehen', () => {
+    const t = tournament({
+      rounds: [
+        {
+          number: 2,
+          status: 'running',
+          bye: null,
+          matches: [
+            match('m2', ['p-ben', 'Ben'], [ME, 'Anna'], { status: 'finished', games_b: 2 }),
+            match('m5', ['p-dana', 'Dana'], ['p-chris', 'Chris'], { status: 'running', life_a: 5, life_b: 12 }),
+          ],
+        },
+        { number: 3, status: 'planned', bye: null, matches: [match('m3', [ME, 'Anna'], ['p-dana', 'Dana'])] },
+      ],
+    });
+    const waiting = homeCard(t)!;
+    expect(waiting.state).toMatchObject({ kind: 'done', openMatches: 1, live: [{ a: 'Dana', b: 'Chris', lifeA: 5, lifeB: 12 }] });
+    expect([waiting.action.kind, waiting.primary]).toEqual(['live', false]);
+    t.rounds[1].matches[0] = match('m3', [ME, 'Anna'], ['p-ben', 'Ben']);
+    expect(homeCard(t)!.action).toEqual({ kind: 'pull', matchId: 'm3', opponent: 'Ben', round: 3 });
+  });
+
+  it('Runde fertig: nächste Runde starten, nur mit Recht dazu', () => {
+    const ready = { ...withMyMatch({ status: 'finished', games_b: 2 }), open_in_current: 0 };
+    const card = homeCard(ready)!;
+    expect(card.action).toEqual({ kind: 'next_round', round: 3 });
+    expect(card.primary).toBe(true);
+    const noRight = homeCard({ ...ready, actions: ['report_result'] })!;
+    expect([noRight.action.kind, noRight.primary]).toEqual(['open', false]);
+  });
+
+  it('Beendet: Endplatz, Ranglistenpunkte und Sieger, ohne Gold', () => {
     const card = homeCard(
       tournament({
         status: 'finished',
@@ -140,11 +187,13 @@ describe('Turnier-Karte auf der Startseite', () => {
     )!;
     expect(card.state).toEqual({ kind: 'finished', place: 2, points: 3, winner: 'Dana' });
     expect(card.roundLabel).toBe('');
-    expect(card.primary).toBe(false);
+    expect([card.hot, card.primary]).toEqual([false, false]);
   });
 
   it('Vorbereitung, Einladung und Pause', () => {
-    expect(homeCard(tournament({ status: 'drafting', current_round: null }))!.state).toEqual({ kind: 'prep', label: 'Draft läuft' });
+    const prep = homeCard(tournament({ status: 'drafting', current_round: null }))!;
+    expect(prep.state).toEqual({ kind: 'prep', label: 'Draft läuft' });
+    expect(prep.hot).toBe(true);
     const invited = tournament({ status: 'setup' });
     invited.entries[0] = { ...invited.entries[0], status: 'invited' };
     expect(homeCard(invited)!.state).toEqual({ kind: 'invited' });
@@ -166,11 +215,21 @@ describe('Turnier-Karte auf der Startseite', () => {
     expect([card.place, card.matchPoints, card.record]).toEqual([null, null, null]);
   });
 
-  it('Beendete Turniere nur am selben Tag', () => {
-    expect(showOnHome('running', '2026-12-27', '2026-12-28')).toBe(true);
-    expect(showOnHome('finished', '2026-12-28', '2026-12-28')).toBe(true);
-    expect(showOnHome('finished', '2026-12-27', '2026-12-28')).toBe(false);
-    expect(showOnHome('cancelled', '2026-12-28', '2026-12-28')).toBe(false);
-    expect(localToday(new Date(2026, 11, 3, 23, 30))).toBe('2026-12-03');
+  it('Zwei Turniere: Karte mit Aktion oben und allein gold, beendetes zuletzt', () => {
+    const card = (id: string, hot: boolean, primary: boolean): HomeCard => ({ ...homeCard(tournament())!, id, hot, primary });
+    const sorted = sortCards([card('fertig', false, false), card('wartet', true, false), card('dran', true, true)]);
+    expect(sorted.map((c) => [c.id, c.hot, c.primary])).toEqual([
+      ['dran', true, true],
+      ['wartet', false, false],
+    ]);
+  });
+
+  it('Beendete Turniere 24 Stunden nach dem Abschluss', () => {
+    const end = Date.parse('2026-12-28T23:40:00Z');
+    expect(showOnHome('running', null, end)).toBe(true);
+    expect(showOnHome('finished', '2026-12-28T23:40:00Z', end + 23 * 3600_000)).toBe(true);
+    expect(showOnHome('finished', '2026-12-28T23:40:00Z', end + 24 * 3600_000)).toBe(false);
+    expect(showOnHome('finished', null, end)).toBe(false);
+    expect(showOnHome('cancelled', null, end)).toBe(false);
   });
 });
