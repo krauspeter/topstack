@@ -326,3 +326,26 @@ CREATE TABLE poll_vote (
     answer       text NOT NULL CHECK (answer IN ('yes', 'maybe', 'no')),
     PRIMARY KEY (option_id, app_user_id)
 );
+
+-- ---------------------------------------------------------------------------
+-- Phase 4: Feedback aus der App (AP-5). Wird als GitHub-Issue weitergegeben;
+-- bleibt hier, bis GitHub die Übergabe bestätigt (sent_at, issue_number).
+-- ---------------------------------------------------------------------------
+CREATE TABLE feedback (
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    app_user_id      uuid REFERENCES app_user(id) ON DELETE SET NULL,
+    category         text NOT NULL CHECK (category IN ('bug', 'wish', 'other')),
+    message          text NOT NULL,
+    context          text,                  -- „Was hast du gerade gemacht?“
+    app_version      text NOT NULL DEFAULT '',
+    build            text NOT NULL DEFAULT '',  -- Update-Nummer der App
+    user_agent       text NOT NULL DEFAULT '',
+    screenshot       bytea,                 -- bleibt auf dem Heimserver, nie im Issue
+    screenshot_type  text,
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    sent_at          timestamptz,
+    issue_number     integer,
+    attempts         integer NOT NULL DEFAULT 0,
+    last_error       text
+);
+CREATE INDEX feedback_app_user_id_created_at_idx ON feedback (app_user_id, created_at);
