@@ -1,0 +1,140 @@
+import { type Route, type WebSocketRoute, expect, test } from '@playwright/test';
+
+/** Startseite mit Turnier-Karte (Vorschlag A, Phase 4): Zustand, Gold, Live-Aktualisierung. */
+test.use({ serviceWorkers: 'block' });
+
+const GROUP = 'g-1';
+const TID = 't-1';
+const ME = 'p-anna';
+
+const json = (route: Route, body: unknown) =>
+  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+
+const match = (status: string, extra: Record<string, unknown> = {}) => ({
+  id: 'm2',
+  player_a_id: 'p-ben',
+  player_a: 'Ben',
+  player_b_id: ME,
+  player_b: 'Anna',
+  status,
+  games_a: 0,
+  games_b: 0,
+  games_drawn: 0,
+  version: 0,
+  mine: true,
+  can_report: true,
+  tracker_mode: 'none',
+  game_no: null,
+  life_a: null,
+  life_b: null,
+  ...extra,
+});
+
+const tournament = (m: Record<string, unknown>) => ({
+  id: TID,
+  group_id: GROUP,
+  group_name: 'Draft-Runde',
+  set_code: 'DSK',
+  status: 'running',
+  held_on: '2026-12-28',
+  location: null,
+  started_by: ME,
+  seating: null,
+  entries: [
+    { player_id: ME, display_name: 'Anna', kind: 'member', status: 'accepted', seat_no: 1, colors: 'UR', is_me: true },
+    { player_id: 'p-ben', display_name: 'Ben', kind: 'member', status: 'accepted', seat_no: 2, colors: 'G', is_me: false },
+  ],
+  my_player_id: ME,
+  actions: ['report_result'],
+  rounds: [
+    { number: 1, status: 'finished', bye: null, matches: [] },
+    { number: 2, status: 'running', bye: null, matches: [m] },
+  ],
+  current_round: 2,
+  open_in_current: 1,
+  rounds_left: 1,
+  standings: [
+    {
+      player_id: ME,
+      display_name: 'Anna',
+      rank: 2,
+      played: 1,
+      wins: 1,
+      draws: 0,
+      losses: 0,
+      match_points: 3,
+      games_won: 2,
+      games_lost: 1,
+      game_diff: 1,
+      needs_roll: false,
+      roll: null,
+      final_place: null,
+      ranking_points: null,
+    },
+  ],
+  suggestion: null,
+  cancel_vote: null,
+  next_opponent: null,
+});
+
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/v1/me', (route) =>
+    json(route, {
+      id: 'u1',
+      email: 'anna@example.org',
+      display_name: 'Anna',
+      favorite_colors: '',
+      locale: 'de',
+      has_passkey: true,
+      groups: [{ id: GROUP, name: 'Draft-Runde', role: 'admin', player_id: ME }],
+    }),
+  );
+});
+
+test('Laufendes Turnier: Karte mit nächstem Schritt in Gold, live aktualisiert', async ({ page }) => {
+  let state = tournament(match('scheduled'));
+  await page.route(`**/api/v1/groups/${GROUP}/tournaments`, (route) =>
+    json(route, [{ id: TID, set_code: 'DSK', status: 'running', held_on: '2026-12-28', players: 2 }]),
+  );
+  await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, state));
+  const conn: { ws?: WebSocketRoute } = {};
+  await page.routeWebSocket('**/ws', (ws) => {
+    conn.ws = ws;
+    ws.onMessage((raw) => {
+      const msg = JSON.parse(String(raw)) as { type: string; topic: string };
+      if (msg.type === 'subscribe') ws.send(JSON.stringify({ type: 'subscribed', topic: msg.topic }));
+    });
+  });
+
+  await page.goto('/');
+  const card = page.getByRole('region', { name: 'Turnier DSK' });
+  await expect(card).toContainText('TURNIER LÄUFT · DSK · RUNDE 2 VON 2');
+  await expect(card.getByRole('heading', { name: 'Du bist dran' })).toBeVisible();
+  await expect(card).toContainText('Dein Match gegen Ben kann starten.');
+  await expect(card).toContainText('2.');
+  await expect(card).toContainText('1-0-0');
+
+  // Gold gehört dem nächsten Schritt, „Freies Match“ ist dann grau
+  await expect(card.getByRole('button', { name: 'Match starten' })).toHaveClass(/primary/);
+  await expect(page.getByRole('button', { name: 'Freies Match' })).not.toHaveClass(/primary/);
+
+  // Gegner startet das Match auf seinem Handy: Karte zeigt Lebenspunkte aus meiner Sicht
+  state = tournament(match('running', { game_no: 1, life_a: 15, life_b: 9, tracker_mode: 'dual' }));
+  await expect.poll(() => conn.ws !== undefined).toBe(true);
+  conn.ws?.send(JSON.stringify({ type: 'tournament.updated', topic: `tournament:${TID}`, tournament_id: TID, reason: 'match' }));
+  await expect(card.getByRole('heading', { name: 'Gegen Ben' })).toBeVisible();
+  await expect(card.getByLabel('Lebenspunkte 9 zu 15')).toBeVisible();
+
+  await card.getByRole('button', { name: 'Zum Match' }).click();
+  await expect(page).toHaveURL(new RegExp(`/turnier/${TID}$`));
+});
+
+test('Ohne laufendes Turnier: Startseite wie bisher, „Freies Match“ in Gold', async ({ page }) => {
+  await page.route(`**/api/v1/groups/${GROUP}/tournaments`, (route) =>
+    json(route, [{ id: 't-old', set_code: 'MKM', status: 'finished', held_on: '2026-11-01', players: 6 }]),
+  );
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Freies Match' })).toHaveClass(/primary/);
+  await expect(page.getByRole('button', { name: 'Turnier', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: /Turnier / })).toHaveCount(0);
+});

@@ -3,7 +3,7 @@ import { whatsNewEntries } from '../src/whatsNew';
 
 async function startMatch(page: Page, options: { timeLimit?: string; colors?: [string[], string[]] } = {}) {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Neues Match' }).click();
+  await page.getByRole('button', { name: 'Freies Match' }).click();
   await page.getByLabel('Spieler 1', { exact: true }).fill('Anna');
   await page.getByLabel('Spieler 2', { exact: true }).fill('Ben');
   for (const [i, names] of (options.colors ?? []).entries()) {
@@ -71,7 +71,7 @@ test('Best-of-3 bis zum Matchsieg', async ({ page }) => {
   await expect(page.getByTestId('match-winner')).toHaveText('Anna gewinnt');
   await expect(page.getByText('2:0')).toBeVisible();
   await page.getByRole('button', { name: 'Fertig' }).click();
-  await expect(page.getByRole('button', { name: 'Neues Match' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Freies Match' })).toBeVisible();
 });
 
 test('Draftplätze auslosen', async ({ page }) => {
@@ -124,7 +124,7 @@ test('Startbildschirm zeigt, welches Update läuft', async ({ page }) => {
 test('Was ist neu erscheint nach einem Update einmal', async ({ page }) => {
   // Beim ersten Start nichts, die Version wird nur gemerkt
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Neues Match' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Freies Match' })).toBeVisible();
   await expect(page.getByRole('dialog', { name: 'Was ist neu' })).toHaveCount(0);
   const version = await page.evaluate(() => localStorage.getItem('topstack.seenVersion'));
   expect(version).toMatch(/^\d+\.\d+\.\d+/);
@@ -142,7 +142,7 @@ test('Was ist neu erscheint nach einem Update einmal', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Alles klar' }).click();
   await expect(dialog).toHaveCount(0);
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Neues Match' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Freies Match' })).toBeVisible();
   await expect(dialog).toHaveCount(0);
 });
 
@@ -162,6 +162,6 @@ test('Staging zeigt das Beta-Band, Produktion nicht', async ({ page }) => {
 
   env = 'prod';
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Neues Match' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Freies Match' })).toBeVisible();
   await expect(band).toHaveCount(0);
 });

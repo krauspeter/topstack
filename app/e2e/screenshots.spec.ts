@@ -49,7 +49,7 @@ async function shoot(page: Page, name: string) {
 
 test('Life-Tracker', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Neues Match' }).click();
+  await page.getByRole('button', { name: 'Freies Match' }).click();
   await page.getByLabel('Spieler 1', { exact: true }).fill('Anna');
   await page.getByLabel('Spieler 2', { exact: true }).fill('Ben');
   const colors = (i: number) => page.getByRole('group', { name: `Farben für Spieler ${i}` });

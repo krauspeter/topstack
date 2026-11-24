@@ -70,7 +70,7 @@ export function Setup({ onStart, onBack }: Props) {
         <button className="btn ghost" onClick={onBack} aria-label="Zurück">
           ‹ Zurück
         </button>
-        <h2>Neues Match</h2>
+        <h2>Freies Match</h2>
       </header>
 
       <form className="stack" onSubmit={submit}>
