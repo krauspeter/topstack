@@ -1,6 +1,6 @@
 # Phase 4 – Beta mit Freunden & Betrieb (v1.0)
 
-Stand: 23.11.2026 · Status: **gestartet am 21.11.2026**, AP-3b Staging ergänzt am 23.11.2026 · Entscheidungen E1 bis E4 getroffen (Abschnitt 6)
+Stand: 24.11.2026 · Status: **gestartet am 21.11.2026**, AP-3b Staging ergänzt am 23.11.2026 · Entscheidungen E1 bis E4 getroffen (Abschnitt 6)
 
 Phase 4 macht aus der Turnier-App einen Dienst, auf den sich die Gruppe verlassen kann: Die Daten werden jede Nacht gesichert und außer Haus gelagert, ein Ausfall fällt auf, bevor jemand anruft, und eine neue Version kommt ohne SSH auf den Heimserver. Am Ende steht der Release-Abend von v1.0, an dem auch Gate G3 aus Phase 3 abgenommen wird.
 
@@ -182,9 +182,10 @@ Ab v1.0 bekommt die echte App nur noch Releases (`latest`). Damit jeder neue Sta
 
 **Einrichten (Peter)**
 
-- [ ] Cloudflare: Hostname `beta.topstack.win` im Tunnel auf `http://beta-caddy:80`, Cloudflare Access davor (nur deine Adresse)
-- [ ] Heimserver: Produktion einmal mit `docker compose up -d` neu starten (legt das Netz `topstack-edge` an), zweiter Klon `~/topstack-beta`, `.env` aus `infra/staging/.env.example`, Start, `install-timers.sh` im Klon
-- [ ] Testgruppe mit `seed_group` auf Staging, Monitor „Beta“ in Uptime Kuma
+- [x] Cloudflare: Zero Trust (Free) eingerichtet, Team `topstack`, Anmeldung per One-time PIN; Hostname `beta.topstack.win` im Tunnel auf `http://beta-caddy:80`, Access-Anwendung „TopStack Beta“ mit der Richtlinie „Nur Peter“ (23.11.2026)
+- [x] Zweite Access-Anwendung „TopStack Beta – Installation“ mit **Bypass** für `manifest.webmanifest` und die Icons: Der Browser lädt das Manifest ohne Cookie, hinter Access war die App deshalb nicht installierbar (24.11.2026)
+- [x] Heimserver: Netz `topstack-edge`, zweiter Klon `~/topstack-beta`, `.env` aus `infra/staging/.env.example`, Start, `install-timers.sh` im Klon (vier Timer aktiv, 23.11.2026)
+- [x] Testgruppe mit `seed_group` auf Staging, Anmeldung mit Magic-Link und Passkey, App „TopStack Beta“ auf dem Handy installiert (24.11.2026); Monitor „Beta“ in Uptime Kuma mit Wartung 22 bis 8 Uhr
 - [ ] Abnahme: ein Pull Request läuft vor dem Merge mit `scripts/stage.sh` auf dem Handy unter `beta.topstack.win`, die echte App bleibt unberührt (TC-118 bis TC-121)
 
 **Später, nicht in AP-3b:** Staging spielt jede Nacht das letzte Backup der Produktion ein; alte `pr-…`-Images in ghcr.io aufräumen; eigener MQTT-Bereich fürs Steuergerät (v3.0).
@@ -223,14 +224,19 @@ Danach den PR auf GitHub mergen. Etwa 10 Minuten später stehen Tag, Images und 
 
 Die Freunde brauchen kein GitHub-Konto (E4).
 
-- [ ] Menüpunkt „Feedback“: Art (Fehler, Wunsch, Sonstiges), Text, optional „Was hast du gerade gemacht?“; App-Version, Update-Nummer, Gerät und Browser werden automatisch angehängt
-- [ ] Hinweis im Formular: Das Repo ist öffentlich, das Feedback erscheint dort mit deinem Anzeigenamen; keine E-Mail-Adressen oder anderen persönlichen Daten
-- [ ] `POST /api/v1/feedback`, nur für angemeldete Nutzer, höchstens 10 pro Tag und Nutzer; neue Tabelle `feedback` mit Migration, damit nichts verloren geht, wenn GitHub nicht antwortet
-- [ ] Der Server legt daraus ein Issue mit den Labels `feedback` und `bug` oder `wunsch` an; Token: Fine-grained PAT nur für `krauspeter/topstack`, nur „Issues: Read and write“, in der `.env`
-- [ ] Nicht übertragene Einträge werden beim nächsten Start nachgeschickt
+Geändert in der Befragung vom 22.11.2026: Im öffentlichen Issue steht nur eine anonyme Kennung statt des Anzeigenamens, ein Screenshot ist optional, Absender bekommen keinen Status zurück.
+
+- [x] „Feedback geben“ auf der Startseite und im Profil (nur angemeldet), Seite `/feedback`: Art (Fehler, Wunsch, Sonstiges), Text, bei Fehlern optional „Was hast du gerade gemacht?“, optional ein Screenshot (wird in der App auf höchstens 1600 px verkleinert); App-Version, Update-Nummer, Gerät und Browser kommen automatisch dazu
+- [x] Hinweis im Formular: Das Projekt ist öffentlich, dort steht nur eine anonyme Kennung; keine E-Mail-Adressen oder persönlichen Daten. Der Server entfernt E-Mail-Adressen im Text trotzdem selbst
+- [x] `POST /api/v1/feedback`, nur angemeldet, höchstens 10 pro Tag und Konto; Tabelle `feedback` (Migration `0004`), damit nichts verloren geht, wenn GitHub nicht antwortet
+- [x] Der Server legt daraus im Hintergrund ein Issue an: Titel „Feedback (Fehler): …“, Labels `feedback` plus `bug` oder `wunsch`, Text in Code-Blöcken (keine Erwähnungen, kein Markdown von außen), anonyme Kennung je Konto, Gerät grob („Android · Chrome“). Der Screenshot bleibt auf dem Heimserver
+- [x] Nicht übertragene Einträge gehen beim nächsten Feedback, beim Start der API und danach alle 30 Minuten raus
+- [x] Skript `python -m topstack.scripts.feedback list|show|screenshot|resend` für den Heimserver (Absender und Screenshot nur dort)
+- [x] Staging ohne Token: Feedback bleibt dort in der Datenbank
+- [ ] Einrichten: Fine-grained Token nur für `krauspeter/topstack`, nur „Issues: Read and write“, als `FEEDBACK_GITHUB_TOKEN` in `~/topstack/infra/.env` ([Heimserver, „Feedback einrichten“](../phase3/heimserver.md#feedback-einrichten-phase-4-ap-5))
 - [ ] Ablauf alle zwei Wochen: offene `feedback`-Issues sichten, Labels und Meilenstein setzen, Fehler für die nächste Version einplanen
 
-**Fertig, wenn:** Feedback vom Handy erscheint als Issue, auch wenn GitHub beim Absenden kurz nicht erreichbar war.
+**Fertig, wenn:** Feedback vom Handy erscheint als Issue, auch wenn GitHub beim Absenden kurz nicht erreichbar war (TC-108, TC-109; in der CI mit nachgebautem GitHub geprüft).
 
 ### AP-6 · README fürs Portfolio (ca. 2 h) · Branch `docs/p4-readme`
 
@@ -258,7 +264,8 @@ Letzter Schritt vor v1.0. Dafür braucht es ein geliehenes iPhone mit aktuellem 
 - [ ] AP-1 bis AP-7 abgeschlossen, Changelog für v1.0.0 fertig
 - [ ] Alle Mitspieler ohne Konto bekommen ihren persönlichen Einladungslink (vorgemerkte Spieler übernehmen dabei ihre Ergebnisse, ADR-0015)
 - [ ] Kurze Anleitung für die Gruppe: installieren, anmelden, Push erlauben, Feedback geben
-- [ ] Release `v1.0.0` getaggt, Heimserver auf Kanal `latest`
+- [ ] Eine Woche vorher `scripts/release.sh 1.0.0-rc.1`; die Gruppe testet auf Staging
+- [ ] Release `v1.0.0` mit `scripts/release.sh 1.0.0`; danach die Produktion auf den Kanal `latest` umstellen: `TOPSTACK_VERSION=latest` in `~/topstack/infra/.env`. Ab dann bekommt die Produktion nur noch Releases, Staging weiter jeden Merge
 - [ ] Am Tag des Spieleabends: Deploy-Sperre setzen, Backup von Hand anstoßen
 
 **Am Abend**
@@ -271,6 +278,7 @@ Letzter Schritt vor v1.0. Dafür braucht es ein geliehenes iPhone mit aktuellem 
 - [ ] Deploy-Sperre aufheben
 - [ ] Wiederherstellung des Backups vom Abend auf dem Windows-PC, Rangliste stimmt überein
 - [ ] Feedback des Abends gesichtet, Fehler für v1.0.1 eingeplant
+- [ ] Resend-API-Schlüssel und ntfy-Topic erneuern (beide waren am 23.11.2026 auf einem Screenshot im Chat zu sehen; verschoben bis nach dem Release, Entscheidung vom 24.11.2026): neuer Schlüssel bei Resend, alter gelöscht; neues zufälliges Topic, in beiden `.env`, in Uptime Kuma und healthchecks.io
 - [ ] Roadmap aktualisiert, Phase 4 abgeschlossen
 
 **Fertig, wenn:** G3 und G4 sind abgenommen.
@@ -307,7 +315,7 @@ Am Ende von Phase 4, vor dem Release-Abend (Entscheidung vom 21.11.2026):
 | TC-105 | Kaputtes Image | Health schlägt fehl, Rollback auf den letzten guten Stand, Alarm | AP-3 | hoch |
 | TC-106 | Deploy-Sperre | Mit `deploy.lock` wird nichts ausgerollt, ohne Sperre beim nächsten Lauf | AP-3 | hoch |
 | TC-107 | Release | Release-PR `v0.9.0` gemergt → Tag und Release auf GitHub, Images `0.9.0`, `0.9`, `latest`, Anzeige „v0.9.0“ und einmal „Was ist neu“ in der App | AP-4 | hoch |
-| TC-108 | Feedback | Formular → Issue mit Labels, ohne E-Mail-Adresse | AP-5 | hoch |
+| TC-108 | Feedback | Formular → Issue mit Labels, ohne Namen und ohne E-Mail-Adresse, Screenshot nicht im Issue | AP-5 | hoch |
 | TC-109 | Feedback ohne GitHub | Eintrag bleibt in der Datenbank, wird später nachgeschickt | AP-5 | mittel |
 | TC-110 | iPhone: installieren | Safari → „Zum Home-Bildschirm“, App startet im Vollbild mit Icon | AP-7 | hoch |
 | TC-111 | iPhone: Anmeldung | Magic-Link und Passkey über den iCloud-Schlüsselbund | AP-7 | hoch |

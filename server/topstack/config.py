@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     vapid_private_key: str | None = None
     vapid_subject: str = "mailto:admin@topstack.win"
 
+    # Feedback aus der App als GitHub-Issue (AP-5): Fine-grained Token nur für dieses Repo,
+    # nur „Issues: Read and write“; leer = Feedback bleibt in der Datenbank (Staging, lokal)
+    github_token: str | None = None
+    github_repo: str = "krauspeter/topstack"
+    feedback_per_day: int = 10
+
     @property
     def mail_allowed(self) -> frozenset[str]:
         return frozenset(a.strip().lower() for a in self.mail_allowlist.split(",") if a.strip())

@@ -418,9 +418,14 @@ Eine zweite Umgebung auf demselben Heimserver, mit eigener Datenbank. Sie folgt 
 
 ### 1. Cloudflare (auf dem PC im Browser)
 
-1. **Zero Trust → Networks → Tunnels → `topstack` → Public Hostname → Add:** Subdomain `beta`, Domain `topstack.win`, Service `HTTP` und `beta-caddy:80`.
-2. **Zero Trust → Access → Applications → Add → Self-hosted:** Name „TopStack Beta“, Domain `beta.topstack.win`. Policy „Allow“, Include „Emails“ mit deiner Adresse (später die der Tester). Anmeldung per „One-time PIN“ reicht.
-3. Im Browser `https://beta.topstack.win` öffnen: Es muss die Anmeldeseite von Cloudflare Access kommen. Solange Staging noch nicht läuft, folgt danach ein Fehler 502.
+Reihenfolge wichtig: erst Access, dann der Hostname im Tunnel, sonst ist `beta.topstack.win` kurz für alle offen.
+
+1. **Zero Trust einmalig einrichten:** Im Dashboard **Zero Trust → Get started**, Team-Name wählen (bei uns `topstack`), Plan **Free**. Cloudflare fragt dabei nach Zahlungsdaten, belastet beim Free-Plan aber nichts.
+2. **Anmeldung per Code:** **Zero Trust → Integrations → Identity providers → Add → One-time PIN → Save**, damit Tester ohne Cloudflare-Konto per Mail-Code hineinkommen.
+3. **Access-Anwendung:** **Zero Trust → Access controls → Applications → Create new application → Self-hosted and private**. Name „TopStack Beta“, Public hostname `beta` · `topstack.win`, Pfad leer. Richtlinie „Nur Peter“: Action **Allow**, Include **Emails** mit deiner Adresse (später die der Tester).
+4. **Installation erlauben:** Eine zweite Anwendung „TopStack Beta – Installation“ mit sechs Public hostnames `beta` · `topstack.win` und den Pfaden `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`, `icon.svg`. Richtlinie „Installation öffentlich“: Action **Bypass**, Include **Everyone**. Grund: Der Browser lädt das Manifest ohne Cookie; hinter Access bekommt er die Anmeldeseite statt des Manifests, und „Installieren“ bleibt ausgegraut. Diese Dateien enthalten nichts Vertrauliches.
+5. **Hostname im Tunnel:** **Networking → Tunnels → `topstack` → Routes → Add route → Published application:** Subdomain `beta`, Domain `topstack.win`, Service URL `http://beta-caddy:80` (http, nicht https).
+6. Prüfen in einem privaten Fenster: `https://beta.topstack.win` zeigt die Anmeldeseite von Cloudflare Access (solange Staging noch nicht läuft, nach der Anmeldung ein Fehler 502); `https://beta.topstack.win/manifest.webmanifest` zeigt direkt das JSON „TopStack Beta“.
 
 ### 2. Produktion einmal neu starten (auf dem Heimserver)
 
@@ -479,6 +484,40 @@ bash scripts/stage.sh main     # zurück; nach Merge oder Schließen des PRs pas
 - Bis v1.0 folgen Produktion und Staging beide `main` und teilen sich auf dem Heimserver die Image-Namen `…:main`. Scheitert ein Stand auf Staging und wird zurückgerollt, merkt das auch die Produktion beim nächsten Durchlauf. Ab v1.0 (Produktion auf `latest`) sind beide getrennt.
 - Staging wird nicht gesichert. Ist die Datenbank kaputt: `docker compose -f docker-compose.staging.yml --env-file .env down -v`, dann neu starten und die Testgruppe neu anlegen.
 - Eine Migration aus einem PR bleibt in der Staging-Datenbank, auch wenn der PR nie gemergt wird. Dann ebenfalls `down -v`.
+
+## Feedback einrichten (Phase 4, AP-5)
+
+Der Button „Feedback geben“ in der App legt ein Issue im öffentlichen Repo an. Dafür braucht die API ein GitHub-Token mit so wenig Rechten wie möglich. Ohne Token bleibt Feedback in der Datenbank und geht raus, sobald eins da ist.
+
+### 1. Token anlegen (auf dem PC im Browser)
+
+1. GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**
+2. **Name** `topstack-feedback`, **Expiration** 1 Jahr (Erinnerung in den Kalender)
+3. **Repository access:** *Only select repositories* → `krauspeter/topstack`
+4. **Permissions → Repository permissions → Issues:** *Read and write*. Sonst nichts (Metadata „Read“ setzt GitHub selbst).
+5. **Generate token** und den Wert kopieren. Er erscheint nur einmal und gehört nicht in den Chat, sondern nur in die `.env`.
+
+### 2. In die `.env` und neu starten (auf dem Heimserver)
+
+```bash
+cd ~/topstack/infra
+nano .env                       # Zeile FEEDBACK_GITHUB_TOKEN=github_pat_… ergänzen
+docker compose --env-file .env up -d api
+```
+
+### 3. Prüfen
+
+In der App **Feedback geben** → Art „Sonstiges“, Text „Test Feedback“ → senden. Nach ein paar Sekunden steht auf GitHub unter **Issues** ein neues Issue „Feedback (Sonstiges): Test Feedback“ mit dem Label `feedback`. Danach schließen.
+
+```bash
+# auf dem Heimserver: Einträge, Absender und Screenshots ansehen
+docker compose --env-file .env exec api python -m topstack.scripts.feedback list
+docker compose --env-file .env exec api python -m topstack.scripts.feedback show <id>
+docker compose --env-file .env exec -T api python -m topstack.scripts.feedback screenshot <id> > shot.jpg
+docker compose --env-file .env exec api python -m topstack.scripts.feedback resend   # offene sofort senden
+```
+
+Steht in `list` „offen“ mit einem Fehler wie `401` oder `403`, stimmt das Token nicht (abgelaufen, falsches Repo oder Recht fehlt).
 
 ## Ernstfall: auf einem anderen Rechner wiederherstellen
 

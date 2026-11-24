@@ -11,9 +11,10 @@ interface Props {
   onTournaments(): void;
   onLeaderboard(): void;
   onProfile(): void;
+  onFeedback(): void;
 }
 
-export function Home({ account, onNewMatch, onSeating, onLogin, onProfile, onTournaments, onLeaderboard }: Props) {
+export function Home({ account, onNewMatch, onSeating, onLogin, onProfile, onTournaments, onLeaderboard, onFeedback }: Props) {
   return (
     <main className="page home">
       <header className="brand">
@@ -49,6 +50,11 @@ export function Home({ account, onNewMatch, onSeating, onLogin, onProfile, onTou
         {account.status === 'signed-in' && (
           <button className="btn ghost account" onClick={onProfile}>
             Angemeldet als <strong>{account.me.display_name}</strong> · Profil
+          </button>
+        )}
+        {account.status === 'signed-in' && (
+          <button className="btn ghost" onClick={onFeedback}>
+            Feedback geben
           </button>
         )}
         {account.status === 'anonymous' && (

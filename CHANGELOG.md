@@ -15,6 +15,10 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ### Added
 
+- Feedback button: friends report bugs and wishes from the app without a GitHub
+  account; the server turns them into issues with an anonymous ID per account,
+  keeps an optional screenshot on the home server and retries when GitHub is
+  unreachable (#146)
 - Staging at `beta.topstack.win`: a second stack on the home server with its own
   database that follows `main`; pull requests get images `pr-<number>` and can be
   shown there before the merge with `scripts/stage.sh`; the app shows a beta band

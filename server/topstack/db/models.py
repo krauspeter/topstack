@@ -568,3 +568,32 @@ class PollVote(Base):
         Uuid, fk("app_user.id", "CASCADE"), primary_key=True
     )
     answer: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+# ---------------------------------------------------------------------------
+# Feedback aus der App (Phase 4, AP-5)
+# ---------------------------------------------------------------------------
+
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+    __table_args__ = (
+        CheckConstraint("category IN ('bug', 'wish', 'other')", name="feedback_category_check"),
+        Index("feedback_app_user_id_created_at_idx", "app_user_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    app_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, fk("app_user.id", "SET NULL"))
+    category: Mapped[str] = mapped_column(Text, nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    context: Mapped[str | None] = mapped_column(Text)
+    app_version: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    build: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    user_agent: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    screenshot: Mapped[bytes | None] = mapped_column(LargeBinary)
+    screenshot_type: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = created_at()
+    sent_at: Mapped[datetime | None] = mapped_column(TZ)
+    issue_number: Mapped[int | None] = mapped_column(Integer)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    last_error: Mapped[str | None] = mapped_column(Text)

@@ -1,6 +1,8 @@
 import asyncio
+import contextlib
 import logging
 import os
+from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, FastAPI, Response
 from sqlalchemy import text
@@ -8,6 +10,7 @@ from sqlalchemy import text
 from topstack import __version__
 from topstack.api import (
     auth,
+    feedback,
     invitations,
     leaderboard,
     live,
@@ -19,6 +22,7 @@ from topstack.api import (
 )
 from topstack.api.deps import Db
 from topstack.config import settings
+from topstack.services import feedback as feedback_service
 
 log = logging.getLogger("topstack.health")
 
@@ -26,7 +30,21 @@ log = logging.getLogger("topstack.health")
 # Kürzer als der Timeout von Uptime Kuma, damit dort eine klare 503 ankommt statt eines Abbruchs.
 DB_CHECK_TIMEOUT = 3.0
 
+
+@contextlib.asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    # Feedback, das GitHub noch nicht bekommen hat, beim Start und danach regelmäßig nachschicken
+    retry = asyncio.create_task(feedback_service.retry_loop())
+    try:
+        yield
+    finally:
+        retry.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await retry
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="TopStack API",
     version=__version__,
     docs_url="/api/v1/docs",
@@ -73,5 +91,6 @@ api.include_router(invitations.router)
 api.include_router(tournaments.router)
 api.include_router(push.router)
 api.include_router(leaderboard.router)
+api.include_router(feedback.router)
 app.include_router(api)
 app.include_router(live.router)  # /ws, außerhalb von /api/v1 (siehe Caddyfile)

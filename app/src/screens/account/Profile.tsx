@@ -12,6 +12,7 @@ interface Props {
   onChange(me: Me): void;
   onSignOut(): void;
   onBack(): void;
+  onFeedback(): void;
 }
 
 const ROLES: Record<Me['groups'][number]['role'], string> = { admin: 'Admin', member: 'Mitglied', viewer: 'Zuschauer' };
@@ -21,7 +22,7 @@ function toggleFavorite(current: string, color: Mana): string {
   return current.includes(color) ? current.replace(color, '') : normalizeColors(current + color);
 }
 
-export function Profile({ me, onChange, onSignOut, onBack }: Props) {
+export function Profile({ me, onChange, onSignOut, onBack, onFeedback }: Props) {
   const [name, setName] = useState(me.display_name);
   const [colors, setColors] = useState(me.favorite_colors);
   const [message, setMessage] = useState<string | null>(null);
@@ -189,6 +190,10 @@ export function Profile({ me, onChange, onSignOut, onBack }: Props) {
           {error}
         </p>
       )}
+
+      <button className="btn" onClick={onFeedback}>
+        Feedback geben: Fehler oder Wunsch melden
+      </button>
 
       <button className="btn danger" onClick={onSignOut} disabled={busy}>
         Abmelden

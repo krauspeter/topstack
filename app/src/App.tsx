@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from './api/client';
 import { useWakeLock } from './hooks';
 import { useLocation } from './router';
+import { Feedback } from './screens/account/Feedback';
 import { Invitation } from './screens/account/Invitation';
 import { Login } from './screens/account/Login';
 import { Profile } from './screens/account/Profile';
@@ -156,12 +157,31 @@ export function App() {
     return <Leaderboard me={account.me} onBack={home} />;
   }
 
+  if (url.pathname === '/feedback') {
+    if (account.status === 'loading') return <main className="page center muted">Lade …</main>;
+    if (account.status !== 'signed-in') {
+      return (
+        <main className="page center">
+          <section className="card">
+            <h2>{account.status === 'offline' ? 'Keine Verbindung' : 'Bitte anmelden'}</h2>
+            <p>Feedback geht nur mit Anmeldung und Verbindung zum Server.</p>
+            <button className="btn" onClick={home}>
+              Zur Startseite
+            </button>
+          </section>
+        </main>
+      );
+    }
+    return <Feedback onBack={() => (window.history.length > 1 ? window.history.back() : home())} />;
+  }
+
   if (url.pathname === '/profil') {
     if (account.status === 'loading') return <main className="page center muted">Lade Profil …</main>;
     if (account.status === 'signed-in') {
       return (
         <Profile
           me={account.me}
+          onFeedback={() => navigate('/feedback')}
           onChange={signedIn}
           onSignOut={() => {
             void signOut().then(home);
@@ -316,6 +336,7 @@ export function App() {
           onTournaments={() => navigate('/turnier')}
           onLeaderboard={() => navigate('/rangliste')}
           onProfile={() => navigate('/profil')}
+          onFeedback={() => navigate('/feedback')}
         />
       );
   }
