@@ -260,16 +260,16 @@ Ursprünglich letzter Schritt vor v1.0. **Verschoben auf nach dem Release (Entsc
 
 ### AP-8 · Rollout und Release-Abend v1.0 (ca. 3 h)
 
-**Termin: Draftabend So 27.12.2026** (Entscheidung vom 25.11.2026): `1.0.0-rc.1` am So 20.12., `v1.0.0` am Sa 26.12. Ablauf Schritt für Schritt mit allen Befehlen: [Drehbuch Release-Abend](release-abend.md). Anleitung für die Gruppe: [TopStack in 4 Schritten](https://claude.ai/artifact/9Z6ue547qKEUT9SnKQDY8P) (Bilder in `docs/img/anleitung/`, aufgenommen von `app/e2e/screenshots.spec.ts`).
+**Termin: Draftabend So 27.12.2026** (Entscheidung vom 25.11.2026), dann schon mit v1.0: `1.0.0-rc.1` am 25.11., die Gruppe testet auf Beta, `v1.0.0` mit Ziel bis 13.12. Ablauf Schritt für Schritt mit allen Befehlen: [Drehbuch Release-Abend](release-abend.md). Anleitung für die Gruppe: [TopStack in 4 Schritten](https://claude.ai/artifact/9Z6ue547qKEUT9SnKQDY8P) (Bilder in `docs/img/anleitung/`, aufgenommen von `app/e2e/screenshots.spec.ts`).
 
 **Vorher**
 
 - [ ] AP-1 bis AP-6 abgeschlossen (AP-7 nach dem Release), Changelog für v1.0.0 fertig
 - [x] Alle Mitspieler haben ein Konto; die doppelten vorgemerkten Spieler sind mit dem Admin-Skript gelöscht (25.11.2026). Persönliche Links braucht es dadurch nicht mehr
 - [x] Kurze Anleitung für die Gruppe: installieren, anmelden, Push erlauben, Feedback geben (25.11.2026)
-- [ ] Anleitung in die Gruppe geschickt, Tester für Beta freigeschaltet (bis 13.12., Drehbuch Abschnitt 1)
-- [ ] So 20.12.: `scripts/release.sh 1.0.0-rc.1`; die Gruppe testet auf Staging
-- [ ] Sa 26.12.: Release `v1.0.0` mit `scripts/release.sh 1.0.0`; danach die Produktion auf den Kanal `latest` umstellen: `TOPSTACK_VERSION=latest` in `~/topstack/infra/.env`. Ab dann bekommt die Produktion nur noch Releases, Staging weiter jeden Merge
+- [ ] Anleitung in die Gruppe geschickt, Tester für Beta freigeschaltet (Drehbuch Abschnitt 1)
+- [ ] 25.11.: `scripts/release.sh 1.0.0-rc.1`; die Gruppe testet auf Staging
+- [ ] Bis 13.12.: Release `v1.0.0` mit `scripts/release.sh 1.0.0`; danach die Produktion auf den Kanal `latest` umstellen: `TOPSTACK_VERSION=latest` in `~/topstack/infra/.env`. Ab dann bekommt die Produktion nur noch Releases, Staging weiter jeden Merge
 - [ ] Am Tag des Spieleabends: Deploy-Sperre setzen, Backup von Hand anstoßen
 
 **Am Abend**
