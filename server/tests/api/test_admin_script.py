@@ -1,13 +1,15 @@
 """Superuser-Skript admin (Phase 4): aufräumen vor dem Release, persönliche Links."""
 
 import uuid
+from datetime import date
 
 import pytest
 from sqlalchemy import func, select
 
+from tests.api.test_rounds import current_matches, drafting, report, running
 from tests.api.test_tournaments import admin_group, five_player_tournament
 from tests.db.factories import make_group
-from topstack.db.models import Invitation, Player, Tournament
+from topstack.db.models import Invitation, Player, Season, Tournament
 from topstack.scripts import admin
 from topstack.services.tokens import hash_token
 
@@ -112,3 +114,90 @@ def test_parse_args():
     )
     assert admin.parse_args(["delete-tournament", "3f2a"]).apply is False
     assert admin.parse_args(["invite-link", "Andreas", "--days", "30"]).days == 30
+
+
+# --- v1.0.1: Saisonbeginn, hängendes Turnier ---------------------------------
+
+
+async def test_season_start_takes_in_loose_tournaments(client, session):
+    group, _, t = await five_player_tournament(client, session)  # heute, noch ohne Saison
+    session.add(Season(group_id=group.id, name="Saison 2099", starts_on=date(2099, 1, 1)))
+    await session.flush()
+    listed = "\n".join((await admin.list_seasons(session)).lines)
+    assert "Saison 2099" in listed and "01.01.2099 bis offen" in listed
+
+    dry = await admin.season_start(
+        session, "saison 2099", date(2000, 1, 1), group=None, apply=False
+    )
+    assert not dry.changed and any(t["id"][:8] in line for line in dry.lines)
+    assert (await session.get(Tournament, uuid.UUID(t["id"]))).season_id is None
+
+    done = await admin.season_start(
+        session, "Saison 2099", date(2000, 1, 1), group=None, apply=True
+    )
+    assert done.changed
+    season = await session.scalar(select(Season).where(Season.name == "Saison 2099"))
+    assert season.starts_on == date(2000, 1, 1)
+    tournament = await session.get(Tournament, uuid.UUID(t["id"]))
+    assert tournament.season_id == season.id
+    board = (await client.get(f"/api/v1/groups/{group.id}/leaderboard?season={season.id}")).json()
+    assert board["tournaments"] == 0  # noch nicht abgeschlossen, aber der Saison zugeordnet
+
+
+async def test_season_start_refuses_overlap(client, session):
+    group, _, _ = await admin_group(client, session)
+    session.add_all(
+        [
+            Season(
+                group_id=group.id,
+                name="Saison 2026",
+                starts_on=date(2026, 1, 1),
+                ends_on=date(2026, 12, 31),
+            ),
+            Season(group_id=group.id, name="Saison 2027", starts_on=date(2027, 1, 1)),
+        ]
+    )
+    await session.flush()
+    with pytest.raises(admin.Refused, match="überschneidet sich mit Saison 2026"):
+        await admin.season_start(session, "Saison 2027", date(2026, 12, 1), group=None, apply=True)
+
+
+async def test_finish_hanging_tournament(client, session):
+    _, _, t = await running(client, session)
+    first = next(m for m in current_matches(t) if m["status"] != "finished")
+    assert (await report(client, t, first, 2, 0)).status_code == 200
+
+    dry = await admin.finish_tournament(session, t["id"][:8], group=None, apply=False)
+    assert not dry.changed and "werden gestrichen" in dry.lines[1]
+
+    done = await admin.finish_tournament(session, t["id"][:8], group=None, apply=True)
+    assert done.changed and "Endstand:" in done.lines
+    view = (await client.get(f"/api/v1/tournaments/{t['id']}")).json()
+    assert view["status"] == "finished" and view["finished_at"] is not None
+    places = sorted(s["final_place"] for s in view["standings"])
+    assert places == list(range(1, len(places) + 1))
+    played = [m for r in view["rounds"] for m in r["matches"]]
+    assert len(played) == 1 and played[0]["status"] == "finished"
+
+
+async def test_finish_refuses_without_results(client, session):
+    _, _, t = await running(client, session)
+    with pytest.raises(admin.Refused, match="Noch kein Match gespielt"):
+        await admin.finish_tournament(session, t["id"][:8], group=None, apply=True)
+
+
+async def test_finish_refuses_before_round_one(client, session):
+    _, _, t = await drafting(client, session)
+    with pytest.raises(admin.Refused, match="nur laufende oder pausierte"):
+        await admin.finish_tournament(session, t["id"][:8], group=None, apply=True)
+
+
+def test_parse_new_commands():
+    args = admin.parse_args(["season-start", "Saison 2027", "2026-12-01", "--apply"])
+    assert (args.cmd, args.ref, args.start, args.apply) == (
+        "season-start",
+        "Saison 2027",
+        date(2026, 12, 1),
+        True,
+    )
+    assert admin.parse_args(["finish-tournament", "3f2a"]).apply is False

@@ -21,6 +21,8 @@ Ab `v1.0.0` bekommt die Produktion nur noch Releases; Merges in `main` landen zu
 
 ## 1. Gruppe vorbereiten (ab 25.11.)
 
+- [ ] **Heimserver (`~/topstack`):** Der Abend zählt schon zur Saison 2027 (Festlegung vom 22.11.2026). Nach v1.0.1: `infra/ops/admin.sh seasons`, dann `infra/ops/admin.sh season-start "Saison 2027" 2026-12-01 --apply` (Name wie in der Liste).
+
 - [ ] **PC:** Anleitung [„TopStack in 4 Schritten“](https://claude.ai/artifact/9Z6ue547qKEUT9SnKQDY8P) in die Gruppe schicken (vorher teilen oder als Bild/PDF exportieren). Alle installieren die App von `topstack.win`, melden sich an und erlauben Push.
 - [ ] Optional, für Probeläufe neuer Versionen: **PC:** Tester für Beta freischalten. Cloudflare → Zero Trust → Access → Applications → „TopStack Beta“ → Richtlinie „Nur Peter“ → Include **Emails**: die Adressen der Mitspieler ergänzen. Die Richtlinie danach ruhig in „Tester“ umbenennen.
 - [ ] **Heimserver (`~/topstack-beta`):** dieselben Adressen in `TOPSTACK_MAIL_ALLOWLIST` der Staging-`.env` (kommagetrennt), dann `docker compose -f infra/docker-compose.staging.yml --env-file infra/.env up -d api`. Sonst schickt Beta ihnen keine Anmeldelinks.
@@ -55,7 +57,7 @@ Ab `v1.0.0` bekommt die Produktion nur noch Releases; Merges in `main` landen zu
   ```bash
   cd ~/topstack
   infra/ops/backup.sh backup manual
-  touch ~/topstack-state/deploy.lock
+  infra/ops/admin.sh deploy-lock on
   ```
   Bis zur Aufhebung spielt der Timer nichts mehr ein, auch keine Merges.
 - [ ] **Heimserver:** `infra/ops/admin.sh tournaments` zeigt keine Testturniere in der „Draft-Runde“; `infra/ops/admin.sh players` zeigt alle Mitspieler als Mitglied.
@@ -71,7 +73,7 @@ Ab `v1.0.0` bekommt die Produktion nur noch Releases; Merges in `main` landen zu
 
 ## 6. Danach (ab Mo 28.12.)
 
-- [ ] **Heimserver:** Sperre aufheben: `rm ~/topstack-state/deploy.lock`.
+- [ ] **Heimserver:** Sperre aufheben: `infra/ops/admin.sh deploy-lock off`.
 - [ ] **PC (Windows):** Backup vom Abend wiederherstellen, Rangliste stimmt mit der App überein ([Heimserver, Ernstfall auf einem anderen Rechner](../phase3/heimserver.md#ernstfall-auf-einem-anderen-rechner-wiederherstellen)).
 - [ ] **PC:** Feedback des Abends sichten, Fehler im Meilenstein v1.0.1.
 - [ ] **PC und Heimserver:** Resend-API-Schlüssel und ntfy-Topic erneuern (siehe AP-8).
@@ -83,6 +85,7 @@ Ab `v1.0.0` bekommt die Produktion nur noch Releases; Merges in `main` landen zu
 | Problem | Was tun |
 | --- | --- |
 | Update auf v1.0.0 kaputt | Der Timer rollt selbst zurück und meldet sich per ntfy. Sonst: `TOPSTACK_VERSION=1.0.0-rc.1` (bzw. der letzte gute Kandidat) in `infra/.env`, beim nächsten Lauf ist der alte Stand zurück. Nicht auf 0.9.0: dem fehlt die Datenbank-Migration 0004. |
+| Turnier hängt (jemand musste gehen, Matches bleiben offen) | `infra/ops/admin.sh finish-tournament <ID-Anfang>` zeigt, was gestrichen wird; mit `--apply` abschließen. |
 | Server fällt am Abend aus | Der Life-Tracker läuft offline weiter. Ergebnisse auf Papier notieren und am nächsten Tag nachtragen. |
 | Daten kaputt | `infra/ops/backup.sh list`, dann `infra/ops/restore.sh manual/<Backup vom Nachmittag>`. |
 | Jemand kommt nicht rein | Anmeldelink neu schicken lassen; notfalls als Gast per QR-Code mitspielen. |

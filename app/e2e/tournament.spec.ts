@@ -415,6 +415,11 @@ test('Siegerehrung nach dem Abschluss', async ({ page }) => {
   await expect(ceremony.getByRole('heading', { name: 'Siegerehrung' })).toBeVisible();
   await expect(ceremony.getByRole('listitem')).toHaveCount(3);
   await expect(ceremony.getByRole('listitem').first()).toContainText('Peter');
+  await expect(ceremony.getByRole('listitem').first()).toContainText('+5');
+  // Podest 2-1-3: Platz 1 steht in der Mitte
+  const box = async (i: number) => (await ceremony.getByRole('listitem').nth(i).boundingBox())!.x;
+  expect(await box(1)).toBeLessThan(await box(0));
+  expect(await box(0)).toBeLessThan(await box(2));
   await expect(page.getByRole('heading', { name: 'Endstand' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Ergebnis' })).toHaveCount(0);
 });

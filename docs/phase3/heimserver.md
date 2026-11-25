@@ -530,6 +530,10 @@ infra/ops/admin.sh delete-tournament 3f2a1b7c  # zeigt nur, was passieren würde
 infra/ops/admin.sh delete-tournament 3f2a1b7c --apply
 infra/ops/admin.sh delete-player Ben --apply
 infra/ops/admin.sh invite-link Andreas         # persönlicher Link, einmal nutzbar
+infra/ops/admin.sh seasons                     # Saisons mit Zeitraum und Zahl der Turniere
+infra/ops/admin.sh season-start "Saison 2027" 2026-12-01 --apply   # Beginn verschieben
+infra/ops/admin.sh finish-tournament 3f2a1b7c --apply              # hängendes Turnier abschließen
+infra/ops/admin.sh deploy-lock on              # Deploy-Sperre (off, status)
 ```
 
 - Spieler gibt man über den Namen oder den Anfang der ID an, Turniere über den Set-Code oder den Anfang der ID. Passt ein Name auf mehrere, nennt das Skript alle und ändert nichts; dann die ID nehmen oder `--group "Draft-Runde"` anhängen.
@@ -537,7 +541,9 @@ infra/ops/admin.sh invite-link Andreas         # persönlicher Link, einmal nutz
 - Gelöscht werden nur Spieler ohne Konto und Gäste. Steht ein Spieler in einem Turnier, verweigert das Skript und nennt die Turniere. Testturniere also zuerst löschen, dann die Testspieler.
 - Ein abgeschlossenes Turnier zu löschen nimmt seine Ranglistenpunkte mit. Das Skript weist darauf hin.
 - `invite-link` gibt es nur für Spieler ohne Konto. Wer den Link öffnet und sich anmeldet, übernimmt den Spieler samt Ergebnissen (ADR-0015). Gültigkeit wie in der App, mit `--days 30` länger.
-- Deploy-Sperre für den Spieleabend bleibt eine Datei: `touch ~/topstack-state/deploy.lock`, aufheben mit `rm ~/topstack-state/deploy.lock`.
+- `season-start` verschiebt den Beginn einer Saison und nimmt Turniere ohne Saison aus dem neuen Zeitraum mit. Überschneidet sich der Zeitraum mit einer anderen Saison, ändert es nichts.
+- `finish-tournament` schließt ein Turnier ab, dessen offene Matches nicht mehr gespielt werden: Sie werden gestrichen und zählen nicht, Gleichstand entscheidet ein W20, danach Endplätze und Ranglistenpunkte wie in der App. Ohne ein einziges gespieltes Match verweigert es; dann lieber `delete-tournament`.
+- `deploy-lock on|off|status` setzt, entfernt oder zeigt die Deploy-Sperre (`~/topstack-state/deploy.lock`); läuft ohne Container und ohne Backup.
 
 ## Ernstfall: auf einem anderen Rechner wiederherstellen
 
