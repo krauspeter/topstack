@@ -13,6 +13,8 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-25
+
 ### Added
 
 - Admin script: `seasons` and `season-start` move the start of a season and
@@ -173,7 +175,8 @@ First stable release for the draft group. The same code as
 - Offline life tracker as PWA: best-of-3, d20 roll, time limit, multicolour and
   colourless decks, undo, seat draw with pass direction (#49, #50, #51)
 
-[Unreleased]: https://github.com/krauspeter/topstack/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/krauspeter/topstack/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/krauspeter/topstack/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/krauspeter/topstack/compare/v0.9.0...v1.0.0
 [1.0.0-rc.1]: https://github.com/krauspeter/topstack/compare/v0.9.0...v1.0.0-rc.1
 [0.9.0]: https://github.com/krauspeter/topstack/releases/tag/v0.9.0
