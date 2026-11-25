@@ -47,48 +47,8 @@ async function shoot(page: Page, name: string) {
   await page.screenshot({ path: `${OUT}/${name}.png` });
 }
 
-test('Life-Tracker', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Freies Match' }).click();
-  await page.getByLabel('Spieler 1', { exact: true }).fill('Anna');
-  await page.getByLabel('Spieler 2', { exact: true }).fill('Ben');
-  const colors = (i: number) => page.getByRole('group', { name: `Farben für Spieler ${i}` });
-  await colors(1).getByRole('button', { name: 'Rot', exact: true }).click(); // Blau (voreingestellt) plus Rot
-  // Erst Grün dazu, dann Rot (voreingestellt) weg: die letzte Farbe lässt sich nicht abwählen
-  await colors(2).getByRole('button', { name: 'Grün', exact: true }).click();
-  await colors(2).getByRole('button', { name: 'Rot', exact: true }).click();
-  await page.getByRole('button', { name: 'Weiter zum W20-Wurf' }).click();
-  const anna = page.getByRole('button', { name: 'Anna würfelt' });
-  const ben = page.getByRole('button', { name: 'Ben würfelt' });
-  const start = page.getByRole('button', { name: 'Ich beginne' });
-  await expect(async () => {
-    if (await anna.isEnabled()) await anna.click();
-    if (await ben.isEnabled()) await ben.click();
-    await expect(start).toBeEnabled({ timeout: 2500 });
-  }).toPass({ timeout: 30_000 });
-  await start.click();
-  for (let i = 0; i < 7; i++) await page.getByRole('button', { name: 'Ben −1' }).click();
-  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Anna −1' }).click();
-  await expect(page.getByTestId('life-p2')).toHaveText('13');
-  await expect(page.getByRole('img', { name: 'Grün', exact: true })).toBeVisible();
-  await shoot(page, 'life-tracker');
-});
-
-test('Tischgrafik', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Draftplätze auslosen' }).click();
-  for (const name of ['Anna', 'Ben', 'Chris', 'Dana', 'Eli', 'Finn']) {
-    await page.getByLabel('Name').fill(name);
-    await page.getByLabel('Name').press('Enter');
-  }
-  await page.getByRole('button', { name: 'Plätze auslosen' }).click();
-  await expect(page.getByTestId('seats').locator('li')).toHaveCount(6, { timeout: 5000 });
-  await expect(page.getByRole('button', { name: /Booster 1, nach links/ })).toBeVisible();
-  await shoot(page, 'tischgrafik');
-});
-
-test('Live-Ansicht', async ({ page }) => {
-  await signedIn(page);
+/** Laufendes Turnier, Runde 2: Annas Match gegen Dana läuft, Ben gegen Eli auch. */
+function liveTournament() {
   const players: [string, string, string][] = [
     [ME, 'Anna', 'UR'],
     ['p-ben', 'Ben', 'G'],
@@ -183,6 +143,52 @@ test('Live-Ansicht', async ({ page }) => {
     cancel_vote: null,
     next_opponent: null,
   };
+  return tournament;
+}
+
+test('Life-Tracker', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Freies Match' }).click();
+  await page.getByLabel('Spieler 1', { exact: true }).fill('Anna');
+  await page.getByLabel('Spieler 2', { exact: true }).fill('Ben');
+  const colors = (i: number) => page.getByRole('group', { name: `Farben für Spieler ${i}` });
+  await colors(1).getByRole('button', { name: 'Rot', exact: true }).click(); // Blau (voreingestellt) plus Rot
+  // Erst Grün dazu, dann Rot (voreingestellt) weg: die letzte Farbe lässt sich nicht abwählen
+  await colors(2).getByRole('button', { name: 'Grün', exact: true }).click();
+  await colors(2).getByRole('button', { name: 'Rot', exact: true }).click();
+  await page.getByRole('button', { name: 'Weiter zum W20-Wurf' }).click();
+  const anna = page.getByRole('button', { name: 'Anna würfelt' });
+  const ben = page.getByRole('button', { name: 'Ben würfelt' });
+  const start = page.getByRole('button', { name: 'Ich beginne' });
+  await expect(async () => {
+    if (await anna.isEnabled()) await anna.click();
+    if (await ben.isEnabled()) await ben.click();
+    await expect(start).toBeEnabled({ timeout: 2500 });
+  }).toPass({ timeout: 30_000 });
+  await start.click();
+  for (let i = 0; i < 7; i++) await page.getByRole('button', { name: 'Ben −1' }).click();
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Anna −1' }).click();
+  await expect(page.getByTestId('life-p2')).toHaveText('13');
+  await expect(page.getByRole('img', { name: 'Grün', exact: true })).toBeVisible();
+  await shoot(page, 'life-tracker');
+});
+
+test('Tischgrafik', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Draftplätze auslosen' }).click();
+  for (const name of ['Anna', 'Ben', 'Chris', 'Dana', 'Eli', 'Finn']) {
+    await page.getByLabel('Name').fill(name);
+    await page.getByLabel('Name').press('Enter');
+  }
+  await page.getByRole('button', { name: 'Plätze auslosen' }).click();
+  await expect(page.getByTestId('seats').locator('li')).toHaveCount(6, { timeout: 5000 });
+  await expect(page.getByRole('button', { name: /Booster 1, nach links/ })).toBeVisible();
+  await shoot(page, 'tischgrafik');
+});
+
+test('Live-Ansicht', async ({ page }) => {
+  await signedIn(page);
+  const tournament = liveTournament();
   await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, tournament));
   await page.routeWebSocket('**/ws', () => undefined);
   await page.goto(`/turnier/${TID}`);
@@ -222,4 +228,65 @@ test('Rangliste', async ({ page }) => {
   await page.goto('/rangliste');
   await expect(page.getByText('Dana').first()).toBeVisible();
   await shoot(page, 'rangliste');
+});
+
+/* Bilder für die Anleitung der Gruppe (Phase 4, AP-8), in docs/img/anleitung/ */
+const GUIDE = `${OUT}/anleitung`;
+
+test('Anleitung: Anmelden', async ({ page }) => {
+  await page.route('**/api/v1/health', (route) =>
+    json(route, { status: 'ok', version: '1.0.0', environment: 'prod', build: { pr: '', sha: '', time: '' } }),
+  );
+  await page.route('**/api/v1/me', (route) =>
+    route.fulfill({ status: 401, contentType: 'application/problem+json', body: '{"title":"Nicht angemeldet"}' }),
+  );
+  await page.goto('/anmelden');
+  await page.getByLabel('E-Mail-Adresse').fill('anna@example.org');
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${GUIDE}/anmelden.png` });
+});
+
+test('Anleitung: Startseite mit Turnier', async ({ page }) => {
+  await signedIn(page);
+  await page.route(`**/api/v1/groups/${GROUP}/tournaments`, (route) =>
+    json(route, [{ id: TID, set_code: 'DSK', status: 'running', held_on: '2026-12-27', players: 5 }]),
+  );
+  await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, liveTournament()));
+  await page.routeWebSocket('**/ws', () => undefined);
+  await page.goto('/');
+  await expect(page.getByRole('region', { name: 'Turnier DSK' })).toBeVisible();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${GUIDE}/startseite.png` });
+});
+
+test('Anleitung: Push', async ({ page }) => {
+  await signedIn(page);
+  await page.route(`**/api/v1/groups/${GROUP}/players`, (route) => json(route, []));
+  await page.route('**/api/v1/me/notifications', (route) =>
+    json(route, {
+      devices: 0,
+      events: [
+        { event: 'your_turn', label: 'Du bist dran', enabled: true },
+        { event: 'new_round', label: 'Neue Runde', enabled: true },
+        { event: 'tournament_end', label: 'Turnierende', enabled: true },
+        { event: 'invitation', label: 'Einladung zu einem Turnier', enabled: true },
+      ],
+    }),
+  );
+  await page.goto('/profil');
+  const push = page.getByRole('region', { name: 'Benachrichtigungen' });
+  await expect(push.getByRole('button', { name: 'Push auf diesem Gerät aktivieren' })).toBeVisible();
+  await push.scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollBy(0, -80));
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${GUIDE}/push.png` });
+});
+
+test('Anleitung: Feedback', async ({ page }) => {
+  await signedIn(page);
+  await page.goto('/feedback');
+  await page.getByRole('button', { name: 'Wunsch' }).click();
+  await page.getByLabel('Was wünschst du dir?').fill('Eine Statistik, wer am häufigsten gegen wen gewinnt.');
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${GUIDE}/feedback.png` });
 });
