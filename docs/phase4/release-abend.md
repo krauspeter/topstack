@@ -20,7 +20,7 @@ Ab dem 20.12. kommen nur noch Fehlerbehebungen in `main`, keine neuen Funktionen
 
 ## 1. Gruppe vorbereiten (bis 13.12.)
 
-- [ ] **PC:** Anleitung „TopStack in 4 Schritten“ in die Gruppe schicken (Design-Artefakt, Link in [README](README.md#ap-8--rollout-und-release-abend-v10-ca-3-h)). Alle installieren die App von `topstack.win`, melden sich an und erlauben Push.
+- [ ] **PC:** Anleitung [„TopStack in 4 Schritten“](https://claude.ai/artifact/9Z6ue547qKEUT9SnKQDY8P) in die Gruppe schicken (vorher teilen oder als Bild/PDF exportieren). Alle installieren die App von `topstack.win`, melden sich an und erlauben Push.
 - [ ] **PC:** Tester für Beta freischalten. Cloudflare → Zero Trust → Access → Applications → „TopStack Beta“ → Richtlinie „Nur Peter“ → Include **Emails**: die Adressen der Mitspieler ergänzen. Die Richtlinie danach ruhig in „Tester“ umbenennen.
 - [ ] **Heimserver (`~/topstack-beta`):** dieselben Adressen in `TOPSTACK_MAIL_ALLOWLIST` der Staging-`.env` (kommagetrennt), dann `docker compose -f infra/docker-compose.staging.yml --env-file infra/.env up -d api`. Sonst schickt Beta ihnen keine Anmeldelinks.
 - [ ] **Handy (Peter, auf Beta):** Profil → Testgruppe → Einladungslink erzeugen und in die Gruppe schicken. Wer ihn öffnet, landet in der Testgruppe auf Beta.

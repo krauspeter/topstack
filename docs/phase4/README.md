@@ -260,7 +260,7 @@ Ursprünglich letzter Schritt vor v1.0. **Verschoben auf nach dem Release (Entsc
 
 ### AP-8 · Rollout und Release-Abend v1.0 (ca. 3 h)
 
-**Termin: Draftabend So 27.12.2026** (Entscheidung vom 25.11.2026): `1.0.0-rc.1` am So 20.12., `v1.0.0` am Sa 26.12. Ablauf Schritt für Schritt mit allen Befehlen: [Drehbuch Release-Abend](release-abend.md). Anleitung für die Gruppe: Design-Artefakt „TopStack in 4 Schritten“ (Bilder in `docs/img/anleitung/`).
+**Termin: Draftabend So 27.12.2026** (Entscheidung vom 25.11.2026): `1.0.0-rc.1` am So 20.12., `v1.0.0` am Sa 26.12. Ablauf Schritt für Schritt mit allen Befehlen: [Drehbuch Release-Abend](release-abend.md). Anleitung für die Gruppe: [TopStack in 4 Schritten](https://claude.ai/artifact/9Z6ue547qKEUT9SnKQDY8P) (Bilder in `docs/img/anleitung/`, aufgenommen von `app/e2e/screenshots.spec.ts`).
 
 **Vorher**
 
