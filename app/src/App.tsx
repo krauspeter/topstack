@@ -338,6 +338,7 @@ export function App() {
           onProfile={() => navigate('/profil')}
           onFeedback={() => navigate('/feedback')}
           onOpenTournament={(id) => navigate(`/turnier/${id}`)}
+          onRetry={() => void refresh()}
         />
       );
   }

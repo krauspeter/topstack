@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BUILD, buildLabel } from '../build';
 import { markVersionSeen, pendingWhatsNew, seenAtStartup } from '../whatsNew';
-import type { Account } from '../store/useAccount';
+import { type Account, reauthenticate } from '../store/useAccount';
 import { TournamentCard, useHomeCards } from './HomeTournament';
 
 interface Props {
@@ -14,6 +14,8 @@ interface Props {
   onProfile(): void;
   onFeedback(): void;
   onOpenTournament(id: string): void;
+  /** Anmeldestand neu abfragen (Knopf „Erneut versuchen“ im Offline-Hinweis). */
+  onRetry(): void;
 }
 
 export function Home({
@@ -26,6 +28,7 @@ export function Home({
   onLeaderboard,
   onFeedback,
   onOpenTournament,
+  onRetry,
 }: Props) {
   const me = account.status === 'signed-in' ? account.me : null;
   const { cards, reload } = useHomeCards(me);
@@ -63,7 +66,7 @@ export function Home({
           </div>
         </nav>
 
-        <Footer account={account} onLogin={onLogin} onProfile={onProfile} onFeedback={onFeedback} />
+        <Footer account={account} onLogin={onLogin} onProfile={onProfile} onFeedback={onFeedback} onRetry={onRetry} />
         <WhatsNew />
       </main>
     );
@@ -100,15 +103,22 @@ export function Home({
         </button>
       </nav>
 
-      <Footer account={account} onLogin={onLogin} onProfile={onProfile} onFeedback={onFeedback} />
+      <Footer account={account} onLogin={onLogin} onProfile={onProfile} onFeedback={onFeedback} onRetry={onRetry} />
       <WhatsNew />
     </main>
   );
 }
 
-function Footer({ account, onLogin, onProfile, onFeedback }: Pick<Props, 'account' | 'onLogin' | 'onProfile' | 'onFeedback'>) {
+function Footer({
+  account,
+  onLogin,
+  onProfile,
+  onFeedback,
+  onRetry,
+}: Pick<Props, 'account' | 'onLogin' | 'onProfile' | 'onFeedback' | 'onRetry'>) {
   return (
     <footer className="stack">
+        {account.status === 'offline' && <OfflineNote reason={account.reason} onRetry={onRetry} />}
         {account.status === 'signed-in' && (
           <button className="btn ghost account" onClick={onProfile}>
             Angemeldet als <strong>{account.me.display_name}</strong> · Profil
@@ -127,6 +137,40 @@ function Footer({ account, onLogin, onProfile, onFeedback }: Pick<Props, 'accoun
         <p className="muted small">Läuft auch ohne Internet · Spielstand bleibt auf diesem Gerät gespeichert</p>
         <BuildLine />
       </footer>
+  );
+}
+
+/**
+ * Server nicht erreichbar: sagen, warum Konto, Turniere und Rangliste fehlen. Auf Staging ist
+ * oft nur die Anmeldung bei Cloudflare Access abgelaufen; dann führt der Knopf dorthin.
+ */
+function OfflineNote({ reason, onRetry }: { reason: 'network' | 'access'; onRetry(): void }) {
+  const [busy, setBusy] = useState(false);
+  if (reason === 'access') {
+    return (
+      <div className="offline-note" role="status">
+        <p>Anmeldung bei Cloudflare abgelaufen. Konto und Turniere kommen nach dem Neuladen zurück.</p>
+        <button className="btn small" onClick={reauthenticate}>
+          Seite neu laden
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="offline-note" role="status">
+      <p>Server gerade nicht erreichbar. Freies Match und Draftplätze gehen trotzdem.</p>
+      <button
+        className="btn small"
+        disabled={busy}
+        onClick={() => {
+          setBusy(true);
+          onRetry();
+          setTimeout(() => setBusy(false), 1500);
+        }}
+      >
+        Erneut versuchen
+      </button>
+    </div>
   );
 }
 
