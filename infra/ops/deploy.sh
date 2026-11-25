@@ -218,8 +218,13 @@ pr_channel() {  # pr-<Nummer>: nach Merge oder Schließen des PRs zurück auf ma
     return 1
   fi
   local state
-  state=$(curl -fsS -m 10 "https://api.github.com/repos/$OWNER/topstack/pulls/${CHANNEL#pr-}" 2>/dev/null \
-    | sed -n 's/^  "state": "\([a-z]*\)",$/\1/p' | head -n1 || true)
+  # DEPLOY_PR_STATE ersetzt die Abfrage in Tests (die GitHub-API erlaubt ohne Anmeldung nur
+  # 60 Anfragen pro Stunde und Adresse, auf geteilten CI-Runnern ist das schnell erreicht)
+  state=${DEPLOY_PR_STATE:-$(curl -fsS -m 10 "https://api.github.com/repos/$OWNER/topstack/pulls/${CHANNEL#pr-}" 2>/dev/null \
+    | sed -n 's/^  "state": "\([a-z]*\)",$/\1/p' | head -n1 || true)}
+  if [ -z "$state" ]; then
+    log "Status von PR #${CHANNEL#pr-} nicht abrufbar (GitHub-API), Kanal bleibt $CHANNEL."
+  fi
   if [ "$state" = closed ]; then
     sed -i "s/^TOPSTACK_VERSION=.*/TOPSTACK_VERSION=main/" "$INFRA/.env"
     notify "$LABEL: zurück auf main" information_source "Pull Request #${CHANNEL#pr-} ist gemergt oder geschlossen, Staging folgt wieder main."

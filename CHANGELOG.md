@@ -26,6 +26,12 @@ section into a release; a short German "Was ist neu" for the app lives in
   crown for the winner and confetti in the winner's deck colours; ranking
   points next to each name; no motion with "reduce motion" (#162)
 
+### Fixed
+
+- Staging stays on a pull request when GitHub cannot tell whether it is
+  closed, and the deploy log now says so; the CI check for the switch back to
+  main no longer depends on the GitHub API (#163)
+
 ## [1.0.0] - 2026-11-25
 
 First stable release for the draft group. The same code as

@@ -271,7 +271,7 @@ jobs:
           check "keine Änderung" 'grep -q "Keine Änderung (Kanal latest)" /tmp/b1'
           echo "== geschlossener Pull Request: Kanal springt auf main"
           sed -i 's/^TOPSTACK_VERSION=.*/TOPSTACK_VERSION=pr-141/' infra/.env
-          DEPLOY_SKIP_GIT=1 DEPLOY_SKIP_PULL=1 infra/ops/deploy.sh | tee /tmp/b2 || true
+          DEPLOY_PR_STATE=closed DEPLOY_SKIP_GIT=1 DEPLOY_SKIP_PULL=1 infra/ops/deploy.sh | tee /tmp/b2 || true
           check "zurück auf main" "grep -q '^TOPSTACK_VERSION=main' infra/.env && grep -q 'zurück auf main' /tmp/b2"
           echo "== Produktion lehnt pr-Kanäle ab"
           prod_env=$GITHUB_WORKSPACE/infra/.env
