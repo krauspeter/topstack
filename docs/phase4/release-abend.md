@@ -6,25 +6,23 @@ Jeder Schritt sagt, wo er läuft: **PC** (Browser oder GitHub), **Heimserver** (
 
 ## Zeitplan
 
-Entscheidung vom 25.11.2026: Release-Kandidat und Release kommen **vor** dem Draftabend, damit am 27.12. schon v1.0 läuft und der Abend nur noch Abnahme ist.
+Entscheidung vom 25.11.2026: `v1.0.0` kommt noch am selben Tag direkt nach `1.0.0-rc.1`, und die Produktion geht sofort auf den Kanal `latest`. Die Gruppe nutzt v1.0 also schon vor dem Draftabend; Fehler, die sie findet, kommen als `1.0.1`.
 
 | Wann | Was | Wer |
 | --- | --- | --- |
-| **Mi 25.11.** | Release-Kandidat `1.0.0-rc.1` (Abschnitt 2) | Claude bereitet vor, Peter mergt |
-| ab 25.11. | Anleitung an die Gruppe, Tester für Beta freischalten (Abschnitt 1) | Peter |
-| bis ca. 06.12. | Die Gruppe testet rc.1 auf Beta; Fehler beheben, bei Änderungen `1.0.0-rc.2` | Gruppe, Claude, Peter |
-| **Ziel: bis So 13.12.** | Release `v1.0.0`, Produktion auf den Kanal `latest` (Abschnitt 3) | Claude bereitet vor, Peter mergt und stellt um |
-| 14.–26.12. | Produktion läuft nur noch mit Releases; Fehler kommen als `1.0.1` | Peter, Claude |
+| **Mi 25.11.** | `1.0.0-rc.1` (Abschnitt 2), gleich danach `v1.0.0` und Produktion auf `latest` (Abschnitt 3) | Claude bereitet vor, Peter mergt und stellt um |
+| ab 25.11. | Anleitung an die Gruppe, alle richten die App ein (Abschnitt 1) | Peter, Gruppe |
+| bis 26.12. | Feedback sichten, Fehler als `1.0.1` (Release-PR, Produktion holt `latest` von selbst) | Claude, Peter |
 | **So 27.12.** tagsüber | Backup, Deploy-Sperre, Probelauf (Abschnitt 4) | Peter |
 | **So 27.12.** abends | Draftabend: Abnahme G3 und Push im echten Turnier (Abschnitt 5) | alle |
 | Mo 28.12. | Sperre aufheben, Wiederherstellung proben, Feedback sichten, Schlüssel erneuern (Abschnitt 6) | Peter, Claude |
 
-Bis `v1.0.0` folgt auch die Produktion noch dem Kanal `main`: Nach dem Merge von rc.1 zeigt also auch `topstack.win` **v1.0.0-rc.1**. Ab dem Release kommen in `main` nur noch Fehlerbehebungen bis nach dem Draftabend.
+Ab `v1.0.0` bekommt die Produktion nur noch Releases; Merges in `main` landen zuerst auf Beta.
 
 ## 1. Gruppe vorbereiten (ab 25.11.)
 
 - [ ] **PC:** Anleitung [„TopStack in 4 Schritten“](https://claude.ai/artifact/9Z6ue547qKEUT9SnKQDY8P) in die Gruppe schicken (vorher teilen oder als Bild/PDF exportieren). Alle installieren die App von `topstack.win`, melden sich an und erlauben Push.
-- [ ] **PC:** Tester für Beta freischalten. Cloudflare → Zero Trust → Access → Applications → „TopStack Beta“ → Richtlinie „Nur Peter“ → Include **Emails**: die Adressen der Mitspieler ergänzen. Die Richtlinie danach ruhig in „Tester“ umbenennen.
+- [ ] Optional, für Probeläufe neuer Versionen: **PC:** Tester für Beta freischalten. Cloudflare → Zero Trust → Access → Applications → „TopStack Beta“ → Richtlinie „Nur Peter“ → Include **Emails**: die Adressen der Mitspieler ergänzen. Die Richtlinie danach ruhig in „Tester“ umbenennen.
 - [ ] **Heimserver (`~/topstack-beta`):** dieselben Adressen in `TOPSTACK_MAIL_ALLOWLIST` der Staging-`.env` (kommagetrennt), dann `docker compose -f infra/docker-compose.staging.yml --env-file infra/.env up -d api`. Sonst schickt Beta ihnen keine Anmeldelinks.
 - [ ] **Handy (Peter, auf Beta):** Profil → Testgruppe → Einladungslink erzeugen und in die Gruppe schicken. Wer ihn öffnet, landet in der Testgruppe auf Beta.
 
@@ -36,9 +34,9 @@ Bis `v1.0.0` folgt auch die Produktion noch dem Kanal `main`: Nach dem Merge von
 - [ ] **Gruppe:** auf Beta ein Testturnier mit allen spielen (Einladung, Plätze, Farben, zwei Runden, Ergebnis korrigieren), Feedback über den Knopf in der App.
 - [ ] **PC:** Feedback-Issues sichten. Was den Abend gefährdet, wird behoben und kommt als `1.0.0-rc.2`; der Rest geht nach v1.0.1.
 
-## 3. Release v1.0.0 (Ziel: bis So 13.12.)
+## 3. Release v1.0.0 (Mi 25.11.)
 
-- [ ] **Claude:** `scripts/release.sh 1.0.0` → Release-PR. die Einträge von rc.1 und rc.2 werden zum Abschnitt `## [1.0.0]`, die Neuigkeiten in der App zeigen die wichtigsten Punkte.
+- [ ] **Claude:** `scripts/release.sh 1.0.0` → Release-PR. Der Abschnitt `## [1.0.0]` übernimmt alle Einträge von rc.1, damit der GitHub-Release alles seit 0.9.0 nennt.
 - [ ] **PC:** PR mergen, auf den grünen Lauf von `release.yml` warten. Danach gibt es auf ghcr.io die Tags `1.0.0` und `latest`.
 - [ ] **Heimserver (`~/topstack`):** Produktion auf Releases umstellen:
   ```bash

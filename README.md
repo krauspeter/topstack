@@ -116,7 +116,7 @@ Lokal laufen dieselben Prüfungen über pre-commit-Hooks vor jedem Commit und Pu
 
 | Umgebung | Adresse | Stand |
 | --- | --- | --- |
-| Produktion | `topstack.win` | letzte Release-Version (`latest`), bis v1.0 noch `main` |
+| Produktion | `topstack.win` | letzte Release-Version (`latest`) |
 | Staging | `beta.topstack.win` | jeder Merge in `main`, auf Wunsch ein Pull Request |
 
 - **Deployment:** Ein systemd-Timer holt alle 5 Minuten neue Images. Vorher läuft ein Backup, bei Fehlern rollt der Timer zurück und merkt sich den kaputten Stand. Für Spieleabende gibt es eine Sperre. Ein Release ist ein normaler PR, den `scripts/release.sh` vorbereitet ([CHANGELOG](CHANGELOG.md)).
@@ -131,7 +131,7 @@ Anleitungen: [Heimserver einrichten](docs/phase3/heimserver.md) · [Phase 4: Bet
 
 | Version | Inhalt | Stand |
 | --- | --- | --- |
-| v1.0 | Draft-Turniere für die eigene Gruppe, Betrieb mit Backups, Monitoring, Deployment | in Arbeit, Release Ende 2026 |
+| v1.0 | Draft-Turniere für die eigene Gruppe, Betrieb mit Backups, Monitoring, Deployment | veröffentlicht am 25.11.2026 |
 | v1.1 | Mehrere Gruppen, Altdaten-Import, Elo, Head-to-Head, Awards, Tisch-Modus | geplant |
 | v1.2 | Terminumfrage für Spieleabende, Ausgaben teilen | geplant |
 | v1.3 / v1.4 | Sealed; Constructed mit Schweizer System und Top-Cut | geplant |
