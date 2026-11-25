@@ -212,7 +212,7 @@ test('Cloudflare-Anmeldung abgelaufen (Staging): Hinweis und neu anmelden über 
   }
   await page.route(`${access}*`, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<p>Access</p>' }));
   let returned = false;
-  await page.route('**/api/v1/return', (route) => {
+  await page.route('**/api/v1/return?next=%2F', (route) => {
     returned = true;
     return route.fulfill({ status: 200, contentType: 'text/html', body: '<p>zurück</p>' });
   });
@@ -222,4 +222,24 @@ test('Cloudflare-Anmeldung abgelaufen (Staging): Hinweis und neu anmelden über 
   await expect(note).toContainText('Anmeldung bei Cloudflare abgelaufen');
   await note.getByRole('button', { name: 'Seite neu laden' }).click();
   await expect.poll(() => returned).toBe(true);
+});
+
+test('Magic-Link bei abgelaufener Cloudflare-Anmeldung: Link bleibt gültig, weiter über Cloudflare', async ({ page, browserName }) => {
+  test.skip(browserName === 'webkit', 'route.fulfill mit 302 geht in WebKit nicht');
+  const access = 'https://topstack.cloudflareaccess.com/cdn-cgi/access/login/beta.topstack.win';
+  for (const path of ['**/api/v1/me', '**/api/v1/health', '**/api/v1/auth/magic-link/verify']) {
+    await page.route(path, (route) => route.fulfill({ status: 302, headers: { location: access } }));
+  }
+  await page.route(`${access}*`, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<p>Access</p>' }));
+  let next: string | null = null;
+  await page.route('**/api/v1/return?**', (route) => {
+    next = new URL(route.request().url()).searchParams.get('next');
+    return route.fulfill({ status: 200, contentType: 'text/html', body: '<p>zurück</p>' });
+  });
+
+  await page.goto('/anmelden?token=abc123');
+  const alert = page.getByRole('alert');
+  await expect(alert).toContainText('Dein Link ist noch gültig');
+  await alert.getByRole('button', { name: 'Bei Cloudflare anmelden und weiter' }).click();
+  await expect.poll(() => next).toBe('/anmelden?token=abc123');
 });

@@ -76,3 +76,18 @@ def test_return_redirects_to_the_app():
     with TestClient(app) as client:
         r = client.get("/api/v1/return", follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "/"
+
+
+@pytest.mark.parametrize(
+    ("next_", "target"),
+    [
+        ("/anmelden?token=abc", "/anmelden?token=abc"),
+        ("//evil.example", "/"),
+        ("https://evil.example", "/"),
+        ("/\\evil.example", "/"),
+    ],
+)
+def test_return_only_to_own_pages(next_, target):
+    with TestClient(app) as client:
+        r = client.get("/api/v1/return", params={"next": next_}, follow_redirects=False)
+    assert r.headers["location"] == target

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiError, api, errorText } from '../../api/client';
 import { createPasskey, passkeysSupported } from '../../api/passkeys';
 import type { Me } from '../../api/types';
+import { offlineReason, reauthenticate } from '../../store/useAccount';
 
 interface Props {
   token: string;
@@ -14,7 +15,7 @@ interface Props {
 type State =
   | { step: 'checking' }
   | { step: 'offer-passkey'; me: Me }
-  | { step: 'failed'; message: string; expired: boolean };
+  | { step: 'failed'; message: string; expired: boolean; access: boolean };
 
 /** Löst den Magic-Link aus der Mail ein (/anmelden?token=…&einladung=…). */
 export function RedeemLink({ token, invitation, onSignedIn, onDone, onNewLink }: Props) {
@@ -33,12 +34,20 @@ export function RedeemLink({ token, invitation, onSignedIn, onDone, onNewLink }:
         if (!me.has_passkey && passkeysSupported()) setState({ step: 'offer-passkey', me });
         else onDone();
       })
-      .catch((err: unknown) => {
+      .catch(async (err: unknown) => {
         const expired = err instanceof ApiError && err.status === 410;
+        // Keine Antwort vom Server: auf Staging oft nur die abgelaufene Cloudflare-Anmeldung.
+        // Der Link ist dann noch nicht verbraucht und gilt nach der Anmeldung bei Cloudflare.
+        const access = !(err instanceof ApiError) && (await offlineReason()) === 'access';
         setState({
           step: 'failed',
           expired,
-          message: expired ? 'Der Link ist abgelaufen oder wurde schon benutzt.' : errorText(err),
+          access,
+          message: expired
+            ? 'Der Link ist abgelaufen oder wurde schon benutzt.'
+            : access
+              ? 'Die Anmeldung bei Cloudflare für die Testumgebung ist abgelaufen. Dein Link ist noch gültig.'
+              : errorText(err),
         });
       });
   }, [token, invitation, onSignedIn, onDone]);
@@ -53,6 +62,14 @@ export function RedeemLink({ token, invitation, onSignedIn, onDone, onNewLink }:
         <section className="card" role="alert">
           <h2>Anmeldung hat nicht geklappt</h2>
           <p>{state.message}</p>
+          {state.access && (
+            <button
+              className="btn primary big"
+              onClick={() => reauthenticate(window.location.pathname + window.location.search)}
+            >
+              Bei Cloudflare anmelden und weiter
+            </button>
+          )}
           {state.expired && (
             <button className="btn primary big" onClick={onNewLink}>
               Neuen Link anfordern

@@ -58,6 +58,9 @@ section into a release; a short German "Was ist neu" for the app lives in
   "Erneut versuchen" instead of silently dropping the account buttons; it
   also retries when the network comes back. On staging an expired Cloudflare
   Access session is recognised and "Seite neu laden" signs in again (#157)
+- Opening a sign-in link on staging with an expired Cloudflare Access session
+  no longer reports "Keine Verbindung": the link stays valid and "Bei
+  Cloudflare anmelden und weiter" signs in there and redeems it (#158)
 
 - Deployment: a single timeout from ghcr.io no longer raises an alert; images
   are pulled up to three times, 30 seconds apart (#147)
