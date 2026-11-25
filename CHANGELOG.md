@@ -13,6 +13,11 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ## [Unreleased]
 
+### Known limitations
+
+- Not yet tested on a real iPhone, only in iPhone emulation; the test follows
+  in v1.0.1 (#156)
+
 ### Added
 
 - Admin script for the home server (`infra/ops/admin.sh`): list players and
