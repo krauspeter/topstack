@@ -13,6 +13,10 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ## [Unreleased]
 
+### Changed
+
+- First stable release, the same code as 1.0.0-rc.1 (#161)
+
 ## [1.0.0-rc.1] - 2026-11-25
 
 ### Known limitations
