@@ -67,7 +67,8 @@ flowchart LR
     AP4 --> AP3
     AP0 --> AP5[AP-5<br/>Feedback]
     AP3 --> AP7[AP-7<br/>iPhone]
-    AP2 & AP3 & AP5 & AP7 --> AP8[AP-8<br/>Release-Abend]
+    AP2 & AP3 & AP5 --> AP8[AP-8<br/>Release-Abend]
+    AP8 -.-> AP7
     AP4 --> AP6[AP-6<br/>README]
     AP6 --> AP8
 ```
@@ -248,9 +249,9 @@ Geändert in der Befragung vom 22.11.2026: Im öffentlichen Issue steht nur eine
 
 **Fertig, wenn:** Das README zeigt auf GitHub alle Screenshots und das Architekturbild.
 
-### AP-7 · iPhone-Test (ca. 2 h) · Entscheidung vom 18.11.2026
+### AP-7 · iPhone-Test (ca. 2 h) · Entscheidung vom 18.11.2026 · verschoben auf v1.0.1
 
-Letzter Schritt vor v1.0. Dafür braucht es ein geliehenes iPhone mit aktuellem iOS.
+Ursprünglich letzter Schritt vor v1.0. **Verschoben auf nach dem Release (Entscheidung vom 25.11.2026):** Das iPhone fällt aus. v1.0 erscheint mit der bekannten Einschränkung „auf echten iPhones noch nicht getestet“ (README, Changelog), der Test folgt in v1.0.1. Die Emulation in Playwright (iPhone 14) läuft weiter in jeder CI. Spielt jemand aus der Gruppe mit iPhone, gelten bis dahin Android-Handy oder Laptop als Ausweichgerät.
 
 - [ ] Testfälle TC-110 bis TC-117 (Abschnitt 4) auf dem iPhone durchgespielt
 - [ ] Gefundene Fehler behoben oder als bekannte Einschränkung im README und im Changelog vermerkt
@@ -261,7 +262,7 @@ Letzter Schritt vor v1.0. Dafür braucht es ein geliehenes iPhone mit aktuellem 
 
 **Vorher**
 
-- [ ] AP-1 bis AP-7 abgeschlossen, Changelog für v1.0.0 fertig
+- [ ] AP-1 bis AP-6 abgeschlossen (AP-7 nach dem Release), Changelog für v1.0.0 fertig
 - [ ] Alle Mitspieler ohne Konto bekommen ihren persönlichen Einladungslink (vorgemerkte Spieler übernehmen dabei ihre Ergebnisse, ADR-0015)
 - [ ] Kurze Anleitung für die Gruppe: installieren, anmelden, Push erlauben, Feedback geben
 - [ ] Eine Woche vorher `scripts/release.sh 1.0.0-rc.1`; die Gruppe testet auf Staging
@@ -279,9 +280,10 @@ Letzter Schritt vor v1.0. Dafür braucht es ein geliehenes iPhone mit aktuellem 
 - [ ] Wiederherstellung des Backups vom Abend auf dem Windows-PC, Rangliste stimmt überein
 - [ ] Feedback des Abends gesichtet, Fehler für v1.0.1 eingeplant
 - [ ] Resend-API-Schlüssel und ntfy-Topic erneuern (beide waren am 23.11.2026 auf einem Screenshot im Chat zu sehen; verschoben bis nach dem Release, Entscheidung vom 24.11.2026): neuer Schlüssel bei Resend, alter gelöscht; neues zufälliges Topic, in beiden `.env`, in Uptime Kuma und healthchecks.io
+- [ ] iPhone-Test AP-7 nachholen (TC-110 bis TC-117), Fehler in v1.0.1
 - [ ] Roadmap aktualisiert, Phase 4 abgeschlossen
 
-**Fertig, wenn:** G3 und G4 sind abgenommen.
+**Fertig, wenn:** G3 und G4 sind abgenommen. AP-7 hängt nicht daran (Entscheidung vom 25.11.2026).
 
 ### Eingeschoben
 
@@ -296,7 +298,7 @@ Kleine Wünsche aus der Beta, die nicht bis v1.1 warten müssen:
   - Kennzahlen Platz, Punkte, Bilanz ab dem ersten Ergebnis
   - Beendete Turniere bleiben 24 Stunden nach dem Abschluss sichtbar (Abende enden oft nach Mitternacht); dafür liefert die API `finished_at` in Liste und Turnieransicht
 - [x] „Neues Match“ heißt jetzt „Freies Match“: grenzt es vom Turnier-Match ab; „Spiel“ bleibt die einzelne Partie im Best-of-3 (Entscheidung vom 24.11.2026)
-- [ ] Startseite mit Karte beim iPhone-Test (AP-7) und am Release-Abend prüfen
+- [ ] Startseite mit Karte am Release-Abend prüfen (auf dem iPhone mit AP-7 nach dem Release)
 
 Am Ende von Phase 4, vor dem Release-Abend (Entscheidung vom 21.11.2026):
 
@@ -326,14 +328,14 @@ Am Ende von Phase 4, vor dem Release-Abend (Entscheidung vom 21.11.2026):
 | TC-107 | Release | Release-PR `v0.9.0` gemergt → Tag und Release auf GitHub, Images `0.9.0`, `0.9`, `latest`, Anzeige „v0.9.0“ und einmal „Was ist neu“ in der App | AP-4 | hoch |
 | TC-108 | Feedback | Formular → Issue mit Labels, ohne Namen und ohne E-Mail-Adresse, Screenshot nicht im Issue | AP-5 | hoch |
 | TC-109 | Feedback ohne GitHub | Eintrag bleibt in der Datenbank, wird später nachgeschickt | AP-5 | mittel |
-| TC-110 | iPhone: installieren | Safari → „Zum Home-Bildschirm“, App startet im Vollbild mit Icon | AP-7 | hoch |
-| TC-111 | iPhone: Anmeldung | Magic-Link und Passkey über den iCloud-Schlüsselbund | AP-7 | hoch |
-| TC-112 | iPhone: Bildschirm bleibt an | 10 Minuten ohne Tippen im Life-Tracker, Bildschirm bleibt an | AP-7 | hoch |
-| TC-113 | iPhone: offline | Flugmodus im Match, weiterzählen, danach Abgleich ohne Verlust | AP-7 | hoch |
-| TC-114 | iPhone: Push | Push erlauben (nur in der installierten App möglich), „Test senden“ kommt an | AP-7 | hoch |
-| TC-115 | iPhone und Android | Ein Match mit je einem Handy, Lebenspunkte in unter 2 s auf beiden | AP-7 | hoch |
-| TC-116 | iPhone: Update | Neues Update erscheint nach Neustart der App, Startbildschirm zeigt die Nummer | AP-7 | mittel |
-| TC-117 | iPhone: Darstellung | Notch und Home-Leiste verdecken keine Tasten, gedrehte Hälfte richtig | AP-7 | mittel |
+| TC-110 | iPhone: installieren | Safari → „Zum Home-Bildschirm“, App startet im Vollbild mit Icon | AP-7 (nach v1.0) | hoch |
+| TC-111 | iPhone: Anmeldung | Magic-Link und Passkey über den iCloud-Schlüsselbund | AP-7 (nach v1.0) | hoch |
+| TC-112 | iPhone: Bildschirm bleibt an | 10 Minuten ohne Tippen im Life-Tracker, Bildschirm bleibt an | AP-7 (nach v1.0) | hoch |
+| TC-113 | iPhone: offline | Flugmodus im Match, weiterzählen, danach Abgleich ohne Verlust | AP-7 (nach v1.0) | hoch |
+| TC-114 | iPhone: Push | Push erlauben (nur in der installierten App möglich), „Test senden“ kommt an | AP-7 (nach v1.0) | hoch |
+| TC-115 | iPhone und Android | Ein Match mit je einem Handy, Lebenspunkte in unter 2 s auf beiden | AP-7 (nach v1.0) | hoch |
+| TC-116 | iPhone: Update | Neues Update erscheint nach Neustart der App, Startbildschirm zeigt die Nummer | AP-7 (nach v1.0) | mittel |
+| TC-117 | iPhone: Darstellung | Notch und Home-Leiste verdecken keine Tasten, gedrehte Hälfte richtig | AP-7 (nach v1.0) | mittel |
 | TC-118 | Staging folgt main | Merge in `main` → nach höchstens 5 Minuten auf `beta.topstack.win`, Band „BETA“ sichtbar | AP-3b | hoch |
 | TC-119 | PR auf Staging | `scripts/stage.sh <Nummer>` → Staging zeigt „Update #<Nummer>“; nach dem Merge wieder `main` | AP-3b | hoch |
 | TC-120 | Getrennte Apps | Auf dem Handy „TopStack Beta“ mit Beta-Icon neben „TopStack“; Anmeldung, Daten und Passkeys getrennt | AP-3b | hoch |

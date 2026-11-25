@@ -123,6 +123,8 @@ Lokal laufen dieselben Prüfungen über pre-commit-Hooks vor jedem Commit und Pu
 - **Backups:** Jede Nacht `pg_dump`, Aufbewahrung 7 Tage, 4 Wochen und 6 Monate. Eine mit `age` verschlüsselte Kopie liegt in Cloudflare R2. Ein monatlicher Wiederherstellungstest läuft automatisch, und auf einem zweiten Rechner wurde die Wiederherstellung schon geprobt.
 - **Monitoring:** Uptime Kuma auf dem Heimserver, healthchecks.io als Wächter von außen, Alarme per ntfy aufs Handy.
 
+**Bekannte Einschränkung:** Auf echten iPhones ist die App noch nicht getestet, nur in der iPhone-Emulation. Der Test folgt nach v1.0.
+
 Anleitungen: [Heimserver einrichten](docs/phase3/heimserver.md) · [Phase 4: Beta und Betrieb](docs/phase4/README.md)
 
 ## Roadmap

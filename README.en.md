@@ -123,6 +123,8 @@ Locally, the same checks run as pre-commit hooks before every commit and push.
 - **Backups:** nightly `pg_dump`, kept for 7 days, 4 weeks and 6 months. A copy encrypted with `age` goes to Cloudflare R2. A monthly restore test runs automatically, and a restore on a second machine has already been rehearsed.
 - **Monitoring:** Uptime Kuma on the home server, healthchecks.io as an outside watchdog, alerts to the phone via ntfy.
 
+**Known limitation:** the app has not been tested on a real iPhone yet, only in iPhone emulation. The test follows after v1.0.
+
 Guides (in German): [set up the home server](docs/phase3/heimserver.md) · [phase 4: beta and operations](docs/phase4/README.md)
 
 ## Roadmap

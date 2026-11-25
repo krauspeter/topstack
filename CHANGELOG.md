@@ -13,6 +13,11 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ## [Unreleased]
 
+### Known limitations
+
+- Not yet tested on a real iPhone, only in iPhone emulation; the test follows
+  in v1.0.1 (#156)
+
 ### Added
 
 - Start screen card for a running tournament you play in: set, round, your
