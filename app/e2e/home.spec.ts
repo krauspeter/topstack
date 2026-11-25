@@ -203,7 +203,9 @@ test('Server nicht erreichbar: Hinweis statt verschwundener Knöpfe, „Erneut v
   await expect(page.getByRole('status')).toHaveCount(0);
 });
 
-test('Cloudflare-Anmeldung abgelaufen (Staging): Hinweis und neu anmelden über /api/v1/return', async ({ page }) => {
+test('Cloudflare-Anmeldung abgelaufen (Staging): Hinweis und neu anmelden über /api/v1/return', async ({ page, browserName }) => {
+  // Playwright kann in WebKit keine Umleitung (302) nachstellen; geprüft wird in Chromium
+  test.skip(browserName === 'webkit', 'route.fulfill mit 302 geht in WebKit nicht');
   const access = 'https://topstack.cloudflareaccess.com/cdn-cgi/access/login/beta.topstack.win';
   for (const path of ['**/api/v1/me', '**/api/v1/health']) {
     await page.route(path, (route) => route.fulfill({ status: 302, headers: { location: access } }));
