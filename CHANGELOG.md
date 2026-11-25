@@ -54,6 +54,11 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ### Fixed
 
+- When the server cannot be reached, the start screen says so and offers
+  "Erneut versuchen" instead of silently dropping the account buttons; it
+  also retries when the network comes back. On staging an expired Cloudflare
+  Access session is recognised and "Seite neu laden" signs in again (#157)
+
 - Deployment: a single timeout from ghcr.io no longer raises an alert; images
   are pulled up to three times, 30 seconds apart (#147)
 

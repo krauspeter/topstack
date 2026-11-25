@@ -70,3 +70,9 @@ def test_health_with_hanging_database_is_503(client_with, monkeypatch):
     response = client_with(FakeSession(delay=1)).get("/api/v1/health")
     assert response.status_code == 503
     assert response.json()["database"]["status"] == "error"
+
+
+def test_return_redirects_to_the_app():
+    with TestClient(app) as client:
+        r = client.get("/api/v1/return", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/"

@@ -5,6 +5,7 @@ import os
 from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, FastAPI, Response
+from fastapi.responses import RedirectResponse
 from sqlalchemy import text
 
 from topstack import __version__
@@ -82,6 +83,17 @@ async def health(response: Response, db: Db) -> dict[str, object]:
             "time": os.environ.get("TOPSTACK_BUILD_TIME", ""),
         },
     }
+
+
+@api.get("/return", tags=["Betrieb"], include_in_schema=False)
+async def return_to_app() -> RedirectResponse:
+    """Zurück zur App, nach einer erneuten Anmeldung bei Cloudflare Access (Staging).
+
+    Die App navigiert hierher, wenn ihre Access-Sitzung abgelaufen ist. Seiten der App liefert
+    der Service Worker aus dem Zwischenspeicher, an Access vorbei; Adressen unter ``/api/``
+    nicht. So landet der Browser auf der Login-Seite von Access und danach wieder in der App.
+    """
+    return RedirectResponse("/", status_code=303)
 
 
 api.include_router(auth.router)

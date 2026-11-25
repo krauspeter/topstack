@@ -181,3 +181,43 @@ test('Pause: Match vorziehen von der Startseite, mit Rückfrage; Rahmen gold, �
   await expect(page).toHaveURL(new RegExp(`/turnier/${TID}$`));
   expect(pulled).toBe(true);
 });
+
+test('Server nicht erreichbar: Hinweis statt verschwundener Knöpfe, „Erneut versuchen“ holt die Anmeldung', async ({ page }) => {
+  let down = true;
+  await page.route('**/api/v1/me', (route) =>
+    down
+      ? route.abort('connectionrefused')
+      : route.fulfill({ status: 401, contentType: 'application/problem+json', body: '{"title":"Nicht angemeldet"}' }),
+  );
+  await page.route('**/api/v1/health', (route) => route.abort('connectionrefused'));
+
+  await page.goto('/');
+  const note = page.getByRole('status');
+  await expect(note).toContainText('Server gerade nicht erreichbar');
+  await expect(page.getByRole('button', { name: 'Freies Match' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Anmelden' })).toHaveCount(0);
+
+  down = false;
+  await note.getByRole('button', { name: 'Erneut versuchen' }).click();
+  await expect(page.getByRole('button', { name: 'Anmelden' })).toBeVisible();
+  await expect(page.getByRole('status')).toHaveCount(0);
+});
+
+test('Cloudflare-Anmeldung abgelaufen (Staging): Hinweis und neu anmelden über /api/v1/return', async ({ page }) => {
+  const access = 'https://topstack.cloudflareaccess.com/cdn-cgi/access/login/beta.topstack.win';
+  for (const path of ['**/api/v1/me', '**/api/v1/health']) {
+    await page.route(path, (route) => route.fulfill({ status: 302, headers: { location: access } }));
+  }
+  await page.route(`${access}*`, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<p>Access</p>' }));
+  let returned = false;
+  await page.route('**/api/v1/return', (route) => {
+    returned = true;
+    return route.fulfill({ status: 200, contentType: 'text/html', body: '<p>zurück</p>' });
+  });
+
+  await page.goto('/');
+  const note = page.getByRole('status');
+  await expect(note).toContainText('Anmeldung bei Cloudflare abgelaufen');
+  await note.getByRole('button', { name: 'Seite neu laden' }).click();
+  await expect.poll(() => returned).toBe(true);
+});
