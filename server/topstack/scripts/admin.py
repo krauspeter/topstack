@@ -9,6 +9,10 @@ Keine eigene Rolle in der App: Wer per SSH auf den Heimserver kommt, darf aufrä
     infra/ops/admin.sh delete-player Ben --apply     löscht (vorher Backup)
     infra/ops/admin.sh delete-tournament 3f2a --apply
     infra/ops/admin.sh invite-link Andreas           persönlicher Link (ADR-0015)
+    infra/ops/admin.sh seasons                       Saisons mit Zeitraum
+    infra/ops/admin.sh season-start "Saison 2027" 2026-12-01 --apply
+    infra/ops/admin.sh finish-tournament 3f2a --apply   hängendes Turnier abschließen
+    infra/ops/admin.sh deploy-lock on|off|status     (nur im Wrapper, ohne Container)
 
 Spieler und Turniere lassen sich über den Namen bzw. Set-Code oder den Anfang der ID angeben
 (die ersten Zeichen aus ``players`` / ``tournaments``). Bei mehreren Treffern nennt das Skript
@@ -24,14 +28,24 @@ import sys
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 
 from sqlalchemy import Text, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from topstack.config import settings
-from topstack.db.models import Membership, Player, PlayGroup, Tournament, TournamentEntry
+from topstack.db.models import (
+    Match,
+    Membership,
+    Player,
+    PlayGroup,
+    Season,
+    Tournament,
+    TournamentEntry,
+)
 from topstack.db.session import get_sessionmaker
-from topstack.services import invitations
+from topstack.domain.tournament import Actor
+from topstack.services import invitations, rounds
 from topstack.services import tournaments as svc
 
 KIND = {"member": "Mitglied", "reserved": "ohne Konto", "guest": "Gast", "former": "ehemalig"}
@@ -233,6 +247,165 @@ async def invite_link(db: AsyncSession, ref: str, *, group: str | None, days: in
     )
 
 
+async def _season(db: AsyncSession, ref: str, group: str | None) -> Season:
+    g = await _group(db, group)
+    stmt = select(Season).where(
+        (func.lower(Season.name) == ref.lower()) | _id_starts(Season.id, ref)
+    )
+    if g is not None:
+        stmt = stmt.where(Season.group_id == g.id)
+    found = list(await db.scalars(stmt))
+    return _pick(found, "Saison", ref, lambda x: f"{short(x.id)}  {x.name}")
+
+
+def _span(s: Season) -> str:
+    end = f"{s.ends_on:%d.%m.%Y}" if s.ends_on else "offen"
+    return f"{s.starts_on:%d.%m.%Y} bis {end}"
+
+
+async def list_seasons(db: AsyncSession, group: str | None = None) -> Result:
+    g = await _group(db, group)
+    count = (
+        select(func.count())
+        .select_from(Tournament)
+        .where(Tournament.season_id == Season.id)
+        .scalar_subquery()
+    )
+    stmt = (
+        select(PlayGroup.name, Season, count)
+        .join(Season, Season.group_id == PlayGroup.id)
+        .order_by(PlayGroup.name, Season.starts_on)
+    )
+    if g is not None:
+        stmt = stmt.where(PlayGroup.id == g.id)
+    lines, last = [], None
+    for name, s, n in (await db.execute(stmt)).all():
+        if name != last:
+            lines.append(f"Gruppe {name}")
+            last = name
+        lines.append(f"  {short(s.id)}  {s.name:16} {_span(s):26} {n} Turniere")
+    return Result(lines or ["Keine Saisons."])
+
+
+async def season_start(
+    db: AsyncSession, ref: str, start: date, *, group: str | None, apply: bool
+) -> Result:
+    """Beginn einer Saison verschieben, z. B. damit ein Abend im Dezember schon zählt.
+
+    Turniere ohne Saison, die im neuen Zeitraum liegen, kommen mit in die Saison; die
+    Rangliste mit Saisonfilter zeigt sie danach.
+    """
+    s = await _season(db, ref, group)
+    if s.ends_on is not None and start > s.ends_on:
+        raise Refused(f"{s.name} endet am {s.ends_on:%d.%m.%Y}; der Beginn muss davor liegen.")
+    others = list(
+        await db.scalars(
+            select(Season).where(
+                Season.group_id == s.group_id, Season.id != s.id, Season.archived_at.is_(None)
+            )
+        )
+    )
+    end = s.ends_on or date.max
+    clash = [o for o in others if o.starts_on <= end and (o.ends_on or date.max) >= start]
+    if clash:
+        names = ", ".join(f"{o.name} ({_span(o)})" for o in clash)
+        raise Refused(f"Der neue Zeitraum überschneidet sich mit {names}.")
+    loose = list(
+        await db.scalars(
+            select(Tournament).where(
+                Tournament.group_id == s.group_id,
+                Tournament.season_id.is_(None),
+                Tournament.held_on >= start,
+                Tournament.held_on <= end,
+            )
+        )
+    )
+    what = f"{s.name}: Beginn {s.starts_on:%d.%m.%Y} → {start:%d.%m.%Y}"
+    moved = [f"  {_t_line(t)}" for t in loose]
+    note = [f"{len(loose)} Turnier(e) ohne Saison kommen dazu:", *moved] if loose else []
+    if not apply:
+        return Result([f"Würde ändern: {what}", *note, "Mit --apply ausführen."])
+    s.starts_on = start
+    for t in loose:
+        t.season_id = s.id
+    await db.flush()
+    return Result([f"Geändert: {what}", *note], changed=True)
+
+
+class _Operator(svc.Context):
+    """Kontext für den Betreiber: darf alles, was das Turnier gerade zulässt."""
+
+    @property
+    def actor(self) -> Actor:
+        return Actor(is_starter=True, is_admin=True, is_participant=True, is_member=True)
+
+
+async def finish_tournament(
+    db: AsyncSession, ref: str, *, group: str | None, apply: bool
+) -> Result:
+    """Ein hängendes Turnier abschließen, wenn offene Matches nicht mehr gespielt werden.
+
+    Offene Matches (noch nicht begonnen oder abgebrochen mitten im Spiel) werden gestrichen und
+    zählen nicht. Stehen danach Spieler nach allen Tiebreakern gleich, entscheidet wie in der
+    App ein W20. Endplätze und Ranglistenpunkte wie beim normalen Abschluss.
+    """
+    t = await find_tournament(db, ref, group)
+    if t.status not in ("running", "paused"):
+        raise Refused(f"Turnier {_t_line(t)}: nur laufende oder pausierte Turniere.")
+    names = dict(
+        (
+            await db.execute(
+                select(Player.id, Player.display_name)
+                .join(TournamentEntry, TournamentEntry.player_id == Player.id)
+                .where(TournamentEntry.tournament_id == t.id)
+            )
+        ).all()
+    )
+    open_matches = list(
+        await db.scalars(
+            select(Match).where(Match.tournament_id == t.id, Match.status != "finished")
+        )
+    )
+    played = await db.scalar(
+        select(func.count())
+        .select_from(Match)
+        .where(Match.tournament_id == t.id, Match.status == "finished")
+    )
+    if not played:
+        raise Refused(
+            "Noch kein Match gespielt: Abschließen ergibt keine Wertung. "
+            "Ein Turnier ohne Ergebnisse besser löschen (delete-tournament)."
+        )
+    dropped = [
+        f"  {names.get(m.player_a_id, '?')} – {names.get(m.player_b_id, '?')}"
+        + (" (lief gerade, Spielstand verfällt)" if m.status == "running" else "")
+        for m in open_matches
+    ]
+    what = f"Turnier {_t_line(t)}"
+    head = [f"{len(open_matches)} offene Match(es) werden gestrichen:", *dropped] if dropped else []
+    if not apply:
+        return Result([f"Würde abschließen: {what}", *head, "Mit --apply ausführen."])
+    for m in open_matches:
+        await db.delete(m)
+    await db.flush()
+    ctx = _Operator(t, None, None, None)  # type: ignore[arg-type]
+    rolled = await rounds.roll_tiebreak(db, ctx)
+    await rounds.finish(db, ctx)
+    standings = [
+        f"  {e.final_place}. {names.get(e.player_id, '?')} (+{e.ranking_points})"
+        for e in sorted(
+            await db.scalars(
+                select(TournamentEntry).where(
+                    TournamentEntry.tournament_id == t.id, TournamentEntry.final_place.is_not(None)
+                )
+            ),
+            key=lambda e: e.final_place,
+        )
+    ]
+    roll = ["Gleichstand per W20 entschieden."] if rolled else []
+    return Result([f"Abgeschlossen: {what}", *head, *roll, "Endstand:", *standings], changed=True)
+
+
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="topstack.scripts.admin", description=(__doc__ or "").split("\n")[0]
@@ -248,6 +421,16 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         p.add_argument("ref", help="Name bzw. Set-Code oder Anfang der ID")
         p.add_argument("--group")
         p.add_argument("--apply", action="store_true", help="wirklich ändern")
+    sub.add_parser("seasons", help="Saisons je Gruppe").add_argument("--group")
+    p = sub.add_parser("season-start", help="Beginn einer Saison verschieben")
+    p.add_argument("ref", help="Name der Saison oder Anfang der ID")
+    p.add_argument("start", type=date.fromisoformat, help="neuer Beginn, JJJJ-MM-TT")
+    p.add_argument("--group")
+    p.add_argument("--apply", action="store_true", help="wirklich ändern")
+    p = sub.add_parser("finish-tournament", help="hängendes Turnier abschließen")
+    p.add_argument("ref", help="Set-Code oder Anfang der ID")
+    p.add_argument("--group")
+    p.add_argument("--apply", action="store_true", help="wirklich ändern")
     p = sub.add_parser("invite-link", help="persönlicher Einladungslink (ADR-0015)")
     p.add_argument("ref")
     p.add_argument("--group")
@@ -265,6 +448,12 @@ async def run(db: AsyncSession, args: argparse.Namespace) -> Result:
             return await delete_player(db, args.ref, group=args.group, apply=args.apply)
         case "delete-tournament":
             return await delete_tournament(db, args.ref, group=args.group, apply=args.apply)
+        case "seasons":
+            return await list_seasons(db, args.group)
+        case "season-start":
+            return await season_start(db, args.ref, args.start, group=args.group, apply=args.apply)
+        case "finish-tournament":
+            return await finish_tournament(db, args.ref, group=args.group, apply=args.apply)
         case _:
             return await invite_link(db, args.ref, group=args.group, days=args.days)
 

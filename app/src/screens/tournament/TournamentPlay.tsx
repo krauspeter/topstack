@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { type CSSProperties, useEffect, useState } from 'react';
 import { ApiError, api, errorText } from '../../api/client';
 import { deviceId } from '../../store/useMatch';
 import type { MatchInfo, NextOpponent, Standing, Tournament, TrackerInfo } from '../../api/types';
 import type { GameEvent } from '../../domain/lifeEvents';
 import type { MatchConfig } from '../../domain/match';
+import { type ColorChoice, normalizeColors } from '../../domain/colors';
+import { choiceSurface } from '../../theme';
+import { ManaPips } from '../ManaPips';
 import { configFromTracker, defaultSide, fromApi } from '../../domain/remote';
 
 /** Ergebnisse eines Best-of-3, auch nach Zeitablauf; aus Sicht von Spieler A. */
@@ -56,7 +59,7 @@ export function TournamentPlay({ t, busy, helper, can, onNextRound, onAct, onPla
 
   return (
     <>
-      {finished && <Ceremony standings={t.standings} />}
+      {finished && <Ceremony standings={t.standings} entries={t.entries} />}
 
       {t.status === 'paused' && (
         <section className="card">
@@ -521,23 +524,73 @@ function StandingsTable({ standings, finished }: { standings: Standing[]; finish
   );
 }
 
-/** Siegerehrung (UC-17): die ersten drei auf dem Podest. */
-function Ceremony({ standings }: { standings: Standing[] }) {
-  const podium = standings.filter((s) => (s.final_place ?? s.rank) <= 3);
-  const medal = ['🥇', '🥈', '🥉'];
+/** Konfetti-Stücke: feste Positionen, damit die Darstellung bei jedem Rendern gleich bleibt. */
+const CONFETTI = Array.from({ length: 28 }, (_, i) => ({
+  left: (i * 37) % 100,
+  delay: ((i * 7) % 10) * 0.08,
+  drift: ((i * 13) % 9) - 4,
+  turn: (i * 47) % 360,
+}));
+
+/**
+ * Siegerehrung (UC-17): Podest mit 2. links, 1. in der Mitte, 3. rechts. Die Stufen wachsen
+ * nacheinander (3., 2., 1.), danach fällt Konfetti in den Deckfarben des Siegers. Mit
+ * „Bewegung reduzieren“ des Systems steht alles sofort still da.
+ */
+function Ceremony({ standings, entries }: { standings: Standing[]; entries: Tournament['entries'] }) {
+  const place = (s: Standing) => s.final_place ?? s.rank;
+  const podium = standings.filter((s) => place(s) <= 3).sort((a, b) => place(a) - place(b));
+  const colorsOf = (id: string) => entries.find((e) => e.player_id === id)?.colors ?? null;
+  const winnerColors = podium[0] ? normalizeColors(colorsOf(podium[0].player_id) ?? '') : '';
+  const palette =
+    winnerColors === ''
+      ? ['var(--gold)']
+      : [...winnerColors].map((c) => choiceSurface(c as ColorChoice).value);
   return (
     <section className="card trophy" data-testid="ceremony">
+      <div className="confetti" aria-hidden="true">
+        {CONFETTI.map((c, i) => (
+          <i
+            key={i}
+            style={
+              {
+                left: `${c.left}%`,
+                background: palette[i % palette.length],
+                animationDelay: `${1.4 + c.delay}s`,
+                '--drift': `${c.drift * 12}px`,
+                '--turn': `${c.turn}deg`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
       <svg className="cup" viewBox="0 0 64 64" aria-hidden="true">
         <path d="M18 8h28v10a14 14 0 0 1-28 0zM18 12H8a10 10 0 0 0 10 12M46 12h10a10 10 0 0 1-10 12M28 32h8v12h-8zM20 50h24v6H20z" />
       </svg>
       <h2>Siegerehrung</h2>
       <ol className="podium">
-        {podium.map((s) => (
-          <li key={s.player_id}>
-            <span aria-hidden="true">{medal[(s.final_place ?? s.rank) - 1]}</span> <strong>{s.display_name}</strong>
-            <span className="muted small"> · {s.match_points} Pkt</span>
-          </li>
-        ))}
+        {podium.map((s) => {
+          const colors = colorsOf(s.player_id);
+          return (
+            <li key={s.player_id} className={`step step-${place(s)}`}>
+              <div className="step-name">
+                {place(s) === 1 && (
+                  <svg className="crown" viewBox="0 0 24 16" aria-hidden="true">
+                    <path d="M2 14 L4 4 L9 9 L12 2 L15 9 L20 4 L22 14 Z" />
+                  </svg>
+                )}
+                <strong>{s.display_name}</strong>
+                {colors !== null && <ManaPips colors={colors} />}
+                <span className="muted small">
+                  {s.match_points} Pkt{s.ranking_points !== null ? ` · +${s.ranking_points}` : ''}
+                </span>
+              </div>
+              <div className="step-block">
+                <span>{place(s)}.</span>
+              </div>
+            </li>
+          );
+        })}
       </ol>
     </section>
   );

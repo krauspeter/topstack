@@ -8,6 +8,10 @@
 #   infra/ops/admin.sh delete-player Ben --apply    löscht, vorher Backup
 #   infra/ops/admin.sh delete-tournament 3f2a1b7c --apply
 #   infra/ops/admin.sh invite-link Andreas
+#   infra/ops/admin.sh seasons                       Saisons mit Zeitraum und Turnieren
+#   infra/ops/admin.sh season-start "Saison 2027" 2026-12-01 --apply
+#   infra/ops/admin.sh finish-tournament 3f2a1b7c --apply   hängendes Turnier abschließen
+#   infra/ops/admin.sh deploy-lock on|off|status     Deploy-Sperre für den Spieleabend
 # Vor jedem --apply legt das Skript in der Produktion ein Backup an (Name …-pre-admin.dump) und
 # bricht ab, wenn das nicht klappt. Auf Staging (TOPSTACK_STACK=staging) gibt es kein Backup.
 set -euo pipefail
@@ -19,6 +23,23 @@ case "${stack:-prod}" in
   staging) compose_file=docker-compose.staging.yml ;;
   *) echo "Unbekannter TOPSTACK_STACK=$stack (prod oder staging)." >&2; exit 1 ;;
 esac
+
+# Deploy-Sperre: eine Datei im Zustandsordner von deploy.sh, kein Container nötig
+if [ "${1:-}" = deploy-lock ]; then
+  case "${stack:-prod}" in
+    prod) state_default=$HOME/topstack-state ;;
+    *) state_default=$HOME/topstack-beta-state ;;
+  esac
+  state=$(sed -n 's/^DEPLOY_STATE_DIR=//p' .env | tail -n1)
+  lock="${state:-$state_default}/deploy.lock"
+  case "${2:-status}" in
+    on) mkdir -p "$(dirname "$lock")"; touch "$lock"; echo "Deploy-Sperre gesetzt ($lock): Es wird nichts eingespielt." ;;
+    off) rm -f "$lock"; echo "Deploy-Sperre aufgehoben: Der nächste Lauf spielt wieder ein." ;;
+    status) if [ -e "$lock" ]; then echo "Deploy-Sperre aktiv seit $(date -r "$lock" '+%d.%m.%Y %H:%M')."; else echo "Keine Deploy-Sperre."; fi ;;
+    *) echo "Aufruf: infra/ops/admin.sh deploy-lock on|off|status" >&2; exit 2 ;;
+  esac
+  exit 0
+fi
 
 apply=0
 for arg in "$@"; do

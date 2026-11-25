@@ -13,6 +13,19 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ## [Unreleased]
 
+### Added
+
+- Admin script: `seasons` and `season-start` move the start of a season and
+  take in tournaments without a season, so the draft evening on 27.12. counts
+  for season 2027; `finish-tournament` closes a hanging tournament by dropping
+  its open matches; `deploy-lock on|off|status` for the draft evening (#162)
+
+### Changed
+
+- Award ceremony with a podium (2nd, 1st, 3rd) that rises step by step, a
+  crown for the winner and confetti in the winner's deck colours; ranking
+  points next to each name; no motion with "reduce motion" (#162)
+
 ## [1.0.0] - 2026-11-25
 
 First stable release for the draft group. The same code as
