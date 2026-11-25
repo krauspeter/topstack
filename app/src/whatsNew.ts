@@ -7,6 +7,12 @@
  * eigenen gibt.
  */
 export const WHATS_NEW: Record<string, string[]> = {
+  '1.0.0': [
+    'Turniere: Die Startseite zeigt dein laufendes Turnier, Gold ist immer dein nächster Schritt.',
+    'Push: Im Profil aktivieren, dann meldet sich die App, wenn du dran bist.',
+    'Feedback geben direkt aus der App, gern mit Screenshot.',
+    '„Neues Match“ heißt jetzt „Freies Match“.',
+  ],
   '0.9.0': [
     'Die App hat jetzt eine Versionsnummer, unten auf dem Startbildschirm.',
     'Updates kommen automatisch, nach jedem Update steht hier kurz, was neu ist.',
