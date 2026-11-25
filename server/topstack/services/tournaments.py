@@ -398,14 +398,19 @@ async def delete(db: AsyncSession, ctx: Context) -> None:
     nur der Admin; Ergebnisse, Spiele, Lebenspunkte und Ranglistenpunkte verschwinden mit.
     """
     check(Action.DELETE, ctx.status, ctx.actor)
+    await purge(db, ctx.tournament)
+
+
+async def purge(db: AsyncSession, tournament: Tournament) -> None:
+    """Löscht ein Turnier ohne Rechteprüfung (für delete und das Admin-Skript)."""
     guests = list(
         await db.scalars(
             select(Player)
             .join(TournamentEntry, TournamentEntry.player_id == Player.id)
-            .where(TournamentEntry.tournament_id == ctx.tournament.id, Player.kind == "guest")
+            .where(TournamentEntry.tournament_id == tournament.id, Player.kind == "guest")
         )
     )
-    await db.delete(ctx.tournament)  # Einträge, Runden, Matches, Gästelinks per CASCADE
+    await db.delete(tournament)  # Einträge, Runden, Matches, Gästelinks per CASCADE
     await db.flush()
     for guest in guests:
         await db.delete(guest)

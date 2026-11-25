@@ -15,6 +15,10 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ### Added
 
+- Admin script for the home server (`infra/ops/admin.sh`): list players and
+  tournaments, delete test tournaments and players without an account (refused
+  while they are in a tournament), create personal invitation links; every
+  `--apply` takes a backup first (#155)
 - Start screen card for a running tournament you play in: set, round, your
   place, points and record, and the next step (start your match, live life
   totals, next round, bye with the next opponent, final place); it updates

@@ -300,8 +300,9 @@ Kleine Wünsche aus der Beta, die nicht bis v1.1 warten müssen:
 
 Am Ende von Phase 4, vor dem Release-Abend (Entscheidung vom 21.11.2026):
 
-- [ ] Superuser-Werkzeug für den Heimserver-Betreiber als Skript per SSH (`python -m topstack.scripts.admin`), keine neue Rolle in der App: Spieler ohne Konto auflisten und löschen; steht der Spieler in einem Turnier, wird das Löschen verweigert und die Turniere werden genannt. Turniere löschen (für Testturniere). Ohne `--apply` nur Anzeige, mit `--apply` vorher ein Backup. Vor dem Release damit Testturniere und doppelte Testspieler der „Draft-Runde“ entfernen. Andreas bleibt: echter Mitspieler, bekommt später seinen persönlichen Link
-- [ ] Persönliche Einladungslinks über dasselbe Skript (`invite-link <Spieler>`), weil AP-8 sie für alle Spieler ohne Konto braucht und der Knopf in der App zurückgestellt ist (Entscheidung vom 22.11.2026)
+- [x] Superuser-Werkzeug für den Heimserver-Betreiber als Skript per SSH (`python -m topstack.scripts.admin`), keine neue Rolle in der App: Spieler ohne Konto auflisten und löschen; steht der Spieler in einem Turnier, wird das Löschen verweigert und die Turniere werden genannt. Turniere löschen (für Testturniere). Ohne `--apply` nur Anzeige, mit `--apply` vorher ein Backup. Vor dem Release damit Testturniere und doppelte Testspieler der „Draft-Runde“ entfernen. Andreas bleibt: echter Mitspieler, bekommt später seinen persönlichen Link. Umgesetzt als `infra/ops/admin.sh` (ruft das Skript im API-Container auf, Backup `…-pre-admin` vor jedem `--apply`); Anleitung in `docs/phase3/heimserver.md`
+- [ ] Aufräumen der „Draft-Runde“ mit dem Skript auf dem Heimserver (Peter)
+- [x] Persönliche Einladungslinks über dasselbe Skript (`invite-link <Spieler>`), weil AP-8 sie für alle Spieler ohne Konto braucht und der Knopf in der App zurückgestellt ist (Entscheidung vom 22.11.2026)
 - [ ] Offen, bewusst nicht jetzt: Knopf „Persönlicher Link“ in der App (ersetzt durch das Skript) und Auswahl der Gruppe beim Turnier-Start (Voraussetzung für eine eigene Testgruppe, weil der Turnier-Bildschirm heute immer die erste Gruppe nimmt)
 
 ---

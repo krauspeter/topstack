@@ -2,7 +2,7 @@
 # Backups der TopStack-Datenbank (Phase 4, AP-1, ADR-0016).
 #
 # Läuft im Container "backup" aus infra/docker-compose.yml (Profil "ops"):
-#   topstack-backup backup [nightly|pre-deploy|manual]   sichern, prüfen, nach R2 kopieren, aufräumen
+#   topstack-backup backup [nightly|pre-deploy|pre-admin|manual]   sichern, prüfen, nach R2 kopieren, aufräumen
 #   topstack-backup restore-test                          neuestes Backup in Wegwerf-Datenbank einspielen und prüfen
 #   topstack-backup restore <datei.dump>                  Backup in die echte Datenbank zurückspielen (API vorher stoppen!)
 #   topstack-backup list                                  vorhandene Backups lokal und in R2 anzeigen
@@ -111,8 +111,8 @@ cmd_backup() {
       [ "$(date -u +%u)" = 7 ] && tiers+=(weekly)
       [ "$(date -u +%d)" = 01 ] && tiers+=(monthly)
       ;;
-    pre-deploy | manual) tiers=(manual) ;;
-    *) die "Unbekannter Grund '$reason' (nightly, pre-deploy oder manual)" ;;
+    pre-deploy | pre-admin | manual) tiers=(manual) ;;
+    *) die "Unbekannter Grund '$reason' (nightly, pre-deploy, pre-admin oder manual)" ;;
   esac
   check_offsite_config
 
