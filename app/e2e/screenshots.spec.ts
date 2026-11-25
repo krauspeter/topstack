@@ -273,6 +273,17 @@ test('Anleitung: Push', async ({ page }) => {
       ],
     }),
   );
+  // Service Worker sind hier gesperrt: Push-Fähigkeit nachbauen, damit der Knopf erscheint
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { getRegistration: async () => undefined, ready: new Promise(() => undefined) },
+    });
+    const w = window as unknown as Record<string, unknown>;
+    w.PushManager ??= function PushManager() {};
+    w.Notification ??= function Notification() {};
+    Object.defineProperty(w.Notification as object, 'permission', { configurable: true, get: () => 'default' });
+  });
   await page.goto('/profil');
   const push = page.getByRole('region', { name: 'Benachrichtigungen' });
   await expect(push.getByRole('button', { name: 'Push auf diesem Gerät aktivieren' })).toBeVisible();
