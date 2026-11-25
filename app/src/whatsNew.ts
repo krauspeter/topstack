@@ -7,6 +7,10 @@
  * eigenen gibt.
  */
 export const WHATS_NEW: Record<string, string[]> = {
+  '1.0.1': [
+    'Neue Siegerehrung: Podest, Krone und Konfetti in den Deckfarben des Siegers.',
+    'Kleinere Verbesserungen im Hintergrund für den Draftabend.',
+  ],
   '1.0.0': [
     'Turniere: Die Startseite zeigt dein laufendes Turnier, Gold ist immer dein nächster Schritt.',
     'Push: Im Profil aktivieren, dann meldet sich die App, wenn du dran bist.',
