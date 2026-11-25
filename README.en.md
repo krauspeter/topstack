@@ -116,7 +116,7 @@ Locally, the same checks run as pre-commit hooks before every commit and push.
 
 | Environment | Address | Runs |
 | --- | --- | --- |
-| Production | `topstack.win` | latest release (`latest`), `main` until v1.0 |
+| Production | `topstack.win` | latest release (`latest`) |
 | Staging | `beta.topstack.win` | every merge into `main`, or a pull request on request |
 
 - **Deployment:** a systemd timer pulls new images every 5 minutes. It takes a backup first, rolls back on failure and remembers the broken state. A lock pauses updates during game nights. A release is a normal PR prepared by `scripts/release.sh` ([changelog](CHANGELOG.md)).
@@ -131,7 +131,7 @@ Guides (in German): [set up the home server](docs/phase3/heimserver.md) · [phas
 
 | Version | Scope | Status |
 | --- | --- | --- |
-| v1.0 | Draft tournaments for our own group, operations with backups, monitoring, deployment | in progress, release end of 2026 |
+| v1.0 | Draft tournaments for our own group, operations with backups, monitoring, deployment | released on 25.11.2026 |
 | v1.1 | Multiple groups, import of historic data, Elo, head-to-head, awards, table mode | planned |
 | v1.2 | Scheduling polls for game nights, shared expenses | planned |
 | v1.3 / v1.4 | Sealed; Constructed with Swiss pairings and top cut | planned |
