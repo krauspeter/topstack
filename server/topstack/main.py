@@ -86,14 +86,17 @@ async def health(response: Response, db: Db) -> dict[str, object]:
 
 
 @api.get("/return", tags=["Betrieb"], include_in_schema=False)
-async def return_to_app() -> RedirectResponse:
+async def return_to_app(next: str = "/") -> RedirectResponse:
     """Zurück zur App, nach einer erneuten Anmeldung bei Cloudflare Access (Staging).
 
     Die App navigiert hierher, wenn ihre Access-Sitzung abgelaufen ist. Seiten der App liefert
     der Service Worker aus dem Zwischenspeicher, an Access vorbei; Adressen unter ``/api/``
     nicht. So landet der Browser auf der Login-Seite von Access und danach wieder in der App.
+    ``next`` führt zurück auf die Seite, von der man kam (z. B. den Magic-Link); nur Pfade auf
+    derselben Seite, damit niemand den Endpunkt als offene Weiterleitung nutzen kann.
     """
-    return RedirectResponse("/", status_code=303)
+    safe = next.startswith("/") and not next.startswith(("//", "/\\")) and "\\" not in next
+    return RedirectResponse(next if safe else "/", status_code=303)
 
 
 api.include_router(auth.router)

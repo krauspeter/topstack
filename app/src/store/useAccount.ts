@@ -27,8 +27,8 @@ export async function offlineReason(): Promise<OfflineReason> {
 }
 
 /** Neue Anmeldung bei Access: Adressen unter /api/ gehen am Service Worker vorbei zu Cloudflare. */
-export function reauthenticate(): void {
-  window.location.assign('/api/v1/return');
+export function reauthenticate(next = '/'): void {
+  window.location.assign(`/api/v1/return?next=${encodeURIComponent(next)}`);
 }
 
 export function useAccount() {

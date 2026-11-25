@@ -150,7 +150,7 @@ function OfflineNote({ reason, onRetry }: { reason: 'network' | 'access'; onRetr
     return (
       <div className="offline-note" role="status">
         <p>Anmeldung bei Cloudflare abgelaufen. Konto und Turniere kommen nach dem Neuladen zurück.</p>
-        <button className="btn small" onClick={reauthenticate}>
+        <button className="btn small" onClick={() => reauthenticate()}>
           Seite neu laden
         </button>
       </div>
