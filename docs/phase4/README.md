@@ -260,13 +260,16 @@ Ursprünglich letzter Schritt vor v1.0. **Verschoben auf nach dem Release (Entsc
 
 ### AP-8 · Rollout und Release-Abend v1.0 (ca. 3 h)
 
+**Termin: Draftabend So 27.12.2026** (Entscheidung vom 25.11.2026), dann schon mit v1.0: `1.0.0-rc.1` am 25.11., die Gruppe testet auf Beta, `v1.0.0` mit Ziel bis 13.12. Ablauf Schritt für Schritt mit allen Befehlen: [Drehbuch Release-Abend](release-abend.md). Anleitung für die Gruppe: [TopStack in 4 Schritten](https://claude.ai/artifact/9Z6ue547qKEUT9SnKQDY8P) (Bilder in `docs/img/anleitung/`, aufgenommen von `app/e2e/screenshots.spec.ts`).
+
 **Vorher**
 
 - [ ] AP-1 bis AP-6 abgeschlossen (AP-7 nach dem Release), Changelog für v1.0.0 fertig
-- [ ] Alle Mitspieler ohne Konto bekommen ihren persönlichen Einladungslink (vorgemerkte Spieler übernehmen dabei ihre Ergebnisse, ADR-0015)
-- [ ] Kurze Anleitung für die Gruppe: installieren, anmelden, Push erlauben, Feedback geben
-- [ ] Eine Woche vorher `scripts/release.sh 1.0.0-rc.1`; die Gruppe testet auf Staging
-- [ ] Release `v1.0.0` mit `scripts/release.sh 1.0.0`; danach die Produktion auf den Kanal `latest` umstellen: `TOPSTACK_VERSION=latest` in `~/topstack/infra/.env`. Ab dann bekommt die Produktion nur noch Releases, Staging weiter jeden Merge
+- [x] Alle Mitspieler haben ein Konto; die doppelten vorgemerkten Spieler sind mit dem Admin-Skript gelöscht (25.11.2026). Persönliche Links braucht es dadurch nicht mehr
+- [x] Kurze Anleitung für die Gruppe: installieren, anmelden, Push erlauben, Feedback geben (25.11.2026)
+- [ ] Anleitung in die Gruppe geschickt, Tester für Beta freigeschaltet (Drehbuch Abschnitt 1)
+- [ ] 25.11.: `scripts/release.sh 1.0.0-rc.1`; die Gruppe testet auf Staging
+- [ ] Bis 13.12.: Release `v1.0.0` mit `scripts/release.sh 1.0.0`; danach die Produktion auf den Kanal `latest` umstellen: `TOPSTACK_VERSION=latest` in `~/topstack/infra/.env`. Ab dann bekommt die Produktion nur noch Releases, Staging weiter jeden Merge
 - [ ] Am Tag des Spieleabends: Deploy-Sperre setzen, Backup von Hand anstoßen
 
 **Am Abend**
@@ -303,7 +306,7 @@ Kleine Wünsche aus der Beta, die nicht bis v1.1 warten müssen:
 Am Ende von Phase 4, vor dem Release-Abend (Entscheidung vom 21.11.2026):
 
 - [x] Superuser-Werkzeug für den Heimserver-Betreiber als Skript per SSH (`python -m topstack.scripts.admin`), keine neue Rolle in der App: Spieler ohne Konto auflisten und löschen; steht der Spieler in einem Turnier, wird das Löschen verweigert und die Turniere werden genannt. Turniere löschen (für Testturniere). Ohne `--apply` nur Anzeige, mit `--apply` vorher ein Backup. Vor dem Release damit Testturniere und doppelte Testspieler der „Draft-Runde“ entfernen. Andreas bleibt: echter Mitspieler, bekommt später seinen persönlichen Link. Umgesetzt als `infra/ops/admin.sh` (ruft das Skript im API-Container auf, Backup `…-pre-admin` vor jedem `--apply`); Anleitung in `docs/phase3/heimserver.md`
-- [ ] Aufräumen der „Draft-Runde“ mit dem Skript auf dem Heimserver (Peter)
+- [x] Aufräumen der „Draft-Runde“ mit dem Skript auf dem Heimserver (Peter, 25.11.2026)
 - [x] Persönliche Einladungslinks über dasselbe Skript (`invite-link <Spieler>`), weil AP-8 sie für alle Spieler ohne Konto braucht und der Knopf in der App zurückgestellt ist (Entscheidung vom 22.11.2026)
 - [ ] Offen, bewusst nicht jetzt: Knopf „Persönlicher Link“ in der App (ersetzt durch das Skript) und Auswahl der Gruppe beim Turnier-Start (Voraussetzung für eine eigene Testgruppe, weil der Turnier-Bildschirm heute immer die erste Gruppe nimmt)
 

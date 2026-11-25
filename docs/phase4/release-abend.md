@@ -1,0 +1,90 @@
+# Release v1.0 am Draftabend · Drehbuch
+
+Stand: 25.11.2026 · Draftabend **So 27.12.2026** (voraussichtlich), dann schon mit v1.0 · gehört zu [AP-8](README.md#ap-8--rollout-und-release-abend-v10-ca-3-h)
+
+Jeder Schritt sagt, wo er läuft: **PC** (Browser oder GitHub), **Heimserver** (per SSH, Ordner `~/topstack` bzw. `~/topstack-beta`) oder **Handy**. Was Claude vorbereitet, steht als „Claude“ dabei.
+
+## Zeitplan
+
+Entscheidung vom 25.11.2026: Release-Kandidat und Release kommen **vor** dem Draftabend, damit am 27.12. schon v1.0 läuft und der Abend nur noch Abnahme ist.
+
+| Wann | Was | Wer |
+| --- | --- | --- |
+| **Mi 25.11.** | Release-Kandidat `1.0.0-rc.1` (Abschnitt 2) | Claude bereitet vor, Peter mergt |
+| ab 25.11. | Anleitung an die Gruppe, Tester für Beta freischalten (Abschnitt 1) | Peter |
+| bis ca. 06.12. | Die Gruppe testet rc.1 auf Beta; Fehler beheben, bei Änderungen `1.0.0-rc.2` | Gruppe, Claude, Peter |
+| **Ziel: bis So 13.12.** | Release `v1.0.0`, Produktion auf den Kanal `latest` (Abschnitt 3) | Claude bereitet vor, Peter mergt und stellt um |
+| 14.–26.12. | Produktion läuft nur noch mit Releases; Fehler kommen als `1.0.1` | Peter, Claude |
+| **So 27.12.** tagsüber | Backup, Deploy-Sperre, Probelauf (Abschnitt 4) | Peter |
+| **So 27.12.** abends | Draftabend: Abnahme G3 und Push im echten Turnier (Abschnitt 5) | alle |
+| Mo 28.12. | Sperre aufheben, Wiederherstellung proben, Feedback sichten, Schlüssel erneuern (Abschnitt 6) | Peter, Claude |
+
+Bis `v1.0.0` folgt auch die Produktion noch dem Kanal `main`: Nach dem Merge von rc.1 zeigt also auch `topstack.win` **v1.0.0-rc.1**. Ab dem Release kommen in `main` nur noch Fehlerbehebungen bis nach dem Draftabend.
+
+## 1. Gruppe vorbereiten (ab 25.11.)
+
+- [ ] **PC:** Anleitung [„TopStack in 4 Schritten“](https://claude.ai/artifact/9Z6ue547qKEUT9SnKQDY8P) in die Gruppe schicken (vorher teilen oder als Bild/PDF exportieren). Alle installieren die App von `topstack.win`, melden sich an und erlauben Push.
+- [ ] **PC:** Tester für Beta freischalten. Cloudflare → Zero Trust → Access → Applications → „TopStack Beta“ → Richtlinie „Nur Peter“ → Include **Emails**: die Adressen der Mitspieler ergänzen. Die Richtlinie danach ruhig in „Tester“ umbenennen.
+- [ ] **Heimserver (`~/topstack-beta`):** dieselben Adressen in `TOPSTACK_MAIL_ALLOWLIST` der Staging-`.env` (kommagetrennt), dann `docker compose -f infra/docker-compose.staging.yml --env-file infra/.env up -d api`. Sonst schickt Beta ihnen keine Anmeldelinks.
+- [ ] **Handy (Peter, auf Beta):** Profil → Testgruppe → Einladungslink erzeugen und in die Gruppe schicken. Wer ihn öffnet, landet in der Testgruppe auf Beta.
+
+## 2. Release-Kandidat rc.1 (Mi 25.11.)
+
+- [ ] **Claude:** `scripts/release.sh 1.0.0-rc.1` → Release-PR mit dem Changelog aller Einträge unter „Unreleased“.
+- [ ] **PC:** PR mergen. `release.yml` setzt das Tag `v1.0.0-rc.1` und legt den Vorab-Release auf GitHub an. `latest` zeigt nie auf einen Kandidaten.
+- [ ] **Handy:** Beta und Produktion zeigen unten **v1.0.0-rc.1** und einmal „Was ist neu“.
+- [ ] **Gruppe:** auf Beta ein Testturnier mit allen spielen (Einladung, Plätze, Farben, zwei Runden, Ergebnis korrigieren), Feedback über den Knopf in der App.
+- [ ] **PC:** Feedback-Issues sichten. Was den Abend gefährdet, wird behoben und kommt als `1.0.0-rc.2`; der Rest geht nach v1.0.1.
+
+## 3. Release v1.0.0 (Ziel: bis So 13.12.)
+
+- [ ] **Claude:** `scripts/release.sh 1.0.0` → Release-PR. die Einträge von rc.1 und rc.2 werden zum Abschnitt `## [1.0.0]`, die Neuigkeiten in der App zeigen die wichtigsten Punkte.
+- [ ] **PC:** PR mergen, auf den grünen Lauf von `release.yml` warten. Danach gibt es auf ghcr.io die Tags `1.0.0` und `latest`.
+- [ ] **Heimserver (`~/topstack`):** Produktion auf Releases umstellen:
+  ```bash
+  cd ~/topstack
+  git pull
+  sed -i 's/^TOPSTACK_VERSION=.*/TOPSTACK_VERSION=latest/' infra/.env
+  grep TOPSTACK_VERSION infra/.env
+  ```
+  Der Deploy-Timer holt `latest` beim nächsten Lauf (höchstens 5 Minuten), vorher läuft ein Backup.
+- [ ] **Handy:** `topstack.win` zeigt unten **v1.0.0** und einmal die Neuigkeiten. ntfy meldet das Update.
+- [ ] **PC:** Uptime Kuma und healthchecks.io grün.
+
+## 4. Am Tag des Draftabends, tagsüber (So 27.12.)
+
+- [ ] **Heimserver:** Backup von Hand und Sperre setzen:
+  ```bash
+  cd ~/topstack
+  infra/ops/backup.sh backup manual
+  touch ~/topstack-state/deploy.lock
+  ```
+  Bis zur Aufhebung spielt der Timer nichts mehr ein, auch keine Merges.
+- [ ] **Heimserver:** `infra/ops/admin.sh tournaments` zeigt keine Testturniere in der „Draft-Runde“; `infra/ops/admin.sh players` zeigt alle Mitspieler als Mitglied.
+- [ ] **Handy (Peter):** Profil → Benachrichtigungen → „Test senden“ kommt an.
+- [ ] **Handy:** Gäste ohne Konto spielen per QR-Code als Gast mit (in der Rangliste erscheinen sie nicht).
+
+## 5. Am Abend
+
+- [ ] Abnahme G3 nach der [Checkliste AP-10 aus Phase 3](../phase3/README.md#ap-10--abnahme-gate-g3-ca-2-h--verschoben-zum-release-v10), Schritte 1 bis 8.
+- [ ] Push kommt an: „Du bist dran“, neue Runde, Turnierende.
+- [ ] Die Turnier-Karte auf der Startseite stimmt bei allen: dran, läuft, Pause mit Vorziehen, nächste Runde.
+- [ ] Probleme direkt über „Feedback geben“ melden, mit Screenshot.
+
+## 6. Danach (ab Mo 28.12.)
+
+- [ ] **Heimserver:** Sperre aufheben: `rm ~/topstack-state/deploy.lock`.
+- [ ] **PC (Windows):** Backup vom Abend wiederherstellen, Rangliste stimmt mit der App überein ([Heimserver, Ernstfall auf einem anderen Rechner](../phase3/heimserver.md#ernstfall-auf-einem-anderen-rechner-wiederherstellen)).
+- [ ] **PC:** Feedback des Abends sichten, Fehler im Meilenstein v1.0.1.
+- [ ] **PC und Heimserver:** Resend-API-Schlüssel und ntfy-Topic erneuern (siehe AP-8).
+- [ ] iPhone-Test AP-7 nachholen, sobald ein iPhone da ist.
+- [ ] **Claude:** Roadmap und Phase-4-Plan aktualisieren, G3 und G4 abhaken.
+
+## Wenn etwas schiefgeht
+
+| Problem | Was tun |
+| --- | --- |
+| Update auf v1.0.0 kaputt | Der Timer rollt selbst zurück und meldet sich per ntfy. Sonst: `TOPSTACK_VERSION=1.0.0-rc.1` (bzw. der letzte gute Kandidat) in `infra/.env`, beim nächsten Lauf ist der alte Stand zurück. Nicht auf 0.9.0: dem fehlt die Datenbank-Migration 0004. |
+| Server fällt am Abend aus | Der Life-Tracker läuft offline weiter. Ergebnisse auf Papier notieren und am nächsten Tag nachtragen. |
+| Daten kaputt | `infra/ops/backup.sh list`, dann `infra/ops/restore.sh manual/<Backup vom Nachmittag>`. |
+| Jemand kommt nicht rein | Anmeldelink neu schicken lassen; notfalls als Gast per QR-Code mitspielen. |
