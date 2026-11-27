@@ -77,7 +77,7 @@ Kein Gate mehr: Phase 4 ist seit dem 27.11.2026 abgeschlossen, G3 entfällt. Die
 - [ ] **Heimserver:** Sperre aufheben: `infra/ops/admin.sh deploy-lock off`.
 - [ ] **PC (Windows):** Backup vom Abend wiederherstellen, Rangliste stimmt mit der App überein ([Heimserver, Ernstfall auf einem anderen Rechner](../phase3/heimserver.md#ernstfall-auf-einem-anderen-rechner-wiederherstellen)).
 - [ ] **PC:** Feedback des Abends sichten, Fehler im Meilenstein v1.0.1.
-- [ ] **PC und Heimserver:** Resend-API-Schlüssel und ntfy-Topic erneuern (siehe AP-8).
+- [x] **PC und Heimserver:** Resend-API-Schlüssel und ntfy-Topic erneuert (27.11.2026, vorgezogen).
 - [ ] iPhone-Test AP-7 nachholen, sobald ein iPhone da ist.
 - [x] **Claude:** Phase-4-Plan aktualisieren, G4 abhaken (27.11.2026; G3 entfällt).
 
