@@ -287,6 +287,7 @@ jobs:
         run: docker compose --env-file .env logs --no-color
 
   images:
+    name: build ${{ matrix.image }}
     # Baut die Images topstack-api (server/) und topstack-web (Caddy + App, app/).
     # In Pull Requests nur bauen, auf main zusätzlich nach ghcr.io pushen (ADR-0007).
     needs: [changes, server, app, smoke]
@@ -352,3 +353,22 @@ jobs:
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  images-result:
+    # Pflicht-Check „images“ im Branch-Schutz von main: Die Matrix oben meldet sich je Image unter
+    # eigenem Namen, übersprungen aber unter ihrem Grundnamen. Dieser Job heißt immer „images“ und
+    # ist grün, wenn alle Images gebaut wurden oder der Bau zu Recht übersprungen wurde.
+    name: images
+    needs: images
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ergebnis der Image-Builds
+        env:
+          RESULT: ${{ needs.images.result }}
+        run: |
+          echo "Image-Builds: $RESULT"
+          case "$RESULT" in
+            success|skipped) exit 0 ;;
+            *) echo "::error::Image-Builds nicht erfolgreich ($RESULT)"; exit 1 ;;
+          esac
