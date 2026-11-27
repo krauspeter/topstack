@@ -150,6 +150,7 @@ export function TournamentHome({ me, onOpen, onBack }: Props) {
                     <strong>{t.set_code}</strong>
                     <span className="muted small">
                       {new Date(t.held_on).toLocaleDateString('de-DE')} · {t.players} Spieler · {STATUS[t.status]}
+                      {t.imported && ' · importiert'}
                     </span>
                   </button>
                 </li>

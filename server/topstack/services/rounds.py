@@ -141,6 +141,12 @@ async def overview(db: AsyncSession, ctx: Context) -> Overview:
     names = {p.id: p.display_name for _, p in participants}
     rolls = _rolls(ctx)
     standings = standings_for(list(names), matches, await _rules(db, ctx), rolls)
+    if t.imported:
+        # Altdaten (AP-4): Die Plätze stehen in den Unterlagen, oft ohne alle Matches
+        place = {e.player_id: e.final_place or 99 for e, _ in participants}
+        standings.sort(key=lambda r: place[r.player])
+        for r in standings:
+            r.rank, r.needs_roll, r.tied_with = place[r.player], False, []
     current = next((r for r in reversed(rounds) if r.status == "running"), None)
     ov = Overview(rounds, matches, names, standings, rolls, current)
     if current is None or Status(t.status) not in (Status.RUNNING, Status.PAUSED):

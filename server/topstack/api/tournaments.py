@@ -192,6 +192,7 @@ async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
         cancel_vote=CancelVoteOut(**vars(vote)) if vote else None,
         next_opponent=NextOpponentOut(**vars(nxt)) if nxt else None,
         finished_at=t.finished_at,
+        imported=t.imported,
         rules=TournamentRulesOut(
             games_to_win=r.games_to_win,
             starting_life=r.starting_life,
@@ -289,6 +290,7 @@ async def list_tournaments(gid: uuid.UUID, user: CurrentUser, db: Db) -> list[To
             held_on=t.held_on,
             players=n,
             finished_at=t.finished_at,
+            imported=t.imported,
         )
         for t, n in rows.all()
     ]

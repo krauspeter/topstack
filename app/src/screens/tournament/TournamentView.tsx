@@ -167,6 +167,7 @@ export function TournamentView({ id, me, onBack, onDeleted, onPlay }: Props) {
         <div className="title">
           <h2>{t.set_code}</h2>
           <span className="badge">{STATUS_TEXT[t.status]}</span>
+          {t.imported && <span className="badge">importiert</span>}
         </div>
       </header>
 

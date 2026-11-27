@@ -12,6 +12,8 @@ interface Props {
   /** Gruppe verlassen oder gelöscht: zurück ins Profil. */
   onGone(message: string): void;
   onBack(): void;
+  /** Altdaten-Import öffnen (Admins, Phase 5 AP-4). */
+  onLegacy(): void;
 }
 
 /** Bild im Browser auf 512 px verkleinern und als JPEG-Data-URL liefern (ADR-0018). */
@@ -41,7 +43,7 @@ function rulesText(r: Partial<GroupRules>): string[] {
 }
 
 /** Gruppe verwalten (UC-01, Phase 5 AP-1): Name, Bild, Mitglieder und Rollen, Regeln, Archiv. */
-export function GroupSettings({ id, onChanged, onGone, onBack }: Props) {
+export function GroupSettings({ id, onChanged, onGone, onBack, onLegacy }: Props) {
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [members, setMembers] = useState<GroupMember[] | null>(null);
   const [name, setName] = useState('');
@@ -261,6 +263,11 @@ export function GroupSettings({ id, onChanged, onGone, onBack }: Props) {
 
       <section className="stack">
         <h3>Verwalten</h3>
+        {editable && (
+          <button className="btn" onClick={onLegacy}>
+            Altdaten importieren
+          </button>
+        )}
         {group.can_manage && (
           <button className="btn" onClick={() => archive(!group.archived)} disabled={busy}>
             {group.archived ? 'Archivieren aufheben' : 'Gruppe archivieren'}

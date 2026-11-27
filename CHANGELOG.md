@@ -34,6 +34,9 @@ section into a release; a short German "Was ist neu" for the app lives in
   time limit and match points for one tournament; the tournament screen shows
   what differs from the group, and the tracker, results, table and
   leaderboard use these rules (#191)
+- Legacy data import for group admins (ADR-0019): CSV with preview and error
+  list, a form for single paper tournaments, and undo per import run; imported
+  tournaments are marked and count in the leaderboard (#192)
 
 ### Changed
 

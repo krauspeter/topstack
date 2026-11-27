@@ -246,3 +246,44 @@ test('Turnier mit eigenen Regeln starten (AP-3)', async ({ page }) => {
   await page.getByRole('button', { name: 'Draft-Turnier starten' }).click();
   await expect.poll(() => body).toEqual({ set_code: 'DSK', rules: { games_to_win: 1, starting_life: 30 } });
 });
+
+test('Altdaten: CSV prüfen, übernehmen, zurücknehmen (AP-4)', async ({ page }) => {
+  await mockMe(page, [A]);
+  const sent: { apply: boolean; source: string }[] = [];
+  let runs: unknown[] = [];
+  const preview = (applied: boolean) => ({
+    tournaments: [{ key: 'T1', held_on: '2016-03-12', set_code: 'SOI', players: 3, matches: 3, winner: 'Anna', duplicate: false }],
+    new_players: ['Chris'],
+    known_players: ['Anna', 'Ben'],
+    problems: [],
+    warnings: [],
+    applied,
+    run_id: applied ? 'run-1' : null,
+  });
+  await page.route(`**/api/v1/groups/${A.id}/imports/csv`, (route) => {
+    const body = route.request().postDataJSON() as { apply: boolean; source: string };
+    sent.push(body);
+    if (body.apply) runs = [{ id: 'run-1', created_at: '2026-11-28T10:00:00Z', created_by: 'Anna', source: body.source, tournaments: 1, new_players: 1, undone_at: null }];
+    return json(route, preview(body.apply));
+  });
+  await page.route(`**/api/v1/groups/${A.id}/imports`, (route) => json(route, runs));
+  await page.route(`**/api/v1/groups/${A.id}/imports/run-1`, (route) => {
+    runs = [{ ...(runs[0] as object), undone_at: '2026-11-28T11:00:00Z' }];
+    return route.fulfill({ status: 204 });
+  });
+
+  await page.goto(`/gruppe/${A.id}/altdaten`);
+  await page.getByLabel('Turniere (CSV)').setInputFiles('e2e/fixtures/alt.csv');
+  await page.getByRole('button', { name: 'Prüfen' }).click();
+  const card = page.getByRole('region', { name: 'Vorschau' });
+  await expect(card).toContainText('1 Turniere · 2 bekannte Spieler · 1 neue Ehemalige');
+  await card.getByRole('button', { name: '1 Turniere übernehmen' }).click();
+  await expect(page.getByRole('status')).toHaveText('1 Turniere übernommen.');
+  expect(sent.map((s) => s.apply)).toEqual([false, true]);
+  expect(sent[1].source).toBe('alt.csv');
+
+  const list = page.getByRole('list', { name: 'Importläufe' });
+  await list.getByRole('button', { name: /zurücknehmen/ }).click();
+  await list.getByRole('button', { name: 'Ja, zurücknehmen' }).click();
+  await expect(list).toContainText('zurückgenommen');
+});

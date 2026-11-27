@@ -4,6 +4,7 @@ import { useWakeLock } from './hooks';
 import { useLocation } from './router';
 import { Feedback } from './screens/account/Feedback';
 import { GroupSettings } from './screens/account/GroupSettings';
+import { LegacyImport } from './screens/account/LegacyImport';
 import { Invitation } from './screens/account/Invitation';
 import { Login } from './screens/account/Login';
 import { Profile } from './screens/account/Profile';
@@ -193,11 +194,16 @@ export function App() {
         </main>
       );
     }
-    const gid = decodeURIComponent(url.pathname.slice('/gruppe/'.length));
+    const [gid, sub] = url.pathname.slice('/gruppe/'.length).split('/').map(decodeURIComponent);
+    if (sub === 'altdaten') {
+      const name = account.me.groups.find((g) => g.id === gid)?.name ?? '';
+      return <LegacyImport key={gid} groupId={gid} groupName={name} onBack={() => navigate(`/gruppe/${gid}`)} />;
+    }
     return (
       <GroupSettings
         key={gid}
         id={gid}
+        onLegacy={() => navigate(`/gruppe/${gid}/altdaten`)}
         onChanged={() => void refresh()}
         onGone={(message) => {
           setNotice(message);
