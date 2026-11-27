@@ -22,14 +22,28 @@ Geändert in AP-3 (19.11.2026): Der Link in der Mail zeigt auf die App (`/anmeld
 
 ### Gruppen und Spieler
 
+Seit Phase 5 (AP-1, ADR-0018). Fremde und gelöschte Gruppen antworten mit `404`, fehlende Rechte mit `403`, Schreiben in archivierten Gruppen mit `409`. Rollen: Admin (alles), Mitglied (mitspielen, Profile sehen), Zuschauer (Live, Rangliste, Statistik).
+
 | Methode | Pfad | Zweck | Wer |
 | --- | --- | --- | --- |
-| GET | `/groups/{gid}` | Gruppe mit Regeln | Mitglied |
-| PATCH | `/groups/{gid}/rules` | Regeln ändern | Admin |
+| POST | `/groups` | Gruppe anlegen (`name`); Standardregeln, Saison fürs laufende Jahr, Ersteller wird Admin; höchstens 5 eigene | angemeldet |
+| GET | `/groups/{gid}` | Gruppe mit Rolle, Regeln, `pending_rules` (nur Admins), `archived`, `has_image` und `can_*`-Rechten | alle Rollen |
+| PATCH | `/groups/{gid}` | Umbenennen | Admin |
+| PUT · DELETE | `/groups/{gid}/image` | Gruppenbild als Data-URL (JPEG, PNG, WebP, höchstens 1 MB; die App verkleinert auf 512 px) setzen oder entfernen | Admin |
+| GET | `/groups/{gid}/image` | Gruppenbild | alle Rollen |
+| PATCH | `/groups/{gid}/rules` | Regeln ändern; Antwort `applied_now`: sofort nur ohne Turniere, sonst ab der nächsten Saison | Admin |
+| DELETE | `/groups/{gid}/rules/pending` | Vorgemerkte Regeln verwerfen | Admin |
+| GET | `/groups/{gid}/members` | Mitglieder mit Konto und Rolle | Admin, Mitglied |
+| PUT | `/groups/{gid}/members/{uid}/role` | Rolle ändern; mindestens ein Admin bleibt | Admin |
+| DELETE | `/groups/{gid}/members/me` | Gruppe verlassen; Antwort `new_admin`, wenn der letzte Admin ging | alle Rollen |
+| POST · DELETE | `/groups/{gid}/archive` | Archivieren (nur ohne offenes Turnier) oder zurückholen | Admin |
+| DELETE | `/groups/{gid}` | In den Papierkorb (nur ohne offenes Turnier); nach 30 Tagen endgültig gelöscht | Admin |
+| GET | `/me/deleted-groups` | Eigene gelöschte Gruppen mit `purge_on` | angemeldet |
+| POST | `/groups/{gid}/restore` | Aus dem Papierkorb holen | Admin |
 | POST | `/groups/{gid}/invitations` | Einladungslink erzeugen | Admin |
-| GET | `/invitations/{token}` | Gruppenname und Ablauf für die Einladungsseite | öffentlich |
-| POST | `/invitations/{token}/accept` | Einladung annehmen (UC-02) | angemeldet |
-| GET | `/groups/{gid}/players` | Spielerliste | Mitglied |
+| GET | `/invitations/{token}` | Gruppenname und Ablauf für die Einladungsseite; archivierte und gelöschte Gruppen `410` | öffentlich |
+| POST | `/invitations/{token}/accept` | Einladung annehmen (UC-02); wer ausgetreten war, bekommt seinen alten Spieler zurück | angemeldet |
+| GET | `/groups/{gid}/players` | Spielerliste | Admin, Mitglied |
 
 ### Spieler der Gruppe
 
@@ -46,7 +60,7 @@ Turnier-Antworten enthalten `actions`: was der angemeldete Nutzer im aktuellen S
 
 | Methode | Pfad | Zweck | UC |
 | --- | --- | --- | --- |
-| POST | `/groups/{gid}/tournaments` | Turnier starten; `set_code` = Name des Drafts oder Set-Kürzel, 2 bis 20 Zeichen | UC-03 |
+| POST | `/groups/{gid}/tournaments` | Turnier starten; `set_code` = Name des Drafts oder Set-Kürzel, 2 bis 20 Zeichen. Fehlt die Saison für heute, beginnt hier die nächste und übernimmt vorgemerkte Regeln (ADR-0018) | UC-03 |
 | GET | `/tournaments/{tid}` | Turnier mit Teilnehmern, Runden, Matches | – |
 | GET | `/groups/{gid}/tournaments` | Turniere der Gruppe, offenes zuerst, höchstens 20 | – |
 | POST | `/tournaments/{tid}/entries` | Mitglieder und vorgemerkte Spieler einladen (`{player_ids}`); vorgemerkte sind sofort zugesagt | UC-04 |
