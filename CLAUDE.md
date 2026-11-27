@@ -115,6 +115,7 @@ infra/ops/admin.sh delete-player <Name> [--apply]        # nur Spieler ohne Kont
 infra/ops/admin.sh delete-tournament <ID-Anfang> [--apply]
 infra/ops/admin.sh finish-tournament <ID-Anfang> [--apply]
 infra/ops/admin.sh season-start "<Saison>" JJJJ-MM-TT [--apply]
+infra/ops/admin.sh merge-player <von> <nach> [--apply]   # Gast, Vorgemerkten oder Ehemaligen übernehmen
 infra/ops/admin.sh invite-link <Spieler> [--days N]
 infra/ops/admin.sh deploy-lock on|off|status            # z. B. am Spieleabend
 infra/ops/backup.sh list | backup manual

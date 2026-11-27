@@ -45,7 +45,7 @@ from topstack.db.models import (
 )
 from topstack.db.session import get_sessionmaker
 from topstack.domain.tournament import Actor
-from topstack.services import invitations, rounds
+from topstack.services import invitations, players, rounds
 from topstack.services import tournaments as svc
 
 KIND = {"member": "Mitglied", "reserved": "ohne Konto", "guest": "Gast", "former": "ehemalig"}
@@ -198,6 +198,28 @@ async def delete_player(db: AsyncSession, ref: str, *, group: str | None, apply:
     await db.delete(p)  # offene persönliche Einladungslinks verschwinden per CASCADE mit
     await db.flush()
     return Result([f"Gelöscht: {what}"], changed=True)
+
+
+async def merge_player(
+    db: AsyncSession, source: str, target: str, *, group: str | None, apply: bool
+) -> Result:
+    """Spieler ohne Konto in einen anderen Spieler derselben Gruppe übernehmen (Phase 5, AP-2)."""
+    s = await find_player(db, source, group)
+    t = await find_player(db, target, group)
+    if s.group_id != t.group_id:
+        raise Refused("Beide Spieler müssen in derselben Gruppe sein (--group hilft).")
+    try:
+        p = await players.plan(db, s.group_id, s.id, t.id)
+    except players.MergeRefused as exc:
+        raise Refused(str(exc)) from None
+    what = (
+        f"{s.display_name} ({KIND[s.kind]}, {short(s.id)}) → {t.display_name} "
+        f"({KIND[t.kind]}, {short(t.id)}): {p.tournaments} Turnier(e), {p.matches} Match(es)"
+    )
+    if not apply:
+        return Result([f"Würde zusammenführen: {what}", "Mit --apply ausführen."])
+    await players.merge(db, p)
+    return Result([f"Zusammengeführt: {what}"], changed=True)
 
 
 async def delete_tournament(
@@ -431,6 +453,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     p.add_argument("ref", help="Set-Code oder Anfang der ID")
     p.add_argument("--group")
     p.add_argument("--apply", action="store_true", help="wirklich ändern")
+    p = sub.add_parser("merge-player", help="Spieler ohne Konto in einen anderen übernehmen")
+    p.add_argument("source", help="Spieler, der aufgeht (Gast, vorgemerkt, ehemalig)")
+    p.add_argument("target", help="Spieler, der bleibt")
+    p.add_argument("--group")
+    p.add_argument("--apply", action="store_true", help="wirklich ändern")
     p = sub.add_parser("invite-link", help="persönlicher Einladungslink (ADR-0015)")
     p.add_argument("ref")
     p.add_argument("--group")
@@ -454,6 +481,10 @@ async def run(db: AsyncSession, args: argparse.Namespace) -> Result:
             return await season_start(db, args.ref, args.start, group=args.group, apply=args.apply)
         case "finish-tournament":
             return await finish_tournament(db, args.ref, group=args.group, apply=args.apply)
+        case "merge-player":
+            return await merge_player(
+                db, args.source, args.target, group=args.group, apply=args.apply
+            )
         case _:
             return await invite_link(db, args.ref, group=args.group, days=args.days)
 

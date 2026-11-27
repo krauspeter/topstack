@@ -34,10 +34,11 @@ async def test_admin_creates_invitation(client, session):
     assert stored is not None and stored.group_id == group.id
 
 
-async def test_member_cannot_invite_and_outsider_sees_404(client, session):
+async def test_viewer_cannot_invite_and_outsider_sees_404(client, session):
+    # Seit Phase 5 (AP-2) laden alle Mitglieder ein, Zuschauer nicht
     group = await make_group(session)
-    member = await make_member(session, group)
-    await login(client, session, await session.get(accounts.AppUser, member.app_user_id))
+    viewer = await make_member(session, group, role="viewer")
+    await login(client, session, await session.get(accounts.AppUser, viewer.app_user_id))
     assert is_problem(await client.post(f"/api/v1/groups/{group.id}/invitations", json={}), 403)
 
     other = await make_group(session)

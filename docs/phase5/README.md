@@ -121,12 +121,13 @@ AP-1 kommt zuerst, weil fast alles danach die aktive Gruppe und die Rechteprüfu
 
 ### AP-2 · Einladungen und Spieler (ca. 6 h) · Branch `feat/p5-players` · UC-05, UC-18
 
-- [ ] Gruppenlinks für alle Mitglieder: 7 Tage gültig, mehrfach nutzbar; Liste offener Links mit „Zurückziehen“
-- [ ] Knopf „Persönlicher Link“ bei Spielern ohne Konto (einmalig, nutzt `invitation.player_id`, ADR-0015); ersetzt `admin.sh invite-link` im Alltag
-- [ ] Gast in Profil umwandeln (UC-18): nach dem Beitritt als Gast sofort das Angebot „Profil anlegen“ (UC-05); seine Ergebnisse gehen auf das Profil über
-- [ ] Spieler zusammenführen (Admin, in der App): Gast mit Konto, doppelte vorgemerkte Spieler, Ehemalige aus den Altdaten mit Konten. Alle Einträge, Matches, Spiele und Ereignisse wechseln auf den bleibenden Spieler; verweigert, wenn beide im selben Turnier stehen
-- [ ] Zusammenführen auch als `admin.sh merge-player <von> <nach> [--apply]`, mit Backup vorher
-- [ ] Tests: Übernahme mit allen Ergebnissen, Zusammenführen mit Rangliste und Statistik danach, Konflikt im selben Turnier
+- [x] Gruppenlinks für alle Mitglieder: 7 Tage gültig, mehrfach nutzbar; Liste offener Links mit „Zurückziehen“ (Admins sehen alle, Mitglieder ihre eigenen)
+- [x] Knopf „Persönlicher Link“ bei Spielern ohne Konto (einmalig, nutzt `invitation.player_id`, ADR-0015); nur Admins
+- [x] Gast in Profil umwandeln (UC-18): Nach dem Beitritt als Gast kommt sofort das Angebot „Profil anlegen“ (UC-05) mit einem persönlichen Link (30 Tage). Wer ihn annimmt, übernimmt den Gast-Spieler mit seinen Ergebnissen und wird Mitglied. Hat er schon ein Konto in der Gruppe, bleibt alles, und das Admin führt beide zusammen
+- [x] Spieler zusammenführen (Admin, im Bildschirm „Gruppe“, erst Vorschau): Gast, Vorgemerkter oder Ehemaliger geht in einen anderen Spieler auf. Einträge, Matches, Spiele, Ereignisse, Korrekturen und Awards wechseln; verweigert, wenn beide im selben Turnier stehen oder der Spieler, der aufgeht, ein Konto hat
+- [x] Zusammenführen auch als `admin.sh merge-player <von> <nach> [--apply]`, mit Backup vorher
+- [x] Tests: `tests/api/test_players.py` (TC-140 bis TC-144), E2E in `e2e/groups.spec.ts`
+- [ ] Auf Beta ausprobiert (nach dem Merge)
 
 **Fertig, wenn:** Ein Gast aus einem Turnier wird zu einem Profil und steht mit seinem Ergebnis in der Rangliste; zwei doppelte Spieler sind zusammengeführt.
 

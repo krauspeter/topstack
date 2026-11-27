@@ -47,7 +47,7 @@ from topstack.api.schemas import (
 from topstack.config import settings
 from topstack.db.models import AppUser, Match, Tournament, TournamentEntry
 from topstack.domain.tournament import Status, allowed_actions
-from topstack.services import notify, rounds, tracker
+from topstack.services import invitations, notify, rounds, tracker
 from topstack.services import tournaments as svc
 
 router = APIRouter(tags=["Turniere"])
@@ -207,9 +207,12 @@ async def reload(db: Db, tid: uuid.UUID, user: AppUser) -> TournamentOut:
 
 
 @router.get("/groups/{gid}/players")
-async def list_players(gid: uuid.UUID, user: CurrentUser, db: Db) -> list[PlayerOut]:
+async def list_players(
+    gid: uuid.UUID, user: CurrentUser, db: Db, all: bool = False
+) -> list[PlayerOut]:
+    """Mitglieder und Vorgemerkte; mit ``?all=true`` (Admins) auch Gäste und Ehemalige."""
     async with errors():
-        players = await svc.list_players(db, gid, user)
+        players = await svc.list_players(db, gid, user, everyone=all)
     return [
         PlayerOut(id=p.id, display_name=p.display_name, kind=p.kind, is_me=p.app_user_id == user.id)
         for p in players
@@ -342,6 +345,8 @@ async def guest_info(token: str, db: Db) -> GuestInfo:
 async def guest_join(token: str, body: GuestJoin, db: Db) -> GuestJoined:
     async with errors():
         guest = await svc.join_as_guest(db, token, body.display_name)
+    # Angebot „Profil anlegen“ direkt nach dem Beitritt (UC-05, UC-18)
+    claim = await invitations.guest_claim(db, guest)
     await db.commit()
     entry_tournament = await db.scalar(
         select(TournamentEntry.tournament_id).where(TournamentEntry.player_id == guest.id)
@@ -349,7 +354,10 @@ async def guest_join(token: str, body: GuestJoin, db: Db) -> GuestJoined:
     if entry_tournament is not None:
         await live.tournament_changed(entry_tournament, "guest_joined")
     return GuestJoined(
-        tournament_id=entry_tournament, player_id=guest.id, display_name=guest.display_name
+        tournament_id=entry_tournament,
+        player_id=guest.id,
+        display_name=guest.display_name,
+        claim_url=f"{settings.public_origin}/einladung/{claim}",
     )
 
 

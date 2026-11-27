@@ -28,7 +28,7 @@ def member(role: str, days: int) -> Member:
     ("role", "allowed"),
     [
         ("admin", set(Permission)),
-        ("member", {Permission.VIEW, Permission.VIEW_PROFILES, Permission.PLAY}),
+        ("member", {Permission.VIEW, Permission.VIEW_PROFILES, Permission.PLAY, Permission.INVITE}),
         ("viewer", {Permission.VIEW}),
         ("unbekannt", set()),
     ],

@@ -39,6 +39,17 @@ export function GuestJoin({ token, onDone }: { token: string; onDone(): void }) 
         <section className="card" role="status">
           <h2>Du bist dabei, {joined.display_name}!</h2>
           <p>Die Plätze lost der Turnierstarter aus. Deine Farben trägt er nach dem Deckbau für dich ein.</p>
+          {joined.claim_url && (
+            <div className="stack">
+              <p className="small">
+                Willst du öfter mitspielen? Mit einem Profil bleiben deine Ergebnisse von heute erhalten und du stehst in der Rangliste.
+              </p>
+              <a className="btn primary" href={new URL(joined.claim_url).pathname}>
+                Profil anlegen
+              </a>
+              <p className="muted small">Der Link gilt 30 Tage. Du kannst auch später über das Turnier fragen.</p>
+            </div>
+          )}
           <button className="btn" onClick={onDone}>
             Zum Life-Tracker
           </button>

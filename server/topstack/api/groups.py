@@ -18,12 +18,14 @@ from topstack.api.schemas import (
     GroupRulesOut,
     LeftGroup,
     MemberOut,
+    MergeOut,
+    MergeRequest,
     RoleChange,
 )
 from topstack.db.models import AppUser
 from topstack.db.repo import groups as repo
 from topstack.domain.groups import PURGE_AFTER, InvalidRules, Permission
-from topstack.services import feedback
+from topstack.services import feedback, players
 from topstack.services import groups as svc
 
 router = APIRouter(tags=["Gruppen"])
@@ -259,3 +261,31 @@ async def restore(gid: uuid.UUID, user: CurrentUser, db: Db) -> GroupOut:
     a = await _access(db, gid, user)
     await db.commit()
     return await group_out(db, a)
+
+
+# ---------------------------------------------------------------------------
+# Spieler zusammenführen (Phase 5, AP-2)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/groups/{gid}/players/merge")
+async def merge_players(gid: uuid.UUID, body: MergeRequest, user: CurrentUser, db: Db) -> MergeOut:
+    """Gast, Vorgemerkten oder Ehemaligen in einen anderen Spieler übernehmen; nur Admins."""
+    a = await _access(db, gid, user)
+    async with errors():
+        a.require(Permission.MANAGE)
+    try:
+        p = await players.plan(db, gid, body.source_id, body.target_id)
+    except players.MergeRefused as exc:
+        raise problem(409, str(exc)) from None
+    out = MergeOut(
+        source=p.source.display_name,
+        target=p.target.display_name,
+        tournaments=p.tournaments,
+        matches=p.matches,
+        merged=body.apply,
+    )
+    if body.apply:
+        await players.merge(db, p)
+        await db.commit()
+    return out

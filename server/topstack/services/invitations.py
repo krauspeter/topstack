@@ -20,7 +20,7 @@ async def create(
     db: AsyncSession,
     *,
     group_id: uuid.UUID,
-    created_by: uuid.UUID,
+    created_by: uuid.UUID | None,
     days: int | None = None,
     max_uses: int | None = None,
     player_id: uuid.UUID | None = None,
@@ -62,14 +62,19 @@ async def group_name(db: AsyncSession, invitation: Invitation) -> str:
 
 
 class ReservedTaken(Exception):
-    """Der vorgemerkte Spieler gehört schon einem Konto."""
+    """Der vorgemerkte Spieler oder Gast gehört schon einem Konto."""
+
+
+CLAIMABLE = ("reserved", "guest")
+"""Spieler ohne Konto, die ein persönlicher Link übernehmen kann (ADR-0015, UC-18)."""
+GUEST_CLAIM_DAYS = 30
 
 
 async def accept(db: AsyncSession, invitation: Invitation, user: AppUser) -> tuple[Player, bool]:
     """Macht das Konto zum Mitglied. Schon Mitglied: nichts ändern, Einladung nicht verbrauchen.
 
-    Ist die Einladung an einen vorgemerkten Spieler gebunden, übernimmt das Konto diesen
-    Spieler samt allen Ergebnissen (ADR-0015).
+    Ist die Einladung an einen vorgemerkten Spieler oder einen Gast gebunden, übernimmt das
+    Konto diesen Spieler samt allen Ergebnissen (ADR-0015, UC-18).
     """
     existing = await db.scalar(
         select(Player).where(Player.group_id == invitation.group_id, Player.app_user_id == user.id)
@@ -84,7 +89,7 @@ async def accept(db: AsyncSession, invitation: Invitation, user: AppUser) -> tup
         return existing, True
     if invitation.player_id is not None:
         player = await db.get(Player, invitation.player_id, with_for_update=True)
-        if player is None or player.kind != "reserved":
+        if player is None or player.kind not in CLAIMABLE:
             raise ReservedTaken
         player.kind = "member"
         player.app_user_id = user.id
@@ -94,3 +99,61 @@ async def accept(db: AsyncSession, invitation: Invitation, user: AppUser) -> tup
     invitation.uses += 1
     await db.flush()
     return player, True
+
+
+# ---------------------------------------------------------------------------
+# Offene Links einer Gruppe (Phase 5, AP-2)
+# ---------------------------------------------------------------------------
+
+
+async def guest_claim(db: AsyncSession, guest: Player) -> str:
+    """Persönlicher Link für einen Gast, der sich danach ein Profil anlegt (UC-05, UC-18)."""
+    token, _ = await create(
+        db, group_id=guest.group_id, created_by=None, days=GUEST_CLAIM_DAYS, player_id=guest.id
+    )
+    return token
+
+
+def link_id(invitation: Invitation) -> str:
+    """Öffentliche Kennung eines Links: der Hash, nicht das Token selbst."""
+    return invitation.token_hash.hex()
+
+
+async def open_links(
+    db: AsyncSession, group_id: uuid.UUID, *, created_by: uuid.UUID | None = None
+) -> list[tuple[Invitation, str | None, str | None]]:
+    """Gültige Gruppenlinks (ohne Gast-Übernahmen), neueste zuerst; mit Ersteller und Spieler."""
+    stmt = (
+        select(Invitation, AppUser.display_name, Player.display_name)
+        .outerjoin(AppUser, AppUser.id == Invitation.created_by)
+        .outerjoin(Player, Player.id == Invitation.player_id)
+        .where(
+            Invitation.group_id == group_id,
+            Invitation.tournament_id.is_(None),
+            Invitation.created_by.is_not(None),
+            Invitation.expires_at > now(),
+            (Invitation.max_uses.is_(None)) | (Invitation.uses < Invitation.max_uses),
+        )
+        .order_by(Invitation.expires_at.desc())
+    )
+    if created_by is not None:
+        stmt = stmt.where(Invitation.created_by == created_by)
+    return [(inv, creator, player) for inv, creator, player in (await db.execute(stmt)).all()]
+
+
+async def revoke(
+    db: AsyncSession, group_id: uuid.UUID, link: str, *, user_id: uuid.UUID, admin: bool
+) -> bool:
+    """Link sofort ungültig machen; nur der Ersteller oder ein Admin. ``False``: nicht gefunden."""
+    try:
+        token_hash = bytes.fromhex(link)
+    except ValueError:
+        return False
+    invitation = await db.get(Invitation, token_hash, with_for_update=True)
+    if invitation is None or invitation.group_id != group_id or invitation.tournament_id:
+        return False
+    if not admin and invitation.created_by != user_id:
+        return False
+    invitation.expires_at = now()
+    await db.flush()
+    return True
