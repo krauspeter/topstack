@@ -30,7 +30,7 @@ erDiagram
 | --- | --- | --- |
 | Konto | `app_user` | Eine Person mit Anmeldung. Gilt für alle Gruppen. |
 | Spieler | `player` | Identität **in einer Gruppe**: Mitglied (mit Konto), Gast oder Ehemaliger (Altdaten). Alle Ergebnisse hängen am Spieler. |
-| Gruppe | `play_group` + `group_rules` | Spielgruppe mit eigenen Regeln. v1.0 nutzt genau eine. |
+| Gruppe | `play_group` + `group_rules` | Spielgruppe mit eigenen Regeln. Seit v1.1 mehrere (ADR-0018): archivierbar (`archived_at`), 30 Tage im Papierkorb (`deleted_at`), Regeln für die nächste Saison in `pending_rules`, Gruppenbild. |
 | Mitgliedschaft | `membership` | Rolle Admin, Mitglied oder Zuschauer. |
 | Turnier | `tournament` | Draft-Turnier mit Set. Nur eines pro Gruppe gleichzeitig offen (Teilindex). |
 | Teilnahme | `tournament_entry` | Einladung, Draftplatz, Farben, Endplatz, Ranglistenpunkte. |

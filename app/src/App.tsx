@@ -3,6 +3,7 @@ import { api } from './api/client';
 import { useWakeLock } from './hooks';
 import { useLocation } from './router';
 import { Feedback } from './screens/account/Feedback';
+import { GroupSettings } from './screens/account/GroupSettings';
 import { Invitation } from './screens/account/Invitation';
 import { Login } from './screens/account/Login';
 import { Profile } from './screens/account/Profile';
@@ -37,6 +38,8 @@ export function App() {
   const { account, signedIn, signOut, refresh } = useAccount();
   const { url, navigate } = useLocation();
   const [screen, setScreen] = useState<Screen>('home');
+  // Hinweis im Profil nach dem Verlassen oder Löschen einer Gruppe
+  const [notice, setNotice] = useState<string | null>(null);
   const { record, state } = match;
 
   useWakeLock(url.pathname === '/' && (record !== null || screen === 'seating'));
@@ -175,12 +178,49 @@ export function App() {
     return <Feedback onBack={() => (window.history.length > 1 ? window.history.back() : home())} />;
   }
 
+  if (url.pathname.startsWith('/gruppe/')) {
+    if (account.status === 'loading') return <main className="page center muted">Lade …</main>;
+    if (account.status !== 'signed-in') {
+      return (
+        <main className="page center">
+          <section className="card">
+            <h2>{account.status === 'offline' ? 'Keine Verbindung' : 'Bitte anmelden'}</h2>
+            <p>Gruppen verwalten geht nur mit Anmeldung und Verbindung zum Server.</p>
+            <button className="btn" onClick={home}>
+              Zur Startseite
+            </button>
+          </section>
+        </main>
+      );
+    }
+    const gid = decodeURIComponent(url.pathname.slice('/gruppe/'.length));
+    return (
+      <GroupSettings
+        key={gid}
+        id={gid}
+        onChanged={() => void refresh()}
+        onGone={(message) => {
+          setNotice(message);
+          void refresh();
+          navigate('/profil', true);
+        }}
+        onBack={() => navigate('/profil')}
+      />
+    );
+  }
+
   if (url.pathname === '/profil') {
     if (account.status === 'loading') return <main className="page center muted">Lade Profil …</main>;
     if (account.status === 'signed-in') {
       return (
         <Profile
           me={account.me}
+          notice={notice}
+          onOpenGroup={(gid) => {
+            setNotice(null);
+            navigate(`/gruppe/${gid}`);
+          }}
+          onRefresh={() => void refresh()}
           onFeedback={() => navigate('/feedback')}
           onChange={signedIn}
           onSignOut={() => {

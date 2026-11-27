@@ -100,21 +100,22 @@ AP-1 kommt zuerst, weil fast alles danach die aktive Gruppe und die Rechteprüfu
 
 **Server**
 
-- [ ] Migration 0005: `play_group.archived_at`, `deleted_at`, `pending_rules`, `image`, `image_type`; `invitation.kind`
-- [ ] `server/topstack/domain/groups.py`: Rechte-Tabelle (Admin, Mitglied, Zuschauer), Regeln für den letzten Admin, Höchstzahl 5 Gruppen pro Nutzer
-- [ ] `group_access()` als gemeinsame Prüfung für alle Endpunkte unter `/groups/{gid}`; archivierte Gruppen nur lesbar (`409`)
-- [ ] Endpunkte: Gruppe anlegen (mit Standardregeln und erster Saison, Ersteller wird Admin und Spieler), lesen, umbenennen, Gruppenbild hochladen (höchstens 1 MB, JPEG/PNG/WebP, verkleinert auf 512 px), Regeln lesen und ändern (gelten ab der nächsten Saison), Mitglieder und Rollen ändern, Gruppe verlassen, archivieren und zurückholen, löschen und wiederherstellen
-- [ ] Nächtlicher Lauf löscht Gruppen 30 Tage nach `deleted_at` endgültig (im Backup-Timer, vor dem Backup)
-- [ ] Saisonstart übernimmt `pending_rules`
-- [ ] API-Tests je Rolle für alle bestehenden und neuen Endpunkte
+- [x] Migration 0005: `play_group.archived_at`, `deleted_at`, `pending_rules`, `image`, `image_type` (`invitation.kind` kommt mit AP-7, wo es gebraucht wird)
+- [x] `server/topstack/domain/groups.py`: Rechte-Tabelle (Admin, Mitglied, Zuschauer), Nachfolge für den letzten Admin, Höchstzahl 5 Gruppen pro Nutzer, Prüfung der Regeln, Saisonwechsel
+- [x] `services/groups.access()` als gemeinsame Prüfung; Turniere, Rangliste und Einladungen nutzen sie; archivierte Gruppen nur lesbar (`409`)
+- [x] Endpunkte: Gruppe anlegen (mit Standardregeln und Saison fürs laufende Jahr, Ersteller wird Admin und Spieler), lesen, umbenennen, Gruppenbild (höchstens 1 MB, JPEG/PNG/WebP; die App verkleinert auf 512 px), Regeln lesen und ändern, Mitglieder und Rollen, Gruppe verlassen, archivieren und zurückholen, löschen und wiederherstellen
+- [x] Gruppen 30 Tage nach `deleted_at` endgültig löschen: Aufgabe in der API alle 6 Stunden statt im Backup-Timer (das Backup-Image hat kein Python)
+- [x] Saisonwechsel übernimmt `pending_rules`: Der Turnier-Start legt die fehlende Saison selbst an (bisher entstanden Saisons nur von Hand); ohne Turniere gelten Regeln sofort
+- [x] API-Tests je Rolle (`tests/api/test_groups.py`, TC-130 bis TC-139), Fachlogik in `tests/domain/test_groups.py`
 
 **App**
 
-- [ ] Aktive Gruppe pro Gerät (IndexedDB), Umschalter in der Kopfzeile ab zwei Gruppen; alle `me.groups[0]` ersetzen
-- [ ] Bildschirm „Gruppe“: Name, Bild, Mitglieder mit Rolle, Regeln, Archivieren, Löschen, Verlassen; Admin-Teile nur für Admins
-- [ ] „Neue Gruppe“ im Profil
-- [ ] Zuschauer sehen Live, Rangliste und Statistik, aber keine Profile und keine Knöpfe zum Mitspielen
-- [ ] Unit-Tests für die Rechte in der App, E2E: Gruppe anlegen, umschalten, Turnier in der zweiten Gruppe starten
+- [x] Aktive Gruppe pro Gerät (`localStorage`), Umschalter in Turnieren und Rangliste ab zwei Gruppen; alle `me.groups[0]` ersetzt
+- [x] Bildschirm „Gruppe“ (`/gruppe/<id>`): Name, Bild, Mitglieder mit Rolle, alle Spieler, Regeln mit „ab der nächsten Saison“, Archivieren, Löschen, Verlassen; Admin-Teile nur für Admins
+- [x] „Neue Gruppe“ und Papierkorb mit „Wiederherstellen“ im Profil
+- [x] Zuschauer und archivierte Gruppen: kein Turnier-Start, keine Spielerliste
+- [x] Unit-Tests (`domain/activeGroup.test.ts`), E2E `e2e/groups.spec.ts`: umschalten, archiviert, Gruppe anlegen mit Regeln und Rollen, Mitglied ohne Verwaltung. Turnier in zwei Gruppen gleichzeitig prüft der API-Test TC-133
+- [ ] Auf Beta ausprobiert (nach dem Merge)
 
 **Fertig, wenn:** Ein Nutzer legt eine zweite Gruppe an, schaltet um und startet dort ein Turnier, während in der „Draft-Runde“ eins läuft.
 

@@ -12,6 +12,7 @@ from topstack import __version__
 from topstack.api import (
     auth,
     feedback,
+    groups,
     invitations,
     leaderboard,
     live,
@@ -24,6 +25,7 @@ from topstack.api import (
 from topstack.api.deps import Db
 from topstack.config import settings
 from topstack.services import feedback as feedback_service
+from topstack.services import groups as groups_service
 
 log = logging.getLogger("topstack.health")
 
@@ -36,12 +38,15 @@ DB_CHECK_TIMEOUT = 3.0
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # Feedback, das GitHub noch nicht bekommen hat, beim Start und danach regelmäßig nachschicken
     retry = asyncio.create_task(feedback_service.retry_loop())
+    # Gelöschte Gruppen nach 30 Tagen endgültig entfernen (ADR-0018)
+    purge = asyncio.create_task(groups_service.purge_loop())
     try:
         yield
     finally:
-        retry.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await retry
+        for task in (retry, purge):
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
 
 
 app = FastAPI(
@@ -102,6 +107,7 @@ async def return_to_app(next: str = "/") -> RedirectResponse:
 api.include_router(auth.router)
 api.include_router(passkeys.router)
 api.include_router(me.router)
+api.include_router(groups.router)
 api.include_router(invitations.router)
 api.include_router(tournaments.router)
 api.include_router(push.router)

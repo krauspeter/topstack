@@ -13,14 +13,21 @@ router = APIRouter(tags=["Profil"])
 
 async def build_me(db: AsyncSession, user: AppUser) -> Me:
     rows = await db.execute(
-        select(PlayGroup.id, PlayGroup.name, Membership.role, Player.id)
+        select(
+            PlayGroup.id,
+            PlayGroup.name,
+            Membership.role,
+            Player.id,
+            PlayGroup.archived_at.is_not(None),
+            PlayGroup.image_type.is_not(None),
+        )
         .join(Membership, Membership.group_id == PlayGroup.id)
         .outerjoin(
             Player,
             (Player.group_id == PlayGroup.id) & (Player.app_user_id == Membership.app_user_id),
         )
-        .where(Membership.app_user_id == user.id)
-        .order_by(PlayGroup.name)
+        .where(Membership.app_user_id == user.id, PlayGroup.deleted_at.is_(None))
+        .order_by(PlayGroup.archived_at.is_not(None), PlayGroup.name)
     )
     passkeys = await db.scalar(
         select(func.count())
@@ -35,8 +42,10 @@ async def build_me(db: AsyncSession, user: AppUser) -> Me:
         locale=user.locale,
         has_passkey=bool(passkeys),
         groups=[
-            GroupMembership(id=gid, name=name, role=role, player_id=pid)
-            for gid, name, role, pid in rows
+            GroupMembership(
+                id=gid, name=name, role=role, player_id=pid, archived=archived, has_image=has_image
+            )
+            for gid, name, role, pid, archived, has_image in rows
         ],
     )
 

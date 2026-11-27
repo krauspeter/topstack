@@ -13,6 +13,25 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ## [Unreleased]
 
+### Added
+
+- Several groups (ADR-0018): create up to five groups, rename them, set a group
+  image, give members the roles admin, member or viewer, archive a group (read
+  only) or delete it (30 days in the trash, then gone); the app remembers the
+  active group on each device and has a switcher in tournaments and the
+  leaderboard (#188)
+- Group rules can be changed in the app; once a group has tournaments, changes
+  wait for the next season, which the next tournament start now begins by
+  itself (#188)
+
+### Changed
+
+- One access check for all group endpoints; viewers see the live view,
+  leaderboard and stats but no player lists, and cannot start tournaments
+  (#188)
+- Invitations into archived or deleted groups are refused; members who left a
+  group rejoin with their old player and results (#188)
+
 ## [1.0.1] - 2026-11-25
 
 ### Added

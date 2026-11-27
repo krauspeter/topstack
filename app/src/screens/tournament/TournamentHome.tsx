@@ -1,6 +1,8 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { api, errorText } from '../../api/client';
 import type { Me, Tournament, TournamentSummary } from '../../api/types';
+import { useActiveGroup } from '../../store/activeGroup';
+import { GroupSwitcher } from '../GroupSwitcher';
 
 interface Props {
   me: Me;
@@ -22,29 +24,32 @@ const isOpen = (t: TournamentSummary) => t.status !== 'finished' && t.status !==
 
 /** Turniere der Gruppe; ohne offenes Turnier kann jedes Mitglied eines starten (UC-03). */
 export function TournamentHome({ me, onOpen, onBack }: Props) {
-  const group = me.groups[0];
+  const [group, selectGroup] = useActiveGroup(me.groups);
   const [list, setList] = useState<TournamentSummary[] | null>(null);
   const [setCode, setSetCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const gid = group?.id;
 
   useEffect(() => {
-    if (!group) return;
+    if (!gid) return;
     let active = true;
-    api<TournamentSummary[]>(`/groups/${group.id}/tournaments`)
+    setList(null);
+    setError(null);
+    api<TournamentSummary[]>(`/groups/${gid}/tournaments`)
       .then((rows) => active && setList(rows))
       .catch((err: unknown) => active && setError(errorText(err)));
     return () => {
       active = false;
     };
-  }, [group]);
+  }, [gid]);
 
   if (!group) {
     return (
       <main className="page center">
         <section className="card">
           <h2>Noch keine Gruppe</h2>
-          <p>Für Turniere brauchst du eine Gruppe. Lass dich einladen.</p>
+          <p>Für Turniere brauchst du eine Gruppe. Lass dich einladen oder leg im Profil eine an.</p>
           <button className="btn" onClick={onBack}>
             Zur Startseite
           </button>
@@ -54,6 +59,8 @@ export function TournamentHome({ me, onOpen, onBack }: Props) {
   }
 
   const open = list?.find(isOpen);
+  // Zuschauer und archivierte Gruppen starten keine Turniere (ADR-0018)
+  const canStart = group.role !== 'viewer' && !group.archived;
 
   const start = async (e: FormEvent) => {
     e.preventDefault();
@@ -81,6 +88,9 @@ export function TournamentHome({ me, onOpen, onBack }: Props) {
         </div>
       </header>
 
+      <GroupSwitcher groups={me.groups} active={group} onSelect={selectGroup} />
+      {group.archived && <p className="muted small">Diese Gruppe ist archiviert und nur noch lesbar.</p>}
+
       {list === null && !error && <p className="muted">Lade Turniere …</p>}
 
       {open ? (
@@ -94,7 +104,8 @@ export function TournamentHome({ me, onOpen, onBack }: Props) {
           </button>
         </section>
       ) : (
-        list !== null && (
+        list !== null &&
+        canStart && (
           <form className="stack" onSubmit={start}>
             <label className="field">
               <span>Name des Drafts, z. B. Mirrodin oder DSK</span>

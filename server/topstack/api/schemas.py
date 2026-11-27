@@ -40,6 +40,8 @@ class GroupMembership(BaseModel):
     name: str
     role: str
     player_id: uuid.UUID | None
+    archived: bool = False
+    has_image: bool = False
 
 
 class Me(BaseModel):
@@ -398,3 +400,97 @@ class TrackerOut(BaseModel):
     # Warteraum im Modus „dual“ bis Spiel 1 beginnt
     seats: list[SeatOut] = []
     tie: int | None = None  # letzter Gleichstand beim W20, beide würfeln neu
+
+
+# ---------------------------------------------------------------------------
+# Gruppen (Phase 5, AP-1, ADR-0018)
+# ---------------------------------------------------------------------------
+
+GroupName = Annotated[str, Field(min_length=1, max_length=60)]
+GroupRole = Literal["admin", "member", "viewer"]
+
+
+class GroupCreate(BaseModel):
+    name: GroupName
+
+    @field_validator("name")
+    @classmethod
+    def strip_name(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Name darf nicht leer sein")
+        return value.strip()
+
+
+class GroupPatch(BaseModel):
+    name: GroupName | None = None
+
+    @field_validator("name")
+    @classmethod
+    def strip_name(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("Name darf nicht leer sein")
+        return value.strip() if value else value
+
+
+class GroupRulesOut(BaseModel):
+    match_points_win: int
+    match_points_draw: int
+    match_points_loss: int
+    starting_life: int
+    games_to_win: int
+    extra_turns: int
+    boosters_per_player: int
+    match_time_limit_min: int | None
+    placement_bonus: list[int]
+    season_mode: str
+    season_months: int | None
+
+
+class GroupOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    role: GroupRole
+    player_id: uuid.UUID | None
+    archived: bool
+    has_image: bool
+    created_at: datetime
+    rules: GroupRulesOut
+    # Geänderte Regeln, die mit der nächsten Saison gelten; nur für Admins
+    pending_rules: dict[str, object] | None
+    can_manage: bool
+    can_invite: bool
+    can_play: bool
+    can_view_profiles: bool
+
+
+class GroupRulesChanged(BaseModel):
+    applied_now: bool
+    group: GroupOut
+
+
+class GroupImage(BaseModel):
+    image: str = Field(max_length=1_400_000)  # data:image/…;base64,…, höchstens 1 MB
+
+
+class MemberOut(BaseModel):
+    user_id: uuid.UUID
+    display_name: str
+    role: GroupRole
+    joined_at: datetime
+    player_id: uuid.UUID | None
+    is_me: bool
+
+
+class RoleChange(BaseModel):
+    role: GroupRole
+
+
+class LeftGroup(BaseModel):
+    new_admin: str | None
+
+
+class DeletedGroupOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    deleted_at: datetime
+    purge_on: date

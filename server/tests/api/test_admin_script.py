@@ -120,7 +120,13 @@ def test_parse_args():
 
 
 async def test_season_start_takes_in_loose_tournaments(client, session):
-    group, _, t = await five_player_tournament(client, session)  # heute, noch ohne Saison
+    group, _, t = await five_player_tournament(client, session)
+    # Der Start legt seit Phase 5 die Saison an (ADR-0018); hier geht es um Turniere ohne Saison
+    started = await session.get(Tournament, uuid.UUID(t["id"]))
+    started.season_id = None
+    for s in list(await session.scalars(select(Season).where(Season.group_id == group.id))):
+        await session.delete(s)
+    await session.flush()
     session.add(Season(group_id=group.id, name="Saison 2099", starts_on=date(2099, 1, 1)))
     await session.flush()
     listed = "\n".join((await admin.list_seasons(session)).lines)

@@ -19,6 +19,7 @@ from topstack.domain.leaderboard import (
     MatchRecord,
     TournamentResult,
 )
+from topstack.services import groups as group_svc
 
 
 class NotMember(Exception):
@@ -40,8 +41,11 @@ class Results:
 
 
 async def check_member(db: AsyncSession, gid: uuid.UUID, user: AppUser) -> None:
-    if await groups.get_membership(db, group_id=gid, user_id=user.id) is None:
-        raise NotMember
+    """Rangliste und Statistik sehen alle Rollen, auch Zuschauer (ADR-0018)."""
+    try:
+        await group_svc.access(db, gid, user)
+    except group_svc.NotFound:
+        raise NotMember from None
 
 
 async def seasons(db: AsyncSession, gid: uuid.UUID) -> list[Season]:
