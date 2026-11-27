@@ -1,12 +1,14 @@
 # Phase 3 – Backend, Turniere & Rangliste
 
-Stand: 21.11.2026 · Status: **abgeschlossen bis auf AP-10**, gestartet am 18.11.2026 · Entscheidungen E1 bis E5 getroffen (Abschnitt 6)
+Stand: 27.11.2026 · Status: **abgeschlossen**, AP-10 entfallen (Entscheidung vom 27.11.2026), gestartet am 18.11.2026 · Entscheidungen E1 bis E5 getroffen (Abschnitt 6)
 
 Phase 3 macht aus dem Offline-Life-Tracker eine Turnier-App: Der Heimserver speichert Turniere, Ergebnisse und Ereignisse, alle Eingeladenen sehen den Verlauf live, und am Ende steht eine dauerhafte Rangliste.
 
 **Gate G3:** Ein echtes Draft-Turnier ist komplett in TopStack erfasst, und die Rangliste ist für alle sichtbar.
 
 > **Entscheidung vom 21.11.2026:** Der erste echte Spieleabend findet mit dem Release von v1.0 statt. Die Abnahme von G3 (AP-10) wandert deshalb nach Phase 4 und wird dort zusammen mit G4 abgenommen. Phase 3 endet ohne eigenen Spieleabend, wie schon bei G2.
+>
+> **Entscheidung vom 27.11.2026:** G3 entfällt als Gate. Phase 4 wurde ohne G3 abgeschlossen; der Draftabend am 27.12.2026 ist ein normaler Spieleabend mit v1.0.
 
 Weitere Unterlagen zu dieser Phase:
 

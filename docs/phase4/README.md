@@ -1,10 +1,12 @@
 # Phase 4 – Beta mit Freunden & Betrieb (v1.0)
 
-Stand: 24.11.2026 · Status: **gestartet am 21.11.2026**, AP-3b Staging ergänzt am 23.11.2026 · Entscheidungen E1 bis E4 getroffen (Abschnitt 6)
+Stand: 27.11.2026 · Status: **abgeschlossen am 27.11.2026** (gestartet am 21.11.2026), v1.0.0 und v1.0.1 veröffentlicht · Entscheidungen E1 bis E4 getroffen (Abschnitt 6)
 
 Phase 4 macht aus der Turnier-App einen Dienst, auf den sich die Gruppe verlassen kann: Die Daten werden jede Nacht gesichert und außer Haus gelagert, ein Ausfall fällt auf, bevor jemand anruft, und eine neue Version kommt ohne SSH auf den Heimserver. Am Ende steht der Release-Abend von v1.0, an dem auch Gate G3 aus Phase 3 abgenommen wird.
 
-**Gate G4:** Version 1.0 ist live, alle Freunde nutzen sie, ein Backup wurde erfolgreich wiederhergestellt. Am selben Abend wird G3 abgenommen (Checkliste AP-10 aus [Phase 3](../phase3/README.md#ap-10--abnahme-gate-g3-ca-2-h--verschoben-zum-release-v10)).
+**Gate G4:** Version 1.0 ist live, alle Freunde nutzen sie, ein Backup wurde erfolgreich wiederhergestellt. **Erreicht am 27.11.2026:** v1.0.0 seit 25.11. und v1.0.1 seit 25.11. in der Produktion (Kanal `latest`), alle Mitspieler der „Draft-Runde“ haben ein Konto, die Wiederherstellung eines Produktions-Backups auf dem Windows-PC ist am 22.11.2026 gelungen (TC-94).
+
+> **Entscheidung vom 27.11.2026:** Phase 4 wird ohne Gate G3 abgeschlossen. G3 (erstes echtes Turnier, Rangliste sichtbar) entfällt als Gate; der Draftabend am 27.12.2026 ist ein normaler Spieleabend mit v1.0. Was dort auffällt, kommt über den Feedback-Knopf und als Fehlerbehebung (1.0.x). Offen bleiben ohne Gate: iPhone-Test (AP-7), Push im echten Turnier, Wiederherstellung des Backups vom Abend (Abschnitt „Nach Phase 4“ unten).
 
 Weitere Unterlagen zu dieser Phase:
 
@@ -269,24 +271,35 @@ Ursprünglich letzter Schritt vor v1.0. **Verschoben auf nach dem Release (Entsc
 - [x] Kurze Anleitung für die Gruppe: installieren, anmelden, Push erlauben, Feedback geben (25.11.2026)
 - [ ] Anleitung in die Gruppe geschickt, Tester für Beta freigeschaltet (Drehbuch Abschnitt 1)
 - [x] 25.11.: `1.0.0-rc.1` (PR #160)
-- [ ] 25.11.: Release `v1.0.0` mit `scripts/release.sh 1.0.0` (PR #161); danach die Produktion auf den Kanal `latest` umstellen: `TOPSTACK_VERSION=latest` in `~/topstack/infra/.env`. Ab dann bekommt die Produktion nur noch Releases, Staging weiter jeden Merge
+- [x] 25.11.: Release `v1.0.0` mit `scripts/release.sh 1.0.0` (PR #161), v1.0.1 am 25.11. (PR #162 bis #164); danach die Produktion auf den Kanal `latest` umstellen: `TOPSTACK_VERSION=latest` in `~/topstack/infra/.env`. Ab dann bekommt die Produktion nur noch Releases, Staging weiter jeden Merge
 - [ ] Am Tag des Spieleabends: Deploy-Sperre setzen, Backup von Hand anstoßen
 
-**Am Abend**
+- [x] Saison 2027 beginnt am 01.12.2026, damit der Draftabend schon zählt (`admin.sh season-start`, 27.11.2026)
 
-- [ ] Abnahme G3 nach der Checkliste AP-10 aus Phase 3
-- [ ] Push im echten Turnier: „Du bist dran“, neue Runde, Turnierende kommen an (Entscheidung vom 21.11.2026)
+**Am Abend** (ohne Gate, Entscheidung vom 27.11.2026)
+
+- [x] ~~Abnahme G3 nach der Checkliste AP-10 aus Phase 3~~ entfällt
+- [ ] Push im echten Turnier: „Du bist dran“, neue Runde, Turnierende kommen an (nach Phase 4)
 
 **Danach**
 
-- [ ] Deploy-Sperre aufheben
-- [ ] Wiederherstellung des Backups vom Abend auf dem Windows-PC, Rangliste stimmt überein
-- [ ] Feedback des Abends gesichtet, Fehler für v1.0.1 eingeplant
-- [ ] Resend-API-Schlüssel und ntfy-Topic erneuern (beide waren am 23.11.2026 auf einem Screenshot im Chat zu sehen; verschoben bis nach dem Release, Entscheidung vom 24.11.2026): neuer Schlüssel bei Resend, alter gelöscht; neues zufälliges Topic, in beiden `.env`, in Uptime Kuma und healthchecks.io
-- [ ] iPhone-Test AP-7 nachholen (TC-110 bis TC-117), Fehler in v1.0.1
-- [ ] Roadmap aktualisiert, Phase 4 abgeschlossen
+- [ ] Deploy-Sperre aufheben (nach Phase 4)
+- [ ] Wiederherstellung des Backups vom Abend auf dem Windows-PC, Rangliste stimmt überein (nach Phase 4)
+- [ ] Feedback des Abends gesichtet, Fehler als 1.0.x (nach Phase 4)
+- [ ] Resend-API-Schlüssel und ntfy-Topic erneuern (vorgezogen zum Abschluss der Phase, 27.11.2026) (beide waren am 23.11.2026 auf einem Screenshot im Chat zu sehen; verschoben bis nach dem Release, Entscheidung vom 24.11.2026): neuer Schlüssel bei Resend, alter gelöscht; neues zufälliges Topic, in beiden `.env`, in Uptime Kuma und healthchecks.io
+- [ ] iPhone-Test AP-7 nachholen (TC-110 bis TC-117), Fehler als 1.0.x (nach Phase 4)
+- [x] Phase 4 abgeschlossen, Pläne im Repo aktualisiert (27.11.2026); die Roadmap im Claude-Projekt ist noch auf dem Stand vom 23.11.
 
-**Fertig, wenn:** G3 und G4 sind abgenommen. AP-7 hängt nicht daran (Entscheidung vom 25.11.2026).
+**Fertig, wenn:** G4 ist abgenommen (G3 entfällt, Entscheidung vom 27.11.2026). AP-7 hängt nicht daran (Entscheidung vom 25.11.2026). **Erledigt am 27.11.2026.**
+
+### Nach Phase 4 (ohne Gate)
+
+- [ ] Anleitung in die Gruppe schicken, falls noch nicht geschehen
+- [ ] Draftabend So 27.12.2026 nach dem [Drehbuch](release-abend.md), Abschnitte 4 und 6: tagsüber Backup und `admin.sh deploy-lock on`, danach `deploy-lock off`
+- [ ] Push im echten Turnier prüfen
+- [ ] Backup vom Abend auf dem Windows-PC wiederherstellen, Rangliste stimmt überein
+- [ ] iPhone-Test AP-7, sobald ein iPhone da ist
+- [ ] Feedback aus der Gruppe sichten, Fehler als 1.0.x
 
 ### Eingeschoben
 
