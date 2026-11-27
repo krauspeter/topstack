@@ -1,6 +1,6 @@
 # Release v1.0 am Draftabend · Drehbuch
 
-Stand: 25.11.2026 · Draftabend **So 27.12.2026** (voraussichtlich), dann schon mit v1.0 · gehört zu [AP-8](README.md#ap-8--rollout-und-release-abend-v10-ca-3-h)
+Stand: 27.11.2026 · Draftabend **So 27.12.2026** (mit der Gruppe festgelegt), dann schon mit v1.0 · gehört zu [AP-8](README.md#ap-8--rollout-und-release-abend-v10-ca-3-h)
 
 Jeder Schritt sagt, wo er läuft: **PC** (Browser oder GitHub), **Heimserver** (per SSH, Ordner `~/topstack` bzw. `~/topstack-beta`) oder **Handy**. Was Claude vorbereitet, steht als „Claude“ dabei.
 
@@ -23,7 +23,7 @@ Ab `v1.0.0` bekommt die Produktion nur noch Releases; Merges in `main` landen zu
 
 - [ ] **Heimserver (`~/topstack`):** Der Abend zählt schon zur Saison 2027 (Festlegung vom 22.11.2026). Nach v1.0.1: `infra/ops/admin.sh seasons`, dann `infra/ops/admin.sh season-start "Saison 2027" 2026-12-01 --apply` (Name wie in der Liste).
 
-- [ ] **PC:** Anleitung [„TopStack in 4 Schritten“](https://claude.ai/artifact/9Z6ue547qKEUT9SnKQDY8P) in die Gruppe schicken (vorher teilen oder als Bild/PDF exportieren). Alle installieren die App von `topstack.win`, melden sich an und erlauben Push.
+- [x] **PC:** Anleitung [„TopStack in 4 Schritten“](https://claude.ai/artifact/9Z6ue547qKEUT9SnKQDY8P) in die Gruppe schicken (vorher teilen oder als Bild/PDF exportieren). Alle installieren die App von `topstack.win`, melden sich an und erlauben Push.
 - [ ] Optional, für Probeläufe neuer Versionen: **PC:** Tester für Beta freischalten. Cloudflare → Zero Trust → Access → Applications → „TopStack Beta“ → Richtlinie „Nur Peter“ → Include **Emails**: die Adressen der Mitspieler ergänzen. Die Richtlinie danach ruhig in „Tester“ umbenennen.
 - [ ] **Heimserver (`~/topstack-beta`):** dieselben Adressen in `TOPSTACK_MAIL_ALLOWLIST` der Staging-`.env` (kommagetrennt), dann `docker compose -f infra/docker-compose.staging.yml --env-file infra/.env up -d api`. Sonst schickt Beta ihnen keine Anmeldelinks.
 - [ ] **Handy (Peter, auf Beta):** Profil → Testgruppe → Einladungslink erzeugen und in die Gruppe schicken. Wer ihn öffnet, landet in der Testgruppe auf Beta.
