@@ -1,42 +1,30 @@
 milestone	labels	title	body
-Phase 1	phase-1,docs	Wireframes: Life-Tracker, Turnierablauf, Rangliste	Low-Fi-Wireframes für Life-Tracker (1 und 2 Handys), Turnier starten/einladen, Auslosung mit Tischgrafik, Live-Ansicht, Pause-Ansicht, Siegerehrung, Rangliste. Abstimmung mit der Gruppe (Gate G1).
-Phase 1	phase-1,devops	Repo öffentlich anlegen, CI grün, Branch-Schutz für main	Monorepo hochladen, Dependabot und Secret-Scanning aktivieren, main nur per PR mit grüner CI.
-Phase 1	phase-1,devops	Domain auswählen und Verfügbarkeit prüfen	.app, .de oder .gg – vor Phase 3 registrieren (Passkeys hängen an der Domain, ADR-0008).
-Phase 2	phase-2,app	Match einrichten: zwei Spieler, Startleben 20, Best-of-3	Siehe Roadmap Phase 2.
-Phase 2	phase-2,app	Lebenspunkte: Tippen ±1, langes Drücken ±5, letzte Änderung anzeigen, Vibration	N-02: einhändig, große Tasten.
-Phase 2	phase-2,app	W20-Wurf mit Animation, ab Spiel 2 entscheidet der Verlierer	F-09, UC-10.
-Phase 2	phase-2,app	Draftplätze auslosen, runde Tischgrafik mit Passrichtung	F-03, F-04, UC-06 (lokal, ohne Server).
-Phase 2	phase-2,app	Rückgängig über Ereignisprotokoll, Spielstand in IndexedDB, Wake Lock	ADR-0005, N-01.
-Phase 2	phase-2,app	PWA installierbar, auf Android getestet (iPhone in Phase 4)	Manifest, Service Worker, Test auf echten Geräten.
-Phase 3	phase-3,docs	AP-0 Voraussetzungen: Domain, Cloudflare Tunnel, E-Mail-Versand, ADRs annehmen	Siehe docs/phase3/README.md, AP-0. Entscheidungen E1 bis E3, ADR-0012 bis ADR-0014 von vorgeschlagen auf angenommen.
-Phase 3	phase-3,server	AP-1 Datenbank: SQLAlchemy-Modelle, erste Alembic-Migration, Tests mit PostgreSQL	Siehe docs/phase3/README.md, AP-1, und ADR-0014. Fertig, wenn alembic upgrade head auf leerer Datenbank läuft und die CI die Migration gegen schema.sql prüft.
-Phase 3	phase-3,devops	AP-2 Heimserver: App und API unter https://topstack.win ausliefern	Siehe docs/phase3/heimserver.md. App-Build in Caddy, Migration beim Start, cloudflared in docker-compose.yml. Testfälle TC-80 bis TC-83.
-Phase 3	phase-3,server,app	AP-3 Anmeldung: Magic-Link, Passkey, Sitzung, Einladung in die Gruppe	UC-02, ADR-0008. Testfälle TC-01 bis TC-06.
-Phase 3	phase-3,server,app	AP-4 Turnier vorbereiten: starten, einladen, Gäste, Auslosung, Farben	UC-03 bis UC-07, F-01 bis F-04, F-06. Testfälle TC-10 bis TC-19.
-Phase 3	phase-3,server,app	AP-5 Turnierablauf: Spielplan, Vorziehen, Ergebnisse, Korrektur, Abschluss	UC-08, UC-09, UC-12 bis UC-17, ADR-0013. Testfälle TC-20 bis TC-32.
-Phase 3	phase-3,server,app	AP-6 Life-Tracker am Server: Outbox, Sync, zwei Handys, Spielende mit Grund	UC-10, UC-11, N-01, ADR-0012. Testfälle TC-40 bis TC-47.
-Phase 3	phase-3,server,app	AP-7 Live-Ansicht und Pause-Ansicht über WebSocket	F-15, N-04. Testfälle TC-50 bis TC-53.
-Phase 3	phase-3,server,app	AP-8 Web Push: Du bist dran, neue Runde, Turnierende	F-17. Testfälle TC-60 bis TC-62. Kann bei Zeitmangel nach Phase 4 wandern.
-Phase 3	phase-3,server,app	AP-9 Rangliste und Basis-Statistik	F-18, F-22 (Basis). Testfälle TC-70 bis TC-74.
-Phase 3	phase-3,docs	AP-10 Abnahme Gate G3: echtes Turnier mit der Gruppe	Abnahmeszenario in docs/phase3/testplan.md, Abschnitt 4.
-Phase 4	phase-4,devops	Nächtliche Backups mit Wiederherstellungstest, Uptime Kuma	Gate G4.
-Phase 4	phase-4,app	iPhone-Test vor v1.0: Installieren, Bildschirm an, Offline, Push	Letzter Schritt vor v1.0 (Entscheidung vom 18.11.2026). Safari, Zum Home-Bildschirm, Testfälle aus docs/phase3/testplan.md auf dem iPhone wiederholen.
-v1.1	v1.1	Mehrere Gruppen mit Rollen und eigenen Regeln	UC-01, ADR-0010.
-v1.1	v1.1	Zuschauer-Link ohne Anmeldung	Öffentlicher Live-Verlauf.
-v1.1	v1.1	Gast in Profil umwandeln	UC-18.
-v1.1	v1.1	Altdaten-Import per CSV und manuell	UC-19, UC-20; CSV-Vorlage in der Roadmap.
-v1.1	v1.1	Elo-Wertung pro Gruppe und global	Start 1000, pro Match; Altdaten fließen nicht ein.
-v1.1	v1.1	Head-to-Head als Tabelle und Direktvergleich	F-22.
-v1.1	v1.1	Awards, Langzeit-Erfolge, Bester der letzten 3 Drafts	Anzeige im Profil, Siegerehrung, Teilen-Bild.
-v1.1	v1.1	Teilen-Bild nach dem Turnier und Lebenspunkte-Kurve	–
-v1.1	v1.1	Tisch-Modus fürs Tablet	–
-v1.1	v1.1	Google-Login sowie Benutzername und Passwort	Ergänzt ADR-0008.
-Hardware	hardware	Hardware-Anforderungen und Bauteilliste Steuergerät	ESP32, Drehgeber/Taster, Display, LiPo mit USB-C.
-Hardware	hardware	Firmware: Entprellung, MQTT, Puffer, OTA	Topics siehe docs/schnittstellen.md.
-Hardware	hardware	Platine (KiCad) und Gehäuse (3D-Druck)	Gate G6.
-v2.0	v2.0	Terminumfrage mit Kalender-Export und Erinnerung	UC-21.
-v2.0	v2.0	Englisch und Portugiesisch	i18n.
-v2.0	v2.0	Datenexport der Gruppe als CSV oder Excel	–
-v2.0	v2.0	Commander: Commander-Schaden, mehr als zwei Spieler	F-20, neue Ereignisart.
-v2.0	v2.0	Kartenbilder und Set-Infos über Scryfall	–
-v2.0	v2.0,app	Wählbare Design-Themes: Pergament, Arcade, Minimal hell	ADR-0011: Vorschläge B, C, D aus den Wireframes als Theme in den Profil-Einstellungen; Basis sind die Design-Tokens.
+v1.1	v1.1,docs	P5 AP-0 Plan und Backlog	Siehe docs/phase5/README.md, AP-0. Plan, ADR-0018, ADR-0019, Backlog auf GitHub aufräumen, Altdaten sammeln.
+v1.1	v1.1,server,app	P5 AP-1 Gruppen und Rollen	Siehe docs/phase5/README.md, AP-1. UC-01, ADR-0018. Testfälle TC-130 bis TC-139.
+v1.1	v1.1,server,app	P5 AP-2 Einladungen und Spieler	Siehe docs/phase5/README.md, AP-2. Gruppenlinks, persönlicher Link, Gast in Profil (UC-05, UC-18), Spieler zusammenführen. Testfälle TC-140 bis TC-144.
+v1.1	v1.1,server,app	P5 AP-3 Regeln pro Turnier	Siehe docs/phase5/README.md, AP-3. Testfall TC-145.
+v1.1	v1.1,server,app	P5 AP-4 Altdaten-Import	Siehe docs/phase5/README.md, AP-4. UC-19, UC-20, ADR-0019. Testfälle TC-146 bis TC-150.
+v1.1	v1.1,server,app	P5 AP-5 Elo	Siehe docs/phase5/README.md, AP-5. F-19, ADR-0019. Testfälle TC-151 bis TC-153.
+v1.1	v1.1,server,app	P5 AP-6 Head-to-Head	Siehe docs/phase5/README.md, AP-6. F-22. Testfall TC-154.
+v1.1	v1.1,server,app	P5 AP-7 Zuschauer-Link	Siehe docs/phase5/README.md, AP-7. Testfälle TC-155 und TC-156.
+v1.1	v1.1,devops	P5 AP-8 Release v1.1.0 und Gate G5	Siehe docs/phase5/README.md, AP-8. Testfall TC-162.
+v1.1	v1.1,server,app	P5 AP-9 Awards und Erfolge	Siehe docs/phase5/README.md, AP-9. Testfälle TC-157 und TC-158.
+v1.1	v1.1,app	P5 AP-10 Teilen-Bild und Lebenspunkte-Kurve	Siehe docs/phase5/README.md, AP-10. Testfälle TC-159 und TC-160.
+v1.1	v1.1,app	P5 AP-11 Tisch-Modus	Siehe docs/phase5/README.md, AP-11. Testfall TC-161.
+v1.1	v1.1,devops	P5 AP-12 Release v1.1.1	Siehe docs/phase5/README.md, AP-12.
+Backlog	backlog	Google-Login sowie Benutzername und Passwort	Aus v1.1 gestrichen am 27.11.2026: niemand in der Gruppe braucht es. Ergänzt ADR-0008, wenn jemand danach fragt.
+v1.2	v1.2	Terminumfrage mit Kalender-Export und Erinnerung	UC-21. Termine vorschlagen, Ja/Vielleicht/Nein, Set-Abstimmung, .ics, Erinnerung, Turnier aus dem Termin. Roadmap Phase 6.
+v1.2	v1.2	Ausgaben eines Spieleabends teilen	UC-27, F-27. Roadmap Phase 6.
+v1.3	v1.3	Sealed-Turniere	UC-26, F-26. Booster-Anzahl, Deckbau-Timer, Filter nach Turnierart; Cube als Draft-Variante. Roadmap Phase 7.
+v1.4	v1.4	Constructed-Turniere mit Schweizer System	UC-22, UC-23, F-23, F-28. Format, Drop, Top-Cut, mehrere Turniere gleichzeitig, Deckliste-Link. Roadmap Phase 8.
+v2.0	v2.0	Englisch und Portugiesisch	i18n. Roadmap Phase 9.
+v2.0	v2.0,app	Wählbare Design-Themes: Pergament, Arcade, Minimal hell	ADR-0011: Vorschläge B, C, D aus den Wireframes als Theme in den Profil-Einstellungen.
+v2.0	v2.0	Datenexport der Gruppe als CSV oder Excel	Roadmap Phase 9.
+v2.0	v2.0	Erweiterte Statistik, KI-Zusammenfassung und KI-Prognose	Roadmap Phase 9.
+v2.1	v2.1	Commander: Commander-Schaden, mehr als zwei Spieler	F-20. 3–6 Spieler, 40 Leben, Gift, Monarch, Initiative, Pods, Commander-Elo. Roadmap Phase 10.
+v2.1	v2.1	Kartenbilder und Set-Infos über Scryfall	Roadmap Phase 10.
+v3.0	v3.0,hardware	Hardware-Anforderungen und Bauteilliste Steuergerät	ESP32, Drehgeber/Taster, Display, LiPo mit USB-C. Roadmap Phase 11.
+v3.0	v3.0,hardware	Firmware: Entprellung, MQTT, Puffer, OTA	Topics siehe docs/schnittstellen.md.
+v3.0	v3.0,hardware	Platine (KiCad) und Gehäuse (3D-Druck)	Gate G11.
+v3.1	v3.1	Design & Marke: Redesign, Logo, App-Icon, Store-Material	Roadmap Phase 12.
+v4.0	v4.0	Öffentlicher Start und App-Stores	F-24, F-25, N-05, UC-24, UC-25. Roadmap Phase 13.
