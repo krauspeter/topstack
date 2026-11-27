@@ -33,6 +33,18 @@ class Filter:
     until: date | None = None
 
 
+def _own_points(t: Tournament, group: MatchPointRules) -> MatchPointRules | None:
+    """Eigene Matchpunkte eines Turniers (AP-3), sonst ``None``."""
+    own = (t.settings or {}).get("rules") or {}
+    if not any(k in own for k in ("match_points_win", "match_points_draw", "match_points_loss")):
+        return None
+    return MatchPointRules(
+        own.get("match_points_win", group.win),
+        own.get("match_points_draw", group.draw),
+        own.get("match_points_loss", group.loss),
+    )
+
+
 @dataclass
 class Results:
     tournaments: list[TournamentResult[uuid.UUID]]
@@ -105,6 +117,7 @@ async def load(db: AsyncSession, gid: uuid.UUID, f: Filter) -> Results:
                 ],
                 # auch Gäste, damit „Gegen Farben“ ihre Decks kennt
                 {e.player_id: e.colors for e in entries if e.tournament_id == t.id},
+                _own_points(t, rules),
             )
         )
     return Results(results, players, rules)

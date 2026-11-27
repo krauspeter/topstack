@@ -163,19 +163,21 @@ def missing_colors(players: dict[str, str | None]) -> list[str]:
 GAMES_TO_WIN = 2  # Best-of-3
 
 
-def valid_result(games_a: int, games_b: int, games_drawn: int = 0) -> bool:
-    """Gültiger Stand eines Best-of-3, auch nach Zeitablauf (z. B. 1:0 oder 1:1).
+def valid_result(
+    games_a: int, games_b: int, games_drawn: int = 0, games_to_win: int = GAMES_TO_WIN
+) -> bool:
+    """Gültiger Stand eines Best-of-(2n-1), auch nach Zeitablauf (z. B. 1:0 oder 1:1).
 
-    Höchstens 3 Spiele, niemand mehr als 2 Siege, nicht beide 2.
+    Höchstens 2n-1 Spiele, niemand mehr als n Siege, nicht beide n (n = ``games_to_win``).
     """
     values = (games_a, games_b, games_drawn)
     if any(v < 0 for v in values):
         return False
-    if games_a > GAMES_TO_WIN or games_b > GAMES_TO_WIN:
+    if games_a > games_to_win or games_b > games_to_win:
         return False
-    if games_a == GAMES_TO_WIN and games_b == GAMES_TO_WIN:
+    if games_a == games_to_win and games_b == games_to_win:
         return False
-    return sum(values) <= 2 * GAMES_TO_WIN - 1
+    return sum(values) <= 2 * games_to_win - 1
 
 
 def cancel_majority(confirmed: int, participants: int) -> bool:

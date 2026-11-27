@@ -15,7 +15,6 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from topstack.db.models import (
-    GroupRules,
     Match,
     MatchCorrection,
     Player,
@@ -24,7 +23,6 @@ from topstack.db.models import (
     TournamentCancelVote,
     TournamentEntry,
 )
-from topstack.db.repo import groups
 from topstack.domain.ranking import ranking_points
 from topstack.domain.schedule import round_robin
 from topstack.domain.standings import MatchPoints, MatchResult, StandingRow, compute_standings
@@ -44,6 +42,8 @@ from topstack.services.tournaments import (
     Context,
     Forbidden,
     NotFound,
+    TournamentRules,
+    rules_for,
 )
 
 
@@ -102,8 +102,9 @@ async def _participants(db: AsyncSession, tid: uuid.UUID) -> list[tuple[Tourname
     return [(e, p) for e, p in (await db.execute(stmt)).all()]
 
 
-async def _rules(db: AsyncSession, ctx: Context) -> GroupRules:
-    return await groups.get_rules(db, ctx.tournament.group_id)
+async def _rules(db: AsyncSession, ctx: Context) -> TournamentRules:
+    """Regeln dieses Turniers: Gruppenregeln mit den Abweichungen des Starters (AP-3)."""
+    return await rules_for(db, ctx.tournament)
 
 
 def _rolls(ctx: Context) -> dict[uuid.UUID, int]:
@@ -114,7 +115,7 @@ def _rolls(ctx: Context) -> dict[uuid.UUID, int]:
 def standings_for(
     players: list[uuid.UUID],
     matches: list[Match],
-    rules: GroupRules,
+    rules: TournamentRules,
     rolls: dict[uuid.UUID, int],
 ) -> list[StandingRow[uuid.UUID]]:
     results = [
@@ -313,7 +314,7 @@ async def report_result(
         raise Forbidden
     if rnd.status == "planned" and match.status == "scheduled":
         raise Conflict("Dieses Match ist erst in einer späteren Runde. Erst vorziehen.")
-    if not valid_result(games_a, games_b, games_drawn):
+    if not valid_result(games_a, games_b, games_drawn, (await _rules(db, ctx)).games_to_win):
         raise InvalidResult
     if version is not None and version != match.version:
         raise Conflict("Das Ergebnis wurde inzwischen geändert. Bitte neu laden.")

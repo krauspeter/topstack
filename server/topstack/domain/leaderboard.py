@@ -34,6 +34,8 @@ class TournamentResult[P: Hashable]:
     matches: list[MatchRecord[P]]
     # Farben aller Teilnehmer, auch der Gäste, die in ``entries`` fehlen (für „Gegen Farben“)
     colors: dict[P, str | None] = field(default_factory=dict)
+    # Matchpunkte, wenn das Turnier eigene hatte (Phase 5, AP-3); sonst die der Gruppe
+    points: "MatchPointRules | None" = None
 
     def deck(self, player: P) -> str | None:
         """Farbkombination eines Teilnehmers; ``"C"`` für farblos, ``None`` wenn nicht gemeldet."""
@@ -94,7 +96,7 @@ def leaderboard[P: Hashable](
             for me, mine, theirs in ((m.a, m.games_a, m.games_b), (m.b, m.games_b, m.games_a)):
                 if me not in players:
                     continue
-                rows[me].match_points += rules.points(_outcome(mine, theirs))
+                rows[me].match_points += (t.points or rules).points(_outcome(mine, theirs))
 
     def key(r: LeaderboardRow[P]) -> tuple[int, int, float, int]:
         return (r.ranking_points, r.match_points, r.avg_match_points, r.wins)

@@ -3,6 +3,7 @@ import { api, errorText } from '../../api/client';
 import type { Me, Tournament, TournamentSummary } from '../../api/types';
 import { useActiveGroup } from '../../store/activeGroup';
 import { GroupSwitcher } from '../GroupSwitcher';
+import { type RuleDraft, TournamentRulesForm } from './TournamentRulesForm';
 
 interface Props {
   me: Me;
@@ -29,6 +30,7 @@ export function TournamentHome({ me, onOpen, onBack }: Props) {
   const [setCode, setSetCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rules, setRules] = useState<Partial<RuleDraft>>({});
   const gid = group?.id;
 
   useEffect(() => {
@@ -36,6 +38,7 @@ export function TournamentHome({ me, onOpen, onBack }: Props) {
     let active = true;
     setList(null);
     setError(null);
+    setRules({});
     api<TournamentSummary[]>(`/groups/${gid}/tournaments`)
       .then((rows) => active && setList(rows))
       .catch((err: unknown) => active && setError(errorText(err)));
@@ -67,7 +70,8 @@ export function TournamentHome({ me, onOpen, onBack }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const t = await api<Tournament>(`/groups/${group.id}/tournaments`, { method: 'POST', body: { set_code: setCode.trim() } });
+      const body = Object.keys(rules).length > 0 ? { set_code: setCode.trim(), rules } : { set_code: setCode.trim() };
+      const t = await api<Tournament>(`/groups/${group.id}/tournaments`, { method: 'POST', body });
       onOpen(t.id);
     } catch (err) {
       setError(errorText(err));
@@ -120,6 +124,7 @@ export function TournamentHome({ me, onOpen, onBack }: Props) {
               />
               <small className="muted">{setCode.trim().length}/20 Zeichen</small>
             </label>
+            <TournamentRulesForm key={group.id} groupId={group.id} onChange={setRules} />
             <button type="submit" className="btn primary big" disabled={busy || setCode.trim().length < 2}>
               Draft-Turnier starten
             </button>

@@ -224,3 +224,25 @@ test('Gast bekommt nach dem Beitritt das Angebot „Profil anlegen“ (UC-05)', 
   await expect(page.getByRole('heading', { name: 'Du bist dabei, Gina!' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Profil anlegen' })).toHaveAttribute('href', '/einladung/claim1');
 });
+
+test('Turnier mit eigenen Regeln starten (AP-3)', async ({ page }) => {
+  await mockMe(page, [A]);
+  let body: unknown = null;
+  await page.route(`**/api/v1/groups/${A.id}`, (route) => json(route, detail(A)));
+  await page.route(`**/api/v1/groups/${A.id}/tournaments`, (route) => {
+    if (route.request().method() === 'POST') {
+      body = route.request().postDataJSON();
+      return json(route, { id: 't-neu' }, 201);
+    }
+    return json(route, []);
+  });
+  await page.route('**/api/v1/tournaments/t-neu', (route) => route.abort());
+
+  await page.goto('/turnier');
+  await page.getByLabel('Name des Drafts, z. B. Mirrodin oder DSK').fill('DSK');
+  await page.getByText('Regeln für dieses Turnier anpassen').click();
+  await page.getByLabel('Matchformat').selectOption('1');
+  await page.getByLabel('Startleben').fill('30');
+  await page.getByRole('button', { name: 'Draft-Turnier starten' }).click();
+  await expect.poll(() => body).toEqual({ set_code: 'DSK', rules: { games_to_win: 1, starting_life: 30 } });
+});
