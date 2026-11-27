@@ -14,7 +14,7 @@ Entscheidung vom 25.11.2026: `v1.0.0` kommt noch am selben Tag direkt nach `1.0.
 | ab 25.11. | Anleitung an die Gruppe, alle richten die App ein (Abschnitt 1) | Peter, Gruppe |
 | bis 26.12. | Feedback sichten, Fehler als `1.0.1` (Release-PR, Produktion holt `latest` von selbst) | Claude, Peter |
 | **So 27.12.** tagsüber | Backup, Deploy-Sperre, Probelauf (Abschnitt 4) | Peter |
-| **So 27.12.** abends | Draftabend: Abnahme G3 und Push im echten Turnier (Abschnitt 5) | alle |
+| **So 27.12.** abends | Draftabend mit v1.0, Push im echten Turnier (Abschnitt 5) | alle |
 | Mo 28.12. | Sperre aufheben, Wiederherstellung proben, Feedback sichten, Schlüssel erneuern (Abschnitt 6) | Peter, Claude |
 
 Ab `v1.0.0` bekommt die Produktion nur noch Releases; Merges in `main` landen zuerst auf Beta.
@@ -66,7 +66,8 @@ Ab `v1.0.0` bekommt die Produktion nur noch Releases; Merges in `main` landen zu
 
 ## 5. Am Abend
 
-- [ ] Abnahme G3 nach der [Checkliste AP-10 aus Phase 3](../phase3/README.md#ap-10--abnahme-gate-g3-ca-2-h--verschoben-zum-release-v10), Schritte 1 bis 8.
+Kein Gate mehr: Phase 4 ist seit dem 27.11.2026 abgeschlossen, G3 entfällt. Die Checkliste aus [Phase 3, AP-10](../phase3/README.md#ap-10--abnahme-gate-g3-ca-2-h--verschoben-zum-release-v10) taugt trotzdem als Leitfaden.
+
 - [ ] Push kommt an: „Du bist dran“, neue Runde, Turnierende.
 - [ ] Die Turnier-Karte auf der Startseite stimmt bei allen: dran, läuft, Pause mit Vorziehen, nächste Runde.
 - [ ] Probleme direkt über „Feedback geben“ melden, mit Screenshot.
@@ -76,9 +77,9 @@ Ab `v1.0.0` bekommt die Produktion nur noch Releases; Merges in `main` landen zu
 - [ ] **Heimserver:** Sperre aufheben: `infra/ops/admin.sh deploy-lock off`.
 - [ ] **PC (Windows):** Backup vom Abend wiederherstellen, Rangliste stimmt mit der App überein ([Heimserver, Ernstfall auf einem anderen Rechner](../phase3/heimserver.md#ernstfall-auf-einem-anderen-rechner-wiederherstellen)).
 - [ ] **PC:** Feedback des Abends sichten, Fehler im Meilenstein v1.0.1.
-- [ ] **PC und Heimserver:** Resend-API-Schlüssel und ntfy-Topic erneuern (siehe AP-8).
+- [x] **PC und Heimserver:** Resend-API-Schlüssel und ntfy-Topic erneuert (27.11.2026, vorgezogen).
 - [ ] iPhone-Test AP-7 nachholen, sobald ein iPhone da ist.
-- [ ] **Claude:** Roadmap und Phase-4-Plan aktualisieren, G3 und G4 abhaken.
+- [x] **Claude:** Phase-4-Plan aktualisieren, G4 abhaken (27.11.2026; G3 entfällt).
 
 ## Wenn etwas schiefgeht
 
