@@ -286,7 +286,7 @@ Ursprünglich letzter Schritt vor v1.0. **Verschoben auf nach dem Release (Entsc
 - [ ] Deploy-Sperre aufheben (nach Phase 4)
 - [ ] Wiederherstellung des Backups vom Abend auf dem Windows-PC, Rangliste stimmt überein (nach Phase 4)
 - [ ] Feedback des Abends gesichtet, Fehler als 1.0.x (nach Phase 4)
-- [ ] Resend-API-Schlüssel und ntfy-Topic erneuern (vorgezogen zum Abschluss der Phase, 27.11.2026) (beide waren am 23.11.2026 auf einem Screenshot im Chat zu sehen; verschoben bis nach dem Release, Entscheidung vom 24.11.2026): neuer Schlüssel bei Resend, alter gelöscht; neues zufälliges Topic, in beiden `.env`, in Uptime Kuma und healthchecks.io
+- [x] Resend-API-Schlüssel und ntfy-Topic erneuert (vorgezogen zum Abschluss der Phase, 27.11.2026): neuer Schlüssel bei Resend, alter gelöscht; neues Topic in beiden `.env`, Uptime Kuma und healthchecks.io, Tests kamen an (beide waren am 23.11.2026 auf einem Screenshot im Chat zu sehen; verschoben bis nach dem Release, Entscheidung vom 24.11.2026): neuer Schlüssel bei Resend, alter gelöscht; neues zufälliges Topic, in beiden `.env`, in Uptime Kuma und healthchecks.io
 - [ ] iPhone-Test AP-7 nachholen (TC-110 bis TC-117), Fehler als 1.0.x (nach Phase 4)
 - [x] Phase 4 abgeschlossen, Pläne im Repo aktualisiert (27.11.2026); die Roadmap im Claude-Projekt ist noch auf dem Stand vom 23.11.
 
