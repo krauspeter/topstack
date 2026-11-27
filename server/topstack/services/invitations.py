@@ -50,6 +50,9 @@ async def get_valid(db: AsyncSession, token: str, *, lock: bool = False) -> Invi
         or (invitation.max_uses is not None and invitation.uses >= invitation.max_uses)
     ):
         return None
+    group = await db.get(PlayGroup, invitation.group_id)
+    if group is None or group.deleted_at is not None or group.archived_at is not None:
+        return None  # in archivierte und gelöschte Gruppen kommt niemand neu (ADR-0018)
     return invitation
 
 
@@ -72,7 +75,13 @@ async def accept(db: AsyncSession, invitation: Invitation, user: AppUser) -> tup
         select(Player).where(Player.group_id == invitation.group_id, Player.app_user_id == user.id)
     )
     if existing is not None:
-        return existing, False
+        if await groups.get_membership(db, group_id=invitation.group_id, user_id=user.id):
+            return existing, False
+        # Wer die Gruppe verlassen hat, kommt mit seinem alten Spieler zurück (ADR-0018)
+        db.add(Membership(group_id=invitation.group_id, app_user_id=user.id, role="member"))
+        invitation.uses += 1
+        await db.flush()
+        return existing, True
     if invitation.player_id is not None:
         player = await db.get(Player, invitation.player_id, with_for_update=True)
         if player is None or player.kind != "reserved":

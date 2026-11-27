@@ -2,6 +2,8 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { api, errorText } from '../../api/client';
 import type { Leaderboard as Board, Me, PlayerStats, SeasonInfo, WinRecord } from '../../api/types';
 import { describeColors } from '../../domain/colors';
+import { useActiveGroup } from '../../store/activeGroup';
+import { GroupSwitcher } from '../GroupSwitcher';
 import { ManaPips } from '../ManaPips';
 
 interface Props {
@@ -24,7 +26,8 @@ const num = (n: number) => n.toLocaleString('de-DE', { maximumFractionDigits: 2 
 
 /** Rangliste der Gruppe mit Filter und Spielerstatistik (F-18, F-22, AP-9). */
 export function Leaderboard({ me, onBack }: Props) {
-  const [groupId, setGroupId] = useState(me.groups[0]?.id ?? '');
+  const [group, selectGroup] = useActiveGroup(me.groups);
+  const groupId = group?.id ?? '';
   const [seasons, setSeasons] = useState<SeasonInfo[]>([]);
   const [season, setSeason] = useState('');
   const [from, setFrom] = useState('');
@@ -77,18 +80,7 @@ export function Leaderboard({ me, onBack }: Props) {
       </header>
 
       <section className="stack" aria-label="Filter">
-        {me.groups.length > 1 && (
-          <label className="field">
-            <span className="muted small">Gruppe</span>
-            <select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
-              {me.groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+        <GroupSwitcher groups={me.groups} active={group} onSelect={selectGroup} />
         <div className="chips-select" role="group" aria-label="Saison">
           <button type="button" className={season === '' ? 'chip on' : 'chip'} aria-pressed={season === ''} onClick={() => setSeason('')}>
             Gesamt

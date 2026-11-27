@@ -245,7 +245,7 @@ async def start_tournament(
 async def list_tournaments(gid: uuid.UUID, user: CurrentUser, db: Db) -> list[TournamentSummary]:
     """Neueste zuerst, höchstens 20; das offene Turnier steht immer oben."""
     async with errors():
-        await svc.list_players(db, gid, user)  # prüft Mitgliedschaft
+        await svc.group_access(db, gid, user)  # prüft Mitgliedschaft, auch für Zuschauer
     players = (
         select(func.count())
         .select_from(TournamentEntry)

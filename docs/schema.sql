@@ -73,7 +73,13 @@ CREATE TABLE play_group (
     id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name         text NOT NULL,
     created_by   uuid REFERENCES app_user(id) ON DELETE SET NULL,
-    created_at   timestamptz NOT NULL DEFAULT now()
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    archived_at  timestamptz,               -- gesetzt = nur lesbar (Phase 5, ADR-0018)
+    deleted_at   timestamptz,               -- gesetzt = gelöscht, 30 Tage wiederherstellbar
+    pending_rules jsonb,                    -- geänderte Regeln, gelten ab der nächsten Saison
+    image        bytea,                     -- Gruppenbild, in der App auf 512 px verkleinert
+    image_type   text,
+    CONSTRAINT play_group_image_check CHECK ((image IS NULL) = (image_type IS NULL))
 );
 
 CREATE TABLE group_rules (

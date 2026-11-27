@@ -25,9 +25,10 @@ from topstack.db.models import (
     Tournament,
     TournamentEntry,
 )
-from topstack.db.repo import groups
+from topstack.domain.groups import Permission
 from topstack.domain.seating import draw_seats
 from topstack.domain.tournament import Action, Actor, Forbidden, Status, WrongStatus, check
+from topstack.services import groups as group_svc
 from topstack.services.tokens import hash_token, new_token
 
 GUEST_LINK_HOURS = 12
@@ -72,16 +73,30 @@ class Context:
         )
 
 
+async def group_access(
+    db: AsyncSession,
+    group_id: uuid.UUID,
+    user: AppUser,
+    permission: Permission = Permission.VIEW,
+    *,
+    write: bool = False,
+) -> group_svc.Access:
+    """Gemeinsame Rechteprüfung (ADR-0018) mit den Fehlern dieses Dienstes."""
+    try:
+        return (await group_svc.access(db, group_id, user)).require(permission, write=write)
+    except group_svc.NotFound:
+        raise NotFound from None
+    except group_svc.Forbidden:
+        raise Forbidden from None
+    except group_svc.Conflict as exc:
+        raise Conflict(str(exc)) from None
+
+
 async def _member_context(
     db: AsyncSession, group_id: uuid.UUID, user: AppUser
 ) -> tuple[Membership, Player | None]:
-    membership = await groups.get_membership(db, group_id=group_id, user_id=user.id)
-    if membership is None:
-        raise NotFound
-    player = await db.scalar(
-        select(Player).where(Player.group_id == group_id, Player.app_user_id == user.id)
-    )
-    return membership, player
+    a = await group_access(db, group_id, user)
+    return a.membership, a.player
 
 
 async def load(
@@ -106,7 +121,8 @@ async def load(
 
 
 async def list_players(db: AsyncSession, group_id: uuid.UUID, user: AppUser) -> list[Player]:
-    await _member_context(db, group_id, user)
+    """Spieler der Gruppe; Zuschauer sehen keine Profile (ADR-0018)."""
+    await group_access(db, group_id, user, Permission.VIEW_PROFILES)
     stmt = (
         select(Player)
         .where(Player.group_id == group_id, Player.kind.in_(INVITABLE_KINDS))
@@ -119,9 +135,7 @@ async def create_reserved(
     db: AsyncSession, group_id: uuid.UUID, user: AppUser, display_name: str
 ) -> Player:
     """Vorgemerkter Spieler ohne Konto (ADR-0015), nur durch den Gruppen-Admin."""
-    membership, _ = await _member_context(db, group_id, user)
-    if membership.role != "admin":
-        raise Forbidden
+    await group_access(db, group_id, user, Permission.MANAGE, write=True)
     taken = await db.scalar(
         select(func.count())
         .select_from(Player)
@@ -185,14 +199,18 @@ async def start(
     set_code: str,
     location: str | None,
 ) -> Tournament:
-    """UC-03: jedes Mitglied darf starten; nur ein offenes Turnier pro Gruppe."""
-    membership, player = await _member_context(db, group_id, user)
-    if membership.role == "viewer" or player is None:
+    """UC-03: jedes Mitglied darf starten; nur ein offenes Turnier pro Gruppe.
+
+    Fehlt die Saison für heute, beginnt hier die nächste (ADR-0018).
+    """
+    a = await group_access(db, group_id, user, Permission.PLAY, write=True)
+    player = a.player
+    if player is None:
         raise Forbidden
     if await open_tournament(db, group_id) is not None:
         raise Conflict("In der Gruppe läuft schon ein Turnier.")
     today = date.today()
-    season = await current_season(db, group_id, today)
+    season = await group_svc.ensure_season(db, a.group, today)
     tournament = Tournament(
         group_id=group_id,
         season_id=season.id if season else None,

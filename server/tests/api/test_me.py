@@ -19,7 +19,14 @@ async def test_me_lists_groups_with_role_and_player(client, session):
     assert body["favorite_colors"] == ""
     assert body["has_passkey"] is False
     assert body["groups"] == [
-        {"id": str(group.id), "name": "Draft-Runde", "role": "admin", "player_id": str(player.id)}
+        {
+            "id": str(group.id),
+            "name": "Draft-Runde",
+            "role": "admin",
+            "player_id": str(player.id),
+            "archived": False,
+            "has_image": False,
+        }
     ]
 
 

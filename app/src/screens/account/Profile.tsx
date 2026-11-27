@@ -1,9 +1,9 @@
 import { GroupMembers } from './GroupMembers';
 import { Notifications } from './Notifications';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useState } from 'react';
 import { api, errorText } from '../../api/client';
 import { createPasskey, passkeysSupported } from '../../api/passkeys';
-import type { InvitationCreated, Me } from '../../api/types';
+import type { DeletedGroup, GroupDetail, InvitationCreated, Me } from '../../api/types';
 import { MANA, type Mana, choiceName, describeColors, normalizeColors } from '../../domain/colors';
 import { choiceSurface } from '../../theme';
 
@@ -13,6 +13,12 @@ interface Props {
   onSignOut(): void;
   onBack(): void;
   onFeedback(): void;
+  /** Bildschirm „Gruppe“ öffnen (Phase 5, AP-1). */
+  onOpenGroup(id: string): void;
+  /** Profil neu laden, z. B. nach neuer oder wiederhergestellter Gruppe. */
+  onRefresh(): void;
+  /** Hinweis nach dem Verlassen oder Löschen einer Gruppe. */
+  notice?: string | null;
 }
 
 const ROLES: Record<Me['groups'][number]['role'], string> = { admin: 'Admin', member: 'Mitglied', viewer: 'Zuschauer' };
@@ -22,13 +28,21 @@ function toggleFavorite(current: string, color: Mana): string {
   return current.includes(color) ? current.replace(color, '') : normalizeColors(current + color);
 }
 
-export function Profile({ me, onChange, onSignOut, onBack, onFeedback }: Props) {
+export function Profile({ me, onChange, onSignOut, onBack, onFeedback, onOpenGroup, onRefresh, notice = null }: Props) {
   const [name, setName] = useState(me.display_name);
   const [colors, setColors] = useState(me.favorite_colors);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(notice);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [invites, setInvites] = useState<Record<string, InvitationCreated>>({});
+  const [newGroup, setNewGroup] = useState('');
+  const [deleted, setDeleted] = useState<DeletedGroup[]>([]);
+
+  useEffect(() => {
+    api<DeletedGroup[]>('/me/deleted-groups')
+      .then(setDeleted)
+      .catch(() => setDeleted([]));
+  }, [me]);
 
   const dirty = name.trim() !== me.display_name || colors !== me.favorite_colors;
 
@@ -70,6 +84,23 @@ export function Profile({ me, onChange, onSignOut, onBack, onFeedback }: Props) 
     run(async () => {
       const created = await api<InvitationCreated>(`/groups/${groupId}/invitations`, { method: 'POST', body: {} });
       setInvites((prev) => ({ ...prev, [groupId]: created }));
+    });
+
+  const createGroup = (e: FormEvent) => {
+    e.preventDefault();
+    void run(async () => {
+      const g = await api<GroupDetail>('/groups', { method: 'POST', body: { name: newGroup.trim() } });
+      setNewGroup('');
+      onRefresh();
+      onOpenGroup(g.id);
+    });
+  };
+
+  const restore = (g: DeletedGroup) =>
+    run(async () => {
+      await api(`/groups/${g.id}/restore`, { method: 'POST' });
+      onRefresh();
+      setMessage(`„${g.name}“ ist wiederhergestellt.`);
     });
 
   const share = async (url: string, group: string) => {
@@ -150,16 +181,21 @@ export function Profile({ me, onChange, onSignOut, onBack, onFeedback }: Props) 
 
       <section className="stack">
         <h3>Gruppen</h3>
-        {me.groups.length === 0 && <p className="muted small">Noch keine Gruppe. Lass dich von deiner Gruppe einladen.</p>}
+        {me.groups.length === 0 && <p className="muted small">Noch keine Gruppe. Lass dich von deiner Gruppe einladen oder leg unten eine an.</p>}
         <ul className="group-list">
           {me.groups.map((g) => (
             <li key={g.id}>
               <div className="group-head">
                 <strong>{g.name}</strong>
                 <span className="badge">{ROLES[g.role]}</span>
+                {g.archived && <span className="badge">archiviert</span>}
+                <button className="btn ghost small" onClick={() => onOpenGroup(g.id)} aria-label={`${g.name} verwalten`}>
+                  Verwalten ›
+                </button>
               </div>
               <GroupMembers groupId={g.id} groupName={g.name} />
               {g.role === 'admin' &&
+                !g.archived &&
                 (invites[g.id] ? (
                   <div className="stack">
                     <input readOnly value={invites[g.id].url} aria-label={`Einladungslink für ${g.name}`} onFocus={(e) => e.target.select()} />
@@ -178,6 +214,34 @@ export function Profile({ me, onChange, onSignOut, onBack, onFeedback }: Props) 
             </li>
           ))}
         </ul>
+        <form className="stack" onSubmit={createGroup} aria-label="Neue Gruppe">
+          <label className="field">
+            <span>Neue Gruppe anlegen</span>
+            <input value={newGroup} onChange={(e) => setNewGroup(e.target.value)} maxLength={60} placeholder="z. B. Freitagsrunde" />
+          </label>
+          <button type="submit" className="btn" disabled={busy || !newGroup.trim()}>
+            Gruppe anlegen
+          </button>
+          <p className="muted small">Du wirst Admin und kannst Freunde einladen. Höchstens 5 eigene Gruppen.</p>
+        </form>
+        {deleted.length > 0 && (
+          <div className="stack">
+            <h3>Papierkorb</h3>
+            <ul className="group-list">
+              {deleted.map((g) => (
+                <li key={g.id} className="group-head">
+                  <span>
+                    {g.name}
+                    <span className="muted small"> · endgültig weg am {new Date(g.purge_on).toLocaleDateString('de-DE')}</span>
+                  </span>
+                  <button className="btn small" onClick={() => void restore(g)} disabled={busy}>
+                    Wiederherstellen
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
 
       {message && (

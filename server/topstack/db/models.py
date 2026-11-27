@@ -181,12 +181,23 @@ class WebauthnChallenge(Base):
 
 
 class PlayGroup(Base):
+    """Spielgruppe (ADR-0010, ADR-0018): archiviert = nur lesbar, gelöscht = 30 Tage Papierkorb."""
+
     __tablename__ = "play_group"
+    __table_args__ = (
+        CheckConstraint("(image IS NULL) = (image_type IS NULL)", name="play_group_image_check"),
+    )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     name: Mapped[str] = mapped_column(Text, nullable=False)
     created_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, fk("app_user.id", "SET NULL"))
     created_at: Mapped[datetime] = created_at()
+    archived_at: Mapped[datetime | None] = mapped_column(TZ)
+    deleted_at: Mapped[datetime | None] = mapped_column(TZ)
+    # Geänderte Regeln, die mit der nächsten Saison gelten (ADR-0018)
+    pending_rules: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    image: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True)
+    image_type: Mapped[str | None] = mapped_column(Text)
 
 
 class GroupRules(Base):

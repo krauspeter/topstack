@@ -14,7 +14,8 @@ from topstack.api.schemas import (
 )
 from topstack.config import settings
 from topstack.db.models import Player
-from topstack.db.repo import groups
+from topstack.domain.groups import Permission
+from topstack.services import groups as group_svc
 from topstack.services import invitations, tournaments
 
 router = APIRouter(tags=["Gruppen"])
@@ -24,11 +25,14 @@ router = APIRouter(tags=["Gruppen"])
 async def create_invitation(
     gid: uuid.UUID, body: InvitationCreate, user: CurrentUser, db: Db
 ) -> InvitationCreated:
-    membership = await groups.get_membership(db, group_id=gid, user_id=user.id)
-    if membership is None:
-        raise problem(404, "Gruppe nicht gefunden.")
-    if membership.role != "admin":
-        raise problem(403, "Nur Gruppen-Admins können einladen.")
+    try:
+        (await group_svc.access(db, gid, user)).require(Permission.INVITE)
+    except group_svc.NotFound:
+        raise problem(404, "Gruppe nicht gefunden.") from None
+    except group_svc.Forbidden:
+        raise problem(403, "Nur Gruppen-Admins können einladen.") from None
+    except group_svc.Conflict as exc:
+        raise problem(409, str(exc)) from None
     if body.player_id is not None:
         try:
             await tournaments.reserved_player(db, gid, body.player_id)

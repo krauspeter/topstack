@@ -1,10 +1,15 @@
 /** Antworten der API, wie in docs/schnittstellen.md beschrieben. */
 
+export type GroupRole = 'admin' | 'member' | 'viewer';
+
 export interface GroupMembership {
   id: string;
   name: string;
-  role: 'admin' | 'member' | 'viewer';
+  role: GroupRole;
   player_id: string | null;
+  /** Archiviert: nur lesbar (ADR-0018). */
+  archived?: boolean;
+  has_image?: boolean;
 }
 
 export interface Me {
@@ -305,4 +310,61 @@ export interface ColorRecord extends WinRecord {
   /** Kombination wie „BRG“ oder einzelne Farbe; „C“ = farblos. */
   key: string;
   win_rate: number;
+}
+
+/** Gruppen verwalten (Phase 5, AP-1, ADR-0018). */
+export interface GroupRules {
+  match_points_win: number;
+  match_points_draw: number;
+  match_points_loss: number;
+  starting_life: number;
+  games_to_win: number;
+  extra_turns: number;
+  boosters_per_player: number;
+  match_time_limit_min: number | null;
+  placement_bonus: number[];
+  season_mode: 'calendar_year' | 'months' | 'eternal';
+  season_months: number | null;
+}
+
+export interface GroupDetail {
+  id: string;
+  name: string;
+  role: GroupRole;
+  player_id: string | null;
+  archived: boolean;
+  has_image: boolean;
+  created_at: string;
+  rules: GroupRules;
+  /** Geänderte Regeln, die ab der nächsten Saison gelten; nur für Admins. */
+  pending_rules: Partial<GroupRules> | null;
+  can_manage: boolean;
+  can_invite: boolean;
+  can_play: boolean;
+  can_view_profiles: boolean;
+}
+
+export interface GroupRulesChanged {
+  applied_now: boolean;
+  group: GroupDetail;
+}
+
+export interface GroupMember {
+  user_id: string;
+  display_name: string;
+  role: GroupRole;
+  joined_at: string;
+  player_id: string | null;
+  is_me: boolean;
+}
+
+export interface LeftGroup {
+  new_admin: string | null;
+}
+
+export interface DeletedGroup {
+  id: string;
+  name: string;
+  deleted_at: string;
+  purge_on: string;
 }
