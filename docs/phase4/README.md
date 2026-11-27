@@ -288,7 +288,7 @@ Ursprünglich letzter Schritt vor v1.0. **Verschoben auf nach dem Release (Entsc
 - [ ] Feedback des Abends gesichtet, Fehler als 1.0.x (nach Phase 4)
 - [x] Resend-API-Schlüssel und ntfy-Topic erneuert (vorgezogen zum Abschluss der Phase, 27.11.2026): neuer Schlüssel bei Resend, alter gelöscht; neues Topic in beiden `.env`, Uptime Kuma und healthchecks.io, Tests kamen an (beide waren am 23.11.2026 auf einem Screenshot im Chat zu sehen; verschoben bis nach dem Release, Entscheidung vom 24.11.2026): neuer Schlüssel bei Resend, alter gelöscht; neues zufälliges Topic, in beiden `.env`, in Uptime Kuma und healthchecks.io
 - [ ] iPhone-Test AP-7 nachholen (TC-110 bis TC-117), Fehler als 1.0.x (nach Phase 4)
-- [x] Phase 4 abgeschlossen, Pläne im Repo aktualisiert (27.11.2026); die Roadmap im Claude-Projekt ist noch auf dem Stand vom 23.11.
+- [x] Phase 4 abgeschlossen, Pläne im Repo aktualisiert (27.11.2026); die Roadmap liegt jetzt im Repo unter `docs/roadmap.md` (PR #166) und ersetzt die Fassung im Claude-Projekt
 
 **Fertig, wenn:** G4 ist abgenommen (G3 entfällt, Entscheidung vom 27.11.2026). AP-7 hängt nicht daran (Entscheidung vom 25.11.2026). **Erledigt am 27.11.2026.**
 
