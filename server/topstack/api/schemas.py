@@ -268,6 +268,7 @@ class TournamentOut(BaseModel):
     next_opponent: NextOpponentOut | None = None  # nur wenn ich gerade frei bin
     finished_at: datetime | None = None  # Abschluss; Startseite zeigt das Turnier 24 h danach
     rules: TournamentRulesOut | None = None  # gültige Regeln (Phase 5, AP-3)
+    imported: bool = False  # aus den Altdaten (AP-4, ADR-0019)
 
 
 class TournamentSummary(BaseModel):
@@ -277,6 +278,7 @@ class TournamentSummary(BaseModel):
     held_on: date
     players: int
     finished_at: datetime | None = None
+    imported: bool = False  # aus den Altdaten (AP-4)
 
 
 class InviteBody(BaseModel):
@@ -539,3 +541,74 @@ class MergeOut(BaseModel):
     tournaments: int
     matches: int
     merged: bool
+
+
+# ---------------------------------------------------------------------------
+# Altdaten (Phase 5, AP-4, ADR-0019)
+# ---------------------------------------------------------------------------
+
+
+class ImportCsv(BaseModel):
+    tournaments_csv: str = Field(max_length=1_000_000)
+    matches_csv: str | None = Field(default=None, max_length=1_000_000)
+    source: str = Field(default="", max_length=200)  # z. B. Dateiname
+    apply: bool = False
+
+
+class ManualEntry(BaseModel):
+    name: DisplayName
+    place: int = Field(ge=1, le=99)
+
+
+class ManualMatch(BaseModel):
+    round: int = Field(ge=1, le=50)
+    a: DisplayName
+    b: DisplayName
+    games_a: int = Field(ge=0, le=9)
+    games_b: int = Field(ge=0, le=9)
+
+
+class ImportManual(BaseModel):
+    """Ein Turnier von Papier (UC-19); Matches optional."""
+
+    held_on: date
+    set_code: str = Field(default="", max_length=20)
+    entries: list[ManualEntry] = Field(min_length=2, max_length=40)
+    matches: list[ManualMatch] = Field(default=[], max_length=400)
+    apply: bool = False
+
+
+class ImportProblemOut(BaseModel):
+    file: str
+    line: int
+    message: str
+
+
+class ImportTournamentOut(BaseModel):
+    key: str
+    held_on: date
+    set_code: str
+    players: int
+    matches: int
+    winner: str
+    duplicate: bool
+
+
+class ImportPreviewOut(BaseModel):
+    tournaments: list[ImportTournamentOut]
+    new_players: list[str]  # werden als Ehemalige angelegt
+    known_players: list[str]
+    problems: list[ImportProblemOut]
+    warnings: list[str]
+    applied: bool
+    run_id: uuid.UUID | None = None
+
+
+class ImportRunOut(BaseModel):
+    id: uuid.UUID
+    created_at: datetime
+    created_by: str | None
+    source: str
+    tournaments: int
+    new_players: int
+    undone_at: datetime | None

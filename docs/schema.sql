@@ -140,6 +140,20 @@ CREATE TABLE invitation (
 );
 
 -- ---------------------------------------------------------------------------
+-- Altdaten als Importläufe (Phase 5, AP-4, ADR-0019)
+-- ---------------------------------------------------------------------------
+CREATE TABLE import_run (
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id         uuid NOT NULL REFERENCES play_group(id) ON DELETE CASCADE,
+    created_by       uuid REFERENCES app_user(id) ON DELETE SET NULL,
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    source           text NOT NULL DEFAULT '',          -- z. B. Dateiname oder „von Hand“
+    tournaments      int NOT NULL DEFAULT 0,
+    created_players  uuid[] NOT NULL DEFAULT '{}',     -- angelegte Ehemalige, fürs Zurücknehmen
+    undone_at        timestamptz
+);
+
+-- ---------------------------------------------------------------------------
 -- Turniere
 -- ---------------------------------------------------------------------------
 CREATE TABLE tournament (
@@ -158,6 +172,7 @@ CREATE TABLE tournament (
     finished_at   timestamptz,
     cancel_requested_by  uuid REFERENCES player(id) ON DELETE SET NULL,  -- Abbruch per Abstimmung (ADR-0013)
     cancel_requested_at  timestamptz,
+    import_run_id  uuid REFERENCES import_run(id) ON DELETE SET NULL,  -- Altdaten (ADR-0019)
     CHECK ((cancel_requested_by IS NULL) = (cancel_requested_at IS NULL))
 );
 -- nur ein offenes Turnier pro Gruppe (UC-03); abgebrochene zählen nicht

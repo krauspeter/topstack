@@ -13,6 +13,7 @@ from topstack.api import (
     auth,
     feedback,
     groups,
+    imports,
     invitations,
     leaderboard,
     live,
@@ -108,6 +109,7 @@ api.include_router(auth.router)
 api.include_router(passkeys.router)
 api.include_router(me.router)
 api.include_router(groups.router)
+api.include_router(imports.router)
 api.include_router(invitations.router)
 api.include_router(tournaments.router)
 api.include_router(push.router)

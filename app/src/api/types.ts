@@ -167,6 +167,8 @@ export interface Tournament {
   finished_at?: string | null;
   /** Gültige Regeln des Turniers (Phase 5, AP-3); `custom` nennt, was vom Gruppenstandard abweicht. */
   rules?: TournamentRules;
+  /** Aus den Altdaten (AP-4). */
+  imported?: boolean;
 }
 
 export interface TrackerPlayer {
@@ -232,6 +234,7 @@ export interface TournamentSummary {
   held_on: string;
   players: number;
   finished_at?: string | null;
+  imported?: boolean;
 }
 
 export interface GuestLink {
@@ -402,4 +405,31 @@ export interface TournamentRules {
   match_points_draw: number;
   match_points_loss: number;
   custom: string[];
+}
+
+/** Altdaten-Import (Phase 5, AP-4, ADR-0019). */
+export interface ImportProblem {
+  file: 'turniere' | 'matches' | 'formular';
+  line: number;
+  message: string;
+}
+
+export interface ImportPreview {
+  tournaments: { key: string; held_on: string; set_code: string; players: number; matches: number; winner: string; duplicate: boolean }[];
+  new_players: string[];
+  known_players: string[];
+  problems: ImportProblem[];
+  warnings: string[];
+  applied: boolean;
+  run_id: string | null;
+}
+
+export interface ImportRun {
+  id: string;
+  created_at: string;
+  created_by: string | null;
+  source: string;
+  tournaments: number;
+  new_players: number;
+  undone_at: string | null;
 }

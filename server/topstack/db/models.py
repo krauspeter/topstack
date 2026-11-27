@@ -298,6 +298,31 @@ class Invitation(Base):
 
 
 # ---------------------------------------------------------------------------
+# Altdaten (Phase 5, AP-4)
+# ---------------------------------------------------------------------------
+
+
+class ImportRun(Base):
+    """Ein Altdaten-Import; alle Turniere eines Laufs lassen sich zusammen zurücknehmen."""
+
+    __tablename__ = "import_run"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, fk("play_group.id", "CASCADE"), nullable=False
+    )
+    created_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, fk("app_user.id", "SET NULL"))
+    created_at: Mapped[datetime] = created_at()
+    source: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    tournaments: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    # Ehemalige, die dieser Lauf angelegt hat; beim Zurücknehmen fallen ungenutzte weg
+    created_players: Mapped[list[uuid.UUID]] = mapped_column(
+        ARRAY(Uuid), nullable=False, server_default=text("'{}'")
+    )
+    undone_at: Mapped[datetime | None] = mapped_column(TZ)
+
+
+# ---------------------------------------------------------------------------
 # Turniere
 # ---------------------------------------------------------------------------
 
@@ -337,6 +362,8 @@ class Tournament(Base):
     finished_at: Mapped[datetime | None] = mapped_column(TZ)
     cancel_requested_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, fk("player.id", "SET NULL"))
     cancel_requested_at: Mapped[datetime | None] = mapped_column(TZ)
+    # gesetzt = aus einem Altdaten-Import, mit dem Lauf rücknehmbar (ADR-0019)
+    import_run_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, fk("import_run.id", "SET NULL"))
 
 
 class TournamentEntry(Base):
