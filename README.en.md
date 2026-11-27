@@ -125,7 +125,7 @@ Locally, the same checks run as pre-commit hooks before every commit and push.
 
 **Known limitation:** the app has not been tested on a real iPhone yet, only in iPhone emulation. The test follows after v1.0.
 
-Guides (in German): [set up the home server](docs/phase3/heimserver.md) · [phase 4: beta and operations](docs/phase4/README.md)
+Guides (in German): [roadmap](docs/roadmap.md) · [set up the home server](docs/phase3/heimserver.md) · [phase 4: beta and operations](docs/phase4/README.md) · [working with Claude Code](CLAUDE.md)
 
 ## Roadmap
 
