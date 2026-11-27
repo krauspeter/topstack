@@ -1,6 +1,6 @@
 # TopStack – Roadmap
 
-Stand: 27.11.2026 · **v1.0.1 läuft in der Produktion, Phasen 0 bis 4 sind abgeschlossen. Als Nächstes: Phase 5 (v1.1: Gruppen & Altdaten).**
+Stand: 27.11.2026 · **v1.0.1 läuft in der Produktion, Phasen 0 bis 4 sind abgeschlossen. Phase 5 (v1.1: Gruppen & Altdaten) ist geplant und beginnt am 28.11.2026, Plan in [`docs/phase5/README.md`](phase5/README.md).**
 
 Diese Datei ist die Quelle für Plan, Anforderungen und Festlegungen. Sie ersetzt die frühere Fassung im Claude-Projekt „TopStack“ (Stand 23.11.2026). Die Pläne der einzelnen Phasen liegen unter `docs/phase<N>/README.md`, Architekturentscheidungen unter `docs/adr/`.
 
@@ -28,7 +28,7 @@ Reihenfolge der Releases (festgelegt am 22.11.2026): v1.0 → v1.1 → v1.2 → 
 | 2 · MVP Life-Tracker | v0.1 | 17. bis 18.11.2026 · **abgeschlossen** | Offline-PWA: Life-Tracker, Würfeln, Draftplätze auslosen | Peter | G2 · übersprungen (18.11.2026) |
 | 3 · Backend, Turniere & Rangliste | v0.x | 18. bis 21.11.2026 · **abgeschlossen** | Heimserver, Draft-Turniere mit Einladung, Live-Verlauf, Statistik | Peter und Testspieler | G3 · entfallen (27.11.2026) |
 | 4 · Beta & Betrieb | **v1.0** | 21. bis 27.11.2026 · **abgeschlossen** | Backups, Monitoring, automatisches Deployment, Staging, Versionen, Feedback, Rollout | die Gruppe | G4 · erreicht am 27.11.2026 (v1.0.0 und v1.0.1 am 25.11.2026) |
-| 5 · Gruppen & Altdaten | **v1.1** | geplant Jan bis Mär 2027 · 10–12 Wochen | Gruppen, Altdaten-Import, Elo, Head-to-Head, Awards, Tisch-Modus | + befreundete Gruppen per Einladung | G5 · Altdaten importiert, zweite Gruppe kann starten |
+| 5 · Gruppen & Altdaten | **v1.1** | ab 28.11.2026 · **gestartet** · ca. 11 Wochen, v1.1.0 Ende Jan, v1.1.1 Mitte Feb 2027 | Gruppen, Altdaten-Import, Elo, Head-to-Head, Awards, Tisch-Modus | + befreundete Gruppen per Einladung | G5 · Altdaten importiert, zweite Gruppe kann starten |
 | 6 · Terminumfrage & Ausgaben | **v1.2** | Apr bis Mitte Mai 2027 · 5–6 Wochen | Spieleabende planen: Abstimmung, Kalender-Export, Erinnerung; Ausgaben teilen | alle Gruppen (auf Einladung) | G6 · Spieleabend per Terminumfrage geplant |
 | 7 · Sealed | **v1.3** | Mitte Mai bis Mitte Jun 2027 · 3–4 Wochen | Sealed-Turniere: Set, Booster-Anzahl, Deckbau-Timer, keine Draftplätze | alle Gruppen | G7 · Sealed-Turnier gespielt |
 | 8 · Constructed | **v1.4** | Mitte Jun bis Jul 2027 · 6–7 Wochen | Constructed-Turniere mit Format, Schweizer System, optional Top-Cut | alle Gruppen | G8 · Constructed-Turnier mit Schweizer System gespielt |
@@ -173,7 +173,7 @@ Reihenfolge in der Turniertabelle bei Punktgleichheit: 1. Matchpunkte (3/1/0); 2
 | Version | Ziel | Inhalt |
 | --- | --- | --- |
 | v1.0 (25.11.2026) | Die Gruppe spielt Draft | Kompletter Draft-Ablauf, Life-Tracker mit 1 oder 2 Handys, Live-Ansicht, Push, Siegerehrung, Rangliste, Basis-Statistik, Turnier-Karte auf der Startseite, Feedback-Knopf; Betrieb mit Backup, Monitoring, Deployment, Staging |
-| v1.1 | Mehrere Gruppen, Geschichte | Gruppen mit Rollen und eigenen Regeln, archivieren, Zuschauer-Link, Gast in Profil umwandeln, Altdaten-Import, Elo, Head-to-Head, Awards, Teilen-Bild, Lebenspunkte-Kurve, Tisch-Modus; Google-Login und Passwort nur bei Bedarf |
+| v1.1 | Mehrere Gruppen, Geschichte | Gruppen mit Rollen und eigenen Regeln, archivieren, Zuschauer-Link, Gast in Profil umwandeln, Altdaten-Import, Elo, Head-to-Head, Awards, Teilen-Bild, Lebenspunkte-Kurve, Tisch-Modus; in zwei Releases v1.1.0 und v1.1.1 (27.11.2026) |
 | v1.2 | Spieleabende planen | Terminumfrage, Set-Abstimmung, Kalender-Export (.ics), Erinnerung, Turnier aus dem Termin, Ausgaben teilen |
 | v1.3 | Sealed | Turnierart Sealed, Deckbau-Timer, Filter nach Turnierart; Cube als Draft-Variante |
 | v1.4 | Constructed | Format, Schweizer System mit Drop, Top-Cut, mehrere Turniere gleichzeitig, Deckname und Deckliste-Link |
@@ -211,7 +211,7 @@ turnier_id,runde,spieler_a,spieler_b,spiele_a,spiele_b
 
 ## Phase 5 – Release v1.1: Gruppen & Altdaten
 
-Dauer etwa 10–12 Wochen, geplant Januar bis März 2027. v1.1 öffnet TopStack für weitere Gruppen, aber nur auf Einladung, und holt die Altdaten herein.
+Dauer etwa 11 Wochen ab 28.11.2026 (vorgezogen am 27.11.2026). v1.1 öffnet TopStack für weitere Gruppen, aber nur auf Einladung, und holt die Altdaten herein. **Plan mit Arbeitspaketen, Testfällen und den Entscheidungen vom 27.11.2026: [`docs/phase5/README.md`](phase5/README.md)**, dazu ADR-0018 und ADR-0019. Zwei Releases: v1.1.0 (bis Head-to-Head und Zuschauer-Link, Gate G5) und v1.1.1 (Awards, Teilen-Bild, Kurve, Tisch-Modus).
 
 - [ ] Mehrere Gruppen mit Rollen (Admin, Mitglied, Zuschauer) und eigenen Regeln (UC-01)
 - [ ] Auswahl der Gruppe beim Turnier-Start und Knopf „Persönlicher Link“ bei Spielern ohne Konto (aus Phase 4 zurückgestellt; der Server kann persönliche Links schon, ADR-0015)
@@ -224,8 +224,8 @@ Dauer etwa 10–12 Wochen, geplant Januar bis März 2027. v1.1 öffnet TopStack 
 - [ ] Awards, Langzeit-Erfolge, „Bester der letzten 3 Drafts“
 - [ ] Teilen-Bild nach dem Turnier, Lebenspunkte-Kurve
 - [ ] Tisch-Modus fürs Tablet
-- [ ] Google-Login sowie Benutzername und Passwort, nur wenn jemand in der Gruppe sie braucht
-- [ ] Vorab: Backlog-Skript (`scripts/backlog.tsv`) an den Versionsplan vom 22.11.2026 anpassen und ausführen (Meilensteine v1.1 bis v4.0)
+- ~~Google-Login sowie Benutzername und Passwort~~: gestrichen am 27.11.2026, niemand in der Gruppe braucht es (Issue bleibt im Backlog)
+- [x] Vorab: Backlog-Skript (`scripts/backlog.tsv`) an den Versionsplan vom 22.11.2026 angepasst (27.11.2026); GitHub-Aufräumen in AP-0
 
 **Festgelegt (Befragung vom 22.11.2026)**
 

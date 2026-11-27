@@ -2,7 +2,7 @@
 
 TopStack ist eine selbst gehostete App für eine Magic-the-Gathering-Spielgruppe: Life-Tracker im Spiel (offline-fähige PWA), Draft-Turniere mit Live-Ansicht und eine dauerhafte Rangliste. Später kommen weitere Formate, KI und ein eigenes Steuergerät (ESP32) dazu. Das Repo ist öffentlich und Teil von Peters Portfolio.
 
-Stand dieser Datei: 27.11.2026. **v1.0.1 läuft in der Produktion, Phase 4 ist abgeschlossen. Als Nächstes kommt Phase 5 (v1.1: Gruppen & Altdaten).** Plan, Anforderungen und alle Festlegungen für die kommenden Phasen stehen in [`docs/roadmap.md`](docs/roadmap.md).
+Stand dieser Datei: 27.11.2026. **v1.0.1 läuft in der Produktion, Phase 4 ist abgeschlossen. Phase 5 (v1.1: Gruppen & Altdaten) läuft ab 28.11.2026, Plan in [`docs/phase5/README.md`](docs/phase5/README.md).** Plan, Anforderungen und alle Festlegungen für die kommenden Phasen stehen in [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Mit wem du arbeitest
 
@@ -131,7 +131,7 @@ Jede Phase hatte bisher denselben Ablauf; halte ihn ein:
 
 1. Den Abschnitt der Phase in [`docs/roadmap.md`](docs/roadmap.md) lesen: Inhalt, Festlegungen aus den Befragungen, Gate.
 2. Offene Fragen mit Peter klären (kurze Multiple-Choice-Fragen), Entscheidungen mit Datum festhalten.
-3. Plan als `docs/phase<N>/README.md` anlegen, nach dem Vorbild von [`docs/phase4/README.md`](docs/phase4/README.md): Ziel und Gate, Arbeitspakete (AP-0, AP-1, …) mit Schätzung, Anforderungen und Aufgaben als Checklisten, Testfälle mit fortlaufender Nummer (Phase 4 endet bei TC-121), Entscheidungen. Architekturentscheidungen als neue ADR (nächste Nummer: 0018).
+3. Plan als `docs/phase<N>/README.md` anlegen, nach dem Vorbild von [`docs/phase4/README.md`](docs/phase4/README.md): Ziel und Gate, Arbeitspakete (AP-0, AP-1, …) mit Schätzung, Anforderungen und Aufgaben als Checklisten, Testfälle mit fortlaufender Nummer (Phase 5 endet bei TC-162), Entscheidungen. Architekturentscheidungen als neue ADR (nächste Nummer: 0020).
 4. Die Arbeitspakete einzeln umsetzen, je ein oder mehrere PRs, und nach jedem PR den Plan abhaken.
 5. Am Ende Gate abnehmen, Release machen, Roadmap und Plan auf „abgeschlossen“ setzen.
 
