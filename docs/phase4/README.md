@@ -294,7 +294,8 @@ Ursprünglich letzter Schritt vor v1.0. **Verschoben auf nach dem Release (Entsc
 
 ### Nach Phase 4 (ohne Gate)
 
-- [ ] Anleitung in die Gruppe schicken, falls noch nicht geschehen
+- [x] Anleitung in die Gruppe geschickt (27.11.2026)
+- [x] Termin für den Draftabend mit der Gruppe festgelegt: So 27.12.2026 (27.11.2026)
 - [ ] Draftabend So 27.12.2026 nach dem [Drehbuch](release-abend.md), Abschnitte 4 und 6: tagsüber Backup und `admin.sh deploy-lock on`, danach `deploy-lock off`
 - [ ] Push im echten Turnier prüfen
 - [ ] Backup vom Abend auf dem Windows-PC wiederherstellen, Rangliste stimmt überein

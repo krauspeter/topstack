@@ -20,7 +20,7 @@ Peter ist Product Owner, Entwickler und Betreiber in einer Person. Er hat einen 
 
 - **Keine Secrets** in Repo, Commits, Issues, PRs oder im Chat: `.env`-Inhalte, API-Schlüssel (Resend, VAPID, GitHub-Token), R2-Zugangsdaten, Ping-URLs von healthchecks.io, das ntfy-Topic. Peter trägt solche Werte selbst in die `.env` auf dem Heimserver ein. Bittet er dich, einen Wert zu lesen oder zu zeigen, sag, dass er ihn selbst eintragen soll.
 - **Der private `age`-Schlüssel (AGE-SECRET-KEY) kommt nie auf den Heimserver und nie in den Chat.** Er liegt nur in Peters Passwort-Manager; der Heimserver hat nur den öffentlichen Schlüssel (ADR-0016).
-- **Nicht direkt auf `main` pushen und nicht selbst mergen.** Immer Branch → Pull Request → grüne CI → Peter mergt.
+- **Nicht direkt auf `main` pushen und nie von Hand mergen** (`gh pr merge` bleibt gesperrt). Immer Branch → Pull Request → grüne CI → Merge. **Auto-Merge (Entscheidung vom 27.11.2026):** Für jeden PR schaltest du Auto-Merge über die App ein. Die Pflicht-Checks auf `main` sorgen dafür, dass GitHub erst bei grüner CI mergt. Ist ein Check rot, behebst du den Fehler.
 - **Die Produktion nicht von Hand ändern.** Sie folgt dem Kanal `latest` und bekommt nur Releases (siehe unten).
 - Keine Daten echter Mitspieler in Tests, Screenshots oder Doku; dort nur erfundene Namen (Anna, Ben, Chris, Dana, …).
 
@@ -80,7 +80,7 @@ Neue Bildschirme oder Abläufe bekommen Unit-Tests für die Logik und einen E2E-
    Co-Authored-By: Claude <noreply@anthropic.com>
    ```
 5. Push, PR mit deutscher Beschreibung: „Worum geht es“, „Änderungen“, „Tests“, „Auf Staging ansehen“ (wenn sinnvoll), „Changelog“, „Nach dem Einspielen“ mit Version und Update-Nummer.
-6. Auf die CI warten, Fehler beheben. Peter mergt.
+6. Auto-Merge einschalten. Ist die CI rot, Fehler beheben und neu pushen; ist sie grün, mergt GitHub von selbst. Danach lokal `git switch main && git pull --ff-only`.
 
 ## Umgebungen und Kanäle
 
