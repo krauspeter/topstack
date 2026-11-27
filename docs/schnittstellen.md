@@ -63,7 +63,7 @@ Turnier-Antworten enthalten `actions`: was der angemeldete Nutzer im aktuellen S
 
 | Methode | Pfad | Zweck | UC |
 | --- | --- | --- | --- |
-| POST | `/groups/{gid}/tournaments` | Turnier starten; `set_code` = Name des Drafts oder Set-Kürzel, 2 bis 20 Zeichen. Fehlt die Saison für heute, beginnt hier die nächste und übernimmt vorgemerkte Regeln (ADR-0018) | UC-03 |
+| POST | `/groups/{gid}/tournaments` | Turnier starten; `set_code` = Name des Drafts oder Set-Kürzel, 2 bis 20 Zeichen. Optional `rules` mit `games_to_win` (1–3), `starting_life`, `match_time_limit_min`, `match_points_win`/`_draw`/`_loss` für dieses Turnier; gespeichert wird nur, was von den Gruppenregeln abweicht (AP-3). Die Antwort jedes Turniers enthält `rules` mit den gültigen Werten und `custom`. Fehlt die Saison für heute, beginnt hier die nächste und übernimmt vorgemerkte Regeln (ADR-0018) | UC-03 |
 | GET | `/tournaments/{tid}` | Turnier mit Teilnehmern, Runden, Matches | – |
 | GET | `/groups/{gid}/tournaments` | Turniere der Gruppe, offenes zuerst, höchstens 20 | – |
 | POST | `/tournaments/{tid}/entries` | Mitglieder und vorgemerkte Spieler einladen (`{player_ids}`); vorgemerkte sind sofort zugesagt | UC-04 |
@@ -90,7 +90,7 @@ Turnier-Antworten enthalten `actions`: was der angemeldete Nutzer im aktuellen S
 | Methode | Pfad | Zweck | UC |
 | --- | --- | --- | --- |
 | POST | `/tournaments/{tid}/matches/{mid}/tracker` | Match mit dem Life-Tracker starten (`{mode: "shared" \| "dual"}`), idempotent; Antwort wie `GET` | UC-10 |
-| GET | `/tournaments/{tid}/matches/{mid}/tracker` | Spieler, Startleben, Zeitlimit, Stand des Matches und alle Ereignisse; zum Koppeln des zweiten Handys und zum Nachladen | UC-11 |
+| GET | `/tournaments/{tid}/matches/{mid}/tracker` | Spieler, Startleben, nötige Spielsiege (`games_to_win`, AP-3), Zeitlimit, Stand des Matches und alle Ereignisse; zum Koppeln des zweiten Handys und zum Nachladen | UC-11 |
 | PUT | `/tournaments/{tid}/matches/{mid}/tracker/seats/{pid}` | Modus `dual`: dieses Handy zählt für `pid` (`{device_id, force}`); `409`, wenn schon ein anderes Handy zählt. `GET …/tracker` zeigt `seats` und `tie` | UC-11 |
 | PUT | `/tournaments/{tid}/matches/{mid}/tracker/seats/{pid}/roll` | Modus `dual`: eigener W20 vor Spiel 1 (`{device_id, value}`), erst wenn beide da sind; Gleichstand setzt `tie` und beide würfeln neu | UC-10 |
 | POST | `/tournaments/{tid}/matches/{mid}/events` | Stapel aus der Outbox (idempotent, bis 500 Ereignisse, mehrere Spiele möglich); Spiele entstehen beim `game_start` | UC-10, UC-11 |

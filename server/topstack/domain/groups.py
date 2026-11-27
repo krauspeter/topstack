@@ -180,3 +180,39 @@ def next_season(mode: str, months: int | None, last_end: date | None, day: date)
     if after_last is not None and after_last > start:
         start = after_last
     return SeasonSpan(f"Saison {day.year}", start, date(day.year, 12, 31))
+
+
+# ---------------------------------------------------------------------------
+# Abweichende Regeln für ein Turnier (Phase 5, AP-3)
+# ---------------------------------------------------------------------------
+
+TOURNAMENT_RULES = (
+    "games_to_win",
+    "starting_life",
+    "match_time_limit_min",
+    "match_points_win",
+    "match_points_draw",
+    "match_points_loss",
+)
+"""Was der Turnierstarter für ein Turnier anders einstellen darf (Festlegung vom 22.11.2026)."""
+
+
+def validate_tournament_rules(changes: dict[str, Any]) -> dict[str, Any]:
+    unknown = sorted(set(changes) - set(TOURNAMENT_RULES))
+    if unknown:
+        raise InvalidRules(f"Für ein Turnier nicht einstellbar: {', '.join(unknown)}")
+    return validate_rules(changes)
+
+
+def tournament_overrides(group_rules: dict[str, Any], wanted: dict[str, Any]) -> dict[str, Any]:
+    """Nur was wirklich von den Gruppenregeln abweicht, kommt ins Turnier."""
+    clean = validate_tournament_rules(wanted)
+    return {k: v for k, v in clean.items() if group_rules.get(k) != v}
+
+
+def effective_rules(
+    group_rules: dict[str, Any], overrides: dict[str, Any] | None
+) -> dict[str, Any]:
+    """Gruppenregeln mit den Abweichungen des Turniers; unbekannte Schlüssel fallen weg."""
+    allowed = {k: v for k, v in (overrides or {}).items() if k in TOURNAMENT_RULES}
+    return {**group_rules, **allowed}

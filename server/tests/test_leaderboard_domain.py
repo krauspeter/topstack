@@ -137,3 +137,15 @@ def test_guest_colors_count_for_opponents():
     s = player_stats([t], "A")
     assert {k: rec(r) for k, r in s.with_combo.items()} == {"R": (0, 0, 1)}
     assert {k: rec(r) for k, r in s.vs_color.items()} == {"U": (0, 0, 1), "B": (0, 0, 1)}
+
+
+def test_tournament_with_own_match_points():
+    """Phase 5, AP-3: Ein Turnier mit eigenen Matchpunkten zählt in der Rangliste mit diesen."""
+    own = TournamentResult(
+        date(2027, 1, 10),
+        [EntryResult("a", 1, 4), EntryResult("b", 2, 1)],
+        [MatchRecord("a", "b", 1, 0)],
+        points=MatchPointRules(2, 1, 0),
+    )
+    rows = {r.player: r for r in leaderboard([own])}
+    assert (rows["a"].match_points, rows["b"].match_points) == (2, 0)

@@ -133,10 +133,11 @@ AP-1 kommt zuerst, weil fast alles danach die aktive Gruppe und die Rechteprüfu
 
 ### AP-3 · Regeln pro Turnier (ca. 3 h) · Branch `feat/p5-tournament-rules`
 
-- [ ] Beim Turnier-Start: Matchformat (Best-of-1/3/5), Zeitlimit, Startleben und Punkte aus den Gruppenregeln vorbelegt, für dieses Turnier änderbar (`tournament.settings`)
-- [ ] Abweichungen in der Live-Ansicht sichtbar („Best-of-1 · 30 Leben“)
-- [ ] Tabelle, Life-Tracker und Ranglistenpunkte nutzen die Werte des Turniers
-- [ ] Tests: abweichendes Startleben im Tracker, abweichende Matchpunkte in der Tabelle
+- [x] Beim Turnier-Start: Matchformat (Best-of-1/3/5), Zeitlimit, Startleben und Matchpunkte aus den Gruppenregeln vorbelegt, für dieses Turnier änderbar (`tournament.settings["rules"]`, nur Abweichungen)
+- [x] Abweichungen in der Turnier-Ansicht sichtbar („Eigene Regeln: Best-of-1 · 30 Leben“)
+- [x] Spielplan (Zeitlimit), Tabelle (Matchpunkte), Life-Tracker (Startleben, Matchende), Ergebnisprüfung, Ranglistenpunkte und die Matchpunkte der Rangliste nutzen die Regeln des Turniers (`services/tournaments.rules_for`)
+- [x] Tests: `tests/api/test_tournament_rules.py` (TC-145), Rangliste mit eigenen Matchpunkten, Unit-Tests für Ergebnis-Auswahl und Abweichungen, E2E „Turnier mit eigenen Regeln starten“
+- [ ] Auf Beta ausprobiert (nach dem Merge)
 
 **Fertig, wenn:** Ein Turnier mit Best-of-1 und 30 Leben läuft durch und zählt richtig.
 

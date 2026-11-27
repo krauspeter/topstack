@@ -9,6 +9,7 @@ import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -26,7 +27,13 @@ from topstack.db.models import (
     Tournament,
     TournamentEntry,
 )
-from topstack.domain.groups import Permission
+from topstack.db.repo import groups as group_repo
+from topstack.domain.groups import (
+    TOURNAMENT_RULES,
+    Permission,
+    effective_rules,
+    tournament_overrides,
+)
 from topstack.domain.seating import draw_seats
 from topstack.domain.tournament import Action, Actor, Forbidden, Status, WrongStatus, check
 from topstack.services import groups as group_svc
@@ -50,6 +57,38 @@ __all__ = ["Conflict", "Forbidden", "NotFound", "WrongStatus"]
 
 def now() -> datetime:
     return datetime.now(UTC)
+
+
+@dataclass(frozen=True)
+class TournamentRules:
+    """Regeln, die in einem Turnier gelten: Gruppenregeln plus Abweichungen (Phase 5, AP-3)."""
+
+    games_to_win: int
+    starting_life: int
+    match_time_limit_min: int | None
+    match_points_win: int
+    match_points_draw: int
+    match_points_loss: int
+    placement_bonus: list[int]
+    extra_turns: int
+    custom: tuple[str, ...] = ()  # was vom Gruppenstandard abweicht
+
+
+async def rules_for(db: AsyncSession, t: Tournament) -> TournamentRules:
+    group = group_svc.rules_dict(await group_repo.get_rules(db, t.group_id))
+    overrides = (t.settings or {}).get("rules") or {}
+    eff = effective_rules(group, overrides)
+    return TournamentRules(
+        games_to_win=eff["games_to_win"],
+        starting_life=eff["starting_life"],
+        match_time_limit_min=eff["match_time_limit_min"],
+        match_points_win=eff["match_points_win"],
+        match_points_draw=eff["match_points_draw"],
+        match_points_loss=eff["match_points_loss"],
+        placement_bonus=list(eff["placement_bonus"]),
+        extra_turns=eff["extra_turns"],
+        custom=tuple(k for k in TOURNAMENT_RULES if k in overrides),
+    )
 
 
 @dataclass
@@ -207,10 +246,13 @@ async def start(
     *,
     set_code: str,
     location: str | None,
+    rules: dict[str, Any] | None = None,
 ) -> Tournament:
     """UC-03: jedes Mitglied darf starten; nur ein offenes Turnier pro Gruppe.
 
-    Fehlt die Saison für heute, beginnt hier die nächste (ADR-0018).
+    Fehlt die Saison für heute, beginnt hier die nächste (ADR-0018). ``rules``: Matchformat,
+    Zeitlimit, Startleben und Punkte für dieses Turnier (AP-3); gespeichert wird nur, was von
+    den Gruppenregeln abweicht.
     """
     a = await group_access(db, group_id, user, Permission.PLAY, write=True)
     player = a.player
@@ -220,7 +262,12 @@ async def start(
         raise Conflict("In der Gruppe läuft schon ein Turnier.")
     today = date.today()
     season = await group_svc.ensure_season(db, a.group, today)
+    overrides = {}
+    if rules:
+        group_rules = group_svc.rules_dict(await group_repo.get_rules(db, group_id))
+        overrides = tournament_overrides(group_rules, rules)
     tournament = Tournament(
+        settings={"rules": overrides} if overrides else {},
         group_id=group_id,
         season_id=season.id if season else None,
         set_code=set_code,

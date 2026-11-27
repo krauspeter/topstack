@@ -10,6 +10,7 @@ import { buzz } from '../../hooks';
 import { choiceSurface } from '../../theme';
 import { DraftTable } from '../DraftTable';
 import { ManaPips } from '../ManaPips';
+import { customRulesText } from './TournamentRulesForm';
 import { QrCode } from '../QrCode';
 import { TournamentPlay } from './TournamentPlay';
 
@@ -168,6 +169,12 @@ export function TournamentView({ id, me, onBack, onDeleted, onPlay }: Props) {
           <span className="badge">{STATUS_TEXT[t.status]}</span>
         </div>
       </header>
+
+      {t.rules && t.rules.custom.length > 0 && (
+        <p className="small" aria-label="Regeln dieses Turniers">
+          Eigene Regeln: {customRulesText(t.rules)}
+        </p>
+      )}
 
       {t.status === 'cancelled' && <p className="muted">Dieses Turnier wurde abgebrochen und zählt nicht.</p>}
 

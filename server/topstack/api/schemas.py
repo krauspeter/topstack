@@ -140,6 +140,9 @@ class TournamentCreate(BaseModel):
     # Name des Drafts oder Set-Kürzel, 2 bis 20 Zeichen (geändert am 20.11.2026)
     set_code: str = Field(max_length=40)
     location: str | None = Field(default=None, max_length=80)
+    # Abweichende Regeln für dieses Turnier (Phase 5, AP-3): games_to_win, starting_life,
+    # match_time_limit_min, match_points_win/draw/loss
+    rules: dict[str, int | None] | None = None
 
     @field_validator("set_code")
     @classmethod
@@ -232,6 +235,16 @@ class NextOpponentOut(BaseModel):
     losses: int
 
 
+class TournamentRulesOut(BaseModel):
+    games_to_win: int
+    starting_life: int
+    match_time_limit_min: int | None
+    match_points_win: int
+    match_points_draw: int
+    match_points_loss: int
+    custom: list[str]  # Schlüssel, die vom Gruppenstandard abweichen
+
+
 class TournamentOut(BaseModel):
     id: uuid.UUID
     group_id: uuid.UUID
@@ -254,6 +267,7 @@ class TournamentOut(BaseModel):
     cancel_vote: CancelVoteOut | None = None
     next_opponent: NextOpponentOut | None = None  # nur wenn ich gerade frei bin
     finished_at: datetime | None = None  # Abschluss; Startseite zeigt das Turnier 24 h danach
+    rules: TournamentRulesOut | None = None  # gültige Regeln (Phase 5, AP-3)
 
 
 class TournamentSummary(BaseModel):
@@ -409,6 +423,7 @@ class TrackerOut(BaseModel):
     player_b: TrackerPlayer
     my_player_id: uuid.UUID | None
     starting_life: int
+    games_to_win: int = 2  # Best-of-3, im Turnier abweichend einstellbar (AP-3)
     time_limit_min: int | None
     events: list[EventBody]
     # Warteraum im Modus „dual“ bis Spiel 1 beginnt

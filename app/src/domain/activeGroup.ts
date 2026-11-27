@@ -35,3 +35,18 @@ export const SEASON_LABEL = {
 export function bestOf(gamesToWin: number): string {
   return `Best-of-${gamesToWin * 2 - 1}`;
 }
+
+/**
+ * Mögliche Ergebnisse eines Matches mit `gamesToWin` nötigen Siegen, aus Sicht von Spieler A
+ * (Phase 5, AP-3). Erst die Siege von A, dann Stände nach Zeitablauf, dann die Siege von B.
+ * Best-of-3: 2:0, 2:1, 1:0, 1:1, 0:1, 1:2, 0:2.
+ */
+export function matchResults(gamesToWin: number): [number, number][] {
+  const n = Math.max(1, gamesToWin);
+  const wins: [number, number][] = [];
+  for (let b = 0; b < n; b++) wins.push([n, b]);
+  const open: [number, number][] = [];
+  for (let a = n - 1; a >= 0; a--) for (let b = 0; b < n; b++) if (a + b > 0) open.push([a, b]);
+  const lost = wins.map(([a, b]) => [b, a] as [number, number]).reverse();
+  return [...wins, ...open.filter(([a, b]) => a + b <= 2 * n - 1), ...lost];
+}

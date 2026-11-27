@@ -8,17 +8,8 @@ import { type ColorChoice, normalizeColors } from '../../domain/colors';
 import { choiceSurface } from '../../theme';
 import { ManaPips } from '../ManaPips';
 import { configFromTracker, defaultSide, fromApi } from '../../domain/remote';
+import { bestOf, matchResults } from '../../domain/activeGroup';
 
-/** Ergebnisse eines Best-of-3, auch nach Zeitablauf; aus Sicht von Spieler A. */
-const RESULTS: readonly [number, number][] = [
-  [2, 0],
-  [2, 1],
-  [1, 0],
-  [1, 1],
-  [0, 1],
-  [1, 2],
-  [0, 2],
-];
 
 interface Props {
   t: Tournament;
@@ -198,6 +189,7 @@ export function TournamentPlay({ t, busy, helper, can, onNextRound, onAct, onPla
 
       {editing && (
         <ResultSheet
+          gamesToWin={t.rules?.games_to_win ?? 2}
           match={editing}
           busy={busy}
           onClose={() => setEditing(null)}
@@ -424,11 +416,14 @@ function PlaySheet({
 /** Ergebnis wählen und bestätigen (UC-12); Korrektur bis Turnierende (UC-14). */
 function ResultSheet({
   match,
+  gamesToWin,
   busy,
   onClose,
   onSave,
 }: {
   match: MatchInfo;
+  /** Nötige Spielsiege des Turniers (AP-3), 2 = Best-of-3. */
+  gamesToWin: number;
   busy: boolean;
   onClose(): void;
   onSave(a: number, b: number): Promise<void>;
@@ -444,9 +439,11 @@ function ResultSheet({
         <h2>
           {match.player_a} <span className="muted">gegen</span> {match.player_b}
         </h2>
-        <p className="muted small">Gewonnene Spiele (Best-of-3). Nach Zeitablauf geht auch 1:0 oder 1:1.</p>
+        <p className="muted small">
+          Gewonnene Spiele ({bestOf(gamesToWin)}).{gamesToWin > 1 && ' Nach Zeitablauf geht auch ein offener Stand wie 1:0.'}
+        </p>
         <div className="result-grid" role="group" aria-label="Ergebnis">
-          {RESULTS.map(([a, b]) => {
+          {matchResults(gamesToWin).map(([a, b]) => {
             const key = `${a}:${b}`;
             return (
               <button

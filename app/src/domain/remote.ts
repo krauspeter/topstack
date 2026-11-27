@@ -65,7 +65,7 @@ export function configFromTracker(info: TrackerInfo, myPlayer: string | null, no
       { id: info.player_b.id, name: info.player_b.display_name, colors: info.player_b.colors ?? undefined },
     ],
     startingLife: info.starting_life,
-    bestOf: 3,
+    bestOf: (info.games_to_win ?? 2) * 2 - 1,
     timeLimitMin: info.time_limit_min,
     createdAt: now.toISOString(),
     remote: {

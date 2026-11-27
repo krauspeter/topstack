@@ -13,11 +13,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from topstack.db.models import Game, GameEvent, Match, Player, Round, TournamentEntry
-from topstack.db.repo import groups
 from topstack.domain import life
-from topstack.domain.tournament import GAMES_TO_WIN, Action, check
+from topstack.domain.tournament import Action, check
 from topstack.services.rounds import _match, _may_report
-from topstack.services.tournaments import Conflict, Context, Forbidden
+from topstack.services.tournaments import Conflict, Context, Forbidden, rules_for
 
 MODES = ("shared", "dual")
 END_REASONS = ("life_zero", "concede", "time", "manual")
@@ -53,6 +52,7 @@ class TrackerState:
     starting_life: int
     games: list[Game]
     events: list[GameEvent]
+    games_to_win: int = 2  # Best-of-3, im Turnier abweichend einstellbar (AP-3)
 
 
 class Rejected(Exception):
@@ -102,7 +102,7 @@ async def state(db: AsyncSession, ctx: Context, match_id: uuid.UUID) -> TrackerS
         player = await db.get(Player, pid)
         assert player is not None
         players.append((player, await db.get(TournamentEntry, (ctx.tournament.id, pid))))
-    rules = await groups.get_rules(db, ctx.tournament.group_id)
+    rules = await rules_for(db, ctx.tournament)
     games = list(
         await db.scalars(select(Game).where(Game.match_id == match.id).order_by(Game.number))
     )
@@ -114,7 +114,7 @@ async def state(db: AsyncSession, ctx: Context, match_id: uuid.UUID) -> TrackerS
             .order_by(GameEvent.client_ts, GameEvent.device_id, GameEvent.seq)
         )
     )
-    return TrackerState(match, players, rules.starting_life, games, events)
+    return TrackerState(match, players, rules.starting_life, games, events, rules.games_to_win)
 
 
 async def push(
@@ -128,7 +128,7 @@ async def push(
     match, _ = await _playable(db, ctx, match_id)
     if match.status == "scheduled" or match.started_at is None:
         raise Conflict("Das Match wurde noch nicht mit dem Tracker gestartet.")
-    rules = await groups.get_rules(db, ctx.tournament.group_id)
+    rules = await rules_for(db, ctx.tournament)
     result = PushResult()
     # In zeitlicher Reihenfolge; was auf sein Spiel wartet, kommt nach jedem neuen Spiel dran
     waiting: list[EventIn] = []
@@ -276,7 +276,7 @@ async def _check_binding(db: AsyncSession, match: Match, ev: EventIn) -> None:
 
 
 async def _update_result(db: AsyncSession, ctx: Context, match: Match) -> None:
-    """Spielsiege ins Match übernehmen (F-11); bei 2 Siegen oder einem Unentschieden ist es aus."""
+    """Spielsiege ins Match übernehmen (F-11); bei genug Siegen oder Unentschieden ist es aus."""
     if match.status != "running":
         return
     games = list(await db.scalars(select(Game).where(Game.match_id == match.id)))
@@ -284,7 +284,8 @@ async def _update_result(db: AsyncSession, ctx: Context, match: Match) -> None:
     match.games_a = sum(1 for g in ended if g.winner_player_id == match.player_a_id)
     match.games_b = sum(1 for g in ended if g.winner_player_id == match.player_b_id)
     match.games_drawn = sum(1 for g in ended if g.winner_player_id is None)
-    decided = max(match.games_a, match.games_b) >= GAMES_TO_WIN or match.games_drawn > 0
+    games_to_win = (await rules_for(db, ctx.tournament)).games_to_win
+    decided = max(match.games_a, match.games_b) >= games_to_win or match.games_drawn > 0
     if decided and all(g.ended_at is not None for g in games):
         match.status = "finished"
         match.finished_at = max(g.ended_at for g in ended if g.ended_at)

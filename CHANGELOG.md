@@ -30,6 +30,10 @@ section into a release; a short German "Was ist neu" for the app lives in
   profile and keep their results (UC-05, UC-18) (#190)
 - Admins merge duplicate players in the app (preview first) or with
   `admin.sh merge-player`; all results move to the remaining player (#190)
+- Tournament starters can set match format (best-of-1, -3 or -5), starting life,
+  time limit and match points for one tournament; the tournament screen shows
+  what differs from the group, and the tracker, results, table and
+  leaderboard use these rules (#191)
 
 ### Changed
 

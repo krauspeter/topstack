@@ -38,6 +38,7 @@ from topstack.api.schemas import (
     StandingOut,
     TournamentCreate,
     TournamentOut,
+    TournamentRulesOut,
     TournamentSummary,
     TrackerMatch,
     TrackerOut,
@@ -46,6 +47,7 @@ from topstack.api.schemas import (
 )
 from topstack.config import settings
 from topstack.db.models import AppUser, Match, Tournament, TournamentEntry
+from topstack.domain.groups import InvalidRules
 from topstack.domain.tournament import Status, allowed_actions
 from topstack.services import invitations, notify, rounds, tracker
 from topstack.services import tournaments as svc
@@ -88,7 +90,9 @@ async def errors() -> AsyncIterator[None]:
             names=exc.names,
         ) from None
     except rounds.InvalidResult:
-        raise problem(422, "Ungültiges Ergebnis für ein Best-of-3.") from None
+        raise problem(422, "Ungültiges Ergebnis für das Matchformat dieses Turniers.") from None
+    except InvalidRules as exc:
+        raise problem(422, str(exc)) from None
 
 
 async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
@@ -97,6 +101,7 @@ async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
     seating = (t.settings or {}).get("seating")
     entries = await svc.entries_with_players(db, t.id)
     ov = await rounds.overview(db, ctx)
+    r = await svc.rules_for(db, ctx.tournament)
     final = {e.player_id: e for e, _ in entries}
     may_report_all = ctx.actor.is_starter or ctx.actor.is_admin
     playing = ctx.status in (Status.RUNNING, Status.PAUSED)
@@ -187,6 +192,15 @@ async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
         cancel_vote=CancelVoteOut(**vars(vote)) if vote else None,
         next_opponent=NextOpponentOut(**vars(nxt)) if nxt else None,
         finished_at=t.finished_at,
+        rules=TournamentRulesOut(
+            games_to_win=r.games_to_win,
+            starting_life=r.starting_life,
+            match_time_limit_min=r.match_time_limit_min,
+            match_points_win=r.match_points_win,
+            match_points_draw=r.match_points_draw,
+            match_points_loss=r.match_points_loss,
+            custom=list(r.custom),
+        ),
     )
 
 
@@ -240,7 +254,9 @@ async def start_tournament(
     gid: uuid.UUID, body: TournamentCreate, user: CurrentUser, db: Db
 ) -> TournamentOut:
     async with errors():
-        t = await svc.start(db, gid, user, set_code=body.set_code, location=body.location)
+        t = await svc.start(
+            db, gid, user, set_code=body.set_code, location=body.location, rules=body.rules
+        )
         return await reload(db, t.id, user)
 
 
@@ -588,6 +604,7 @@ async def tracker_out(db: Db, ctx: svc.Context, mid: uuid.UUID) -> TrackerOut:
         ),
         my_player_id=ctx.my_player.id if ctx.my_player else None,
         starting_life=st.starting_life,
+        games_to_win=st.games_to_win,
         time_limit_min=st.match.time_limit_min,
         events=[
             EventBody(

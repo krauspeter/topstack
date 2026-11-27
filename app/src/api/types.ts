@@ -165,6 +165,8 @@ export interface Tournament {
   next_opponent: NextOpponent | null;
   /** Abschlusszeit (ISO); die Startseite zeigt das Turnier 24 h danach noch. */
   finished_at?: string | null;
+  /** Gültige Regeln des Turniers (Phase 5, AP-3); `custom` nennt, was vom Gruppenstandard abweicht. */
+  rules?: TournamentRules;
 }
 
 export interface TrackerPlayer {
@@ -207,6 +209,8 @@ export interface TrackerInfo {
   player_b: TrackerPlayer;
   my_player_id: string | null;
   starting_life: number;
+  /** Nötige Spielsiege: 2 = Best-of-3 (Phase 5, AP-3); fehlt bei älteren Servern. */
+  games_to_win?: number;
   time_limit_min: number | null;
   events: ApiEvent[];
   /** Modus `dual`: Warteraum bis Spiel 1. */
@@ -388,4 +392,14 @@ export interface MergeResult {
   tournaments: number;
   matches: number;
   merged: boolean;
+}
+
+export interface TournamentRules {
+  games_to_win: number;
+  starting_life: number;
+  match_time_limit_min: number | null;
+  match_points_win: number;
+  match_points_draw: number;
+  match_points_loss: number;
+  custom: string[];
 }
