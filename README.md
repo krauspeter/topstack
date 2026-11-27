@@ -125,7 +125,7 @@ Lokal laufen dieselben Prüfungen über pre-commit-Hooks vor jedem Commit und Pu
 
 **Bekannte Einschränkung:** Auf echten iPhones ist die App noch nicht getestet, nur in der iPhone-Emulation. Der Test folgt nach v1.0.
 
-Anleitungen: [Heimserver einrichten](docs/phase3/heimserver.md) · [Phase 4: Beta und Betrieb](docs/phase4/README.md)
+Anleitungen: [Roadmap](docs/roadmap.md) · [Heimserver einrichten](docs/phase3/heimserver.md) · [Phase 4: Beta und Betrieb](docs/phase4/README.md) · [Arbeiten mit Claude Code](CLAUDE.md)
 
 ## Roadmap
 

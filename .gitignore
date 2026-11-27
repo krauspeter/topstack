@@ -7,3 +7,6 @@ __pycache__/
 .ruff_cache/
 .venv/
 .coverage
+
+# Claude Code: persönliche Einstellungen bleiben lokal
+.claude/settings.local.json
