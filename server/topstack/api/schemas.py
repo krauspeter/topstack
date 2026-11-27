@@ -77,7 +77,7 @@ class MePatch(BaseModel):
 class InvitationCreate(BaseModel):
     days: int = Field(default=7, ge=1, le=90)
     max_uses: int | None = Field(default=None, ge=1, le=100)
-    # gesetzt = persönlicher Link, der diesen vorgemerkten Spieler übernimmt (ADR-0015)
+    # gesetzt = persönlicher Link, der diesen vorgemerkten Spieler übernimmt (ADR-0015); nur Admins
     player_id: uuid.UUID | None = None
 
 
@@ -92,6 +92,18 @@ class InvitationInfo(BaseModel):
     group_name: str
     expires_at: datetime
     player_name: str | None = None  # bei persönlichem Link: der vorgemerkte Spieler
+
+
+class InvitationOut(BaseModel):
+    """Offener Link einer Gruppe; das Token selbst kennt nur, wer ihn erzeugt hat."""
+
+    id: str
+    created_by: str | None
+    mine: bool
+    expires_at: datetime
+    uses: int
+    max_uses: int | None
+    player_name: str | None
 
 
 class InvitationAccepted(BaseModel):
@@ -298,6 +310,8 @@ class GuestJoined(BaseModel):
     tournament_id: uuid.UUID
     player_id: uuid.UUID
     display_name: str
+    # Persönlicher Link, mit dem der Gast sich ein Profil anlegt und seine Ergebnisse behält
+    claim_url: str | None = None
 
 
 class ConfirmBody(BaseModel):
@@ -494,3 +508,19 @@ class DeletedGroupOut(BaseModel):
     name: str
     deleted_at: datetime
     purge_on: date
+
+
+class MergeRequest(BaseModel):
+    """Spieler ``source`` geht in ``target`` auf; ohne ``apply`` nur Vorschau (Phase 5, AP-2)."""
+
+    source_id: uuid.UUID
+    target_id: uuid.UUID
+    apply: bool = False
+
+
+class MergeOut(BaseModel):
+    source: str
+    target: str
+    tournaments: int
+    matches: int
+    merged: bool

@@ -11,6 +11,7 @@
 #   infra/ops/admin.sh seasons                       Saisons mit Zeitraum und Turnieren
 #   infra/ops/admin.sh season-start "Saison 2027" 2026-12-01 --apply
 #   infra/ops/admin.sh finish-tournament 3f2a1b7c --apply   hängendes Turnier abschließen
+#   infra/ops/admin.sh merge-player Gina Ben --apply  Gast Gina geht in Ben auf (Ergebnisse wandern mit)
 #   infra/ops/admin.sh deploy-lock on|off|status     Deploy-Sperre für den Spieleabend
 # Vor jedem --apply legt das Skript in der Produktion ein Backup an (Name …-pre-admin.dump) und
 # bricht ab, wenn das nicht klappt. Auf Staging (TOPSTACK_STACK=staging) gibt es kein Backup.

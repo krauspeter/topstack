@@ -150,3 +150,77 @@ test('Mitglied sieht Rollen, aber keine Verwaltung', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Regeln speichern' })).toHaveCount(0);
   await expect(page.getByLabel('Rolle von Anna')).toHaveCount(0);
 });
+
+test('Einladungslinks: erzeugen, offene ansehen, zurückziehen (AP-2)', async ({ page }) => {
+  await mockMe(page, [B]);
+  let links = [] as unknown[];
+  let revoked = '';
+  await page.route('**/api/v1/groups/*/players', (route) => json(route, []));
+  await page.route(`**/api/v1/groups/${B.id}`, (route) => json(route, detail(B, { can_invite: true })));
+  await page.route(`**/api/v1/groups/${B.id}/members`, (route) => json(route, []));
+  await page.route(`**/api/v1/groups/${B.id}/invitations`, (route) => {
+    if (route.request().method() === 'POST') {
+      links = [{ id: 'abc', created_by: 'Anna', mine: true, expires_at: '2026-12-05T10:00:00Z', uses: 0, max_uses: null, player_name: null }];
+      return json(route, { token: 'tok', url: 'https://topstack.win/einladung/tok', expires_at: '2026-12-05T10:00:00Z', max_uses: null }, 201);
+    }
+    return json(route, links);
+  });
+  await page.route(`**/api/v1/groups/${B.id}/invitations/abc`, (route) => {
+    revoked = 'abc';
+    links = [];
+    return route.fulfill({ status: 204 });
+  });
+
+  await page.goto(`/gruppe/${B.id}`);
+  await page.getByRole('button', { name: 'Einladungslink erstellen' }).click();
+  await expect(page.getByLabel(`Neuer Einladungslink für ${B.name}`)).toHaveValue('https://topstack.win/einladung/tok');
+  const open = page.getByRole('list', { name: 'Offene Einladungslinks' });
+  await expect(open.getByRole('listitem')).toHaveCount(1);
+  await expect(open).toContainText('Von dir');
+  await open.getByRole('button', { name: 'Link zurückziehen' }).click();
+  await expect(open).toHaveCount(0);
+  expect(revoked).toBe('abc');
+});
+
+test('Spieler zusammenführen: Vorschau, dann übernehmen (AP-2)', async ({ page }) => {
+  await mockMe(page, [A]);
+  let applied: unknown = null;
+  const everyone = [
+    { id: 'p-ben', display_name: 'Ben', kind: 'member', is_me: false },
+    { id: 'p-gast', display_name: 'Ben B.', kind: 'guest', is_me: false },
+  ];
+  await page.route('**/api/v1/groups/*/players', (route) => json(route, []));
+  await page.route('**/api/v1/groups/*/players?all=true', (route) => json(route, applied ? everyone.slice(0, 1) : everyone));
+  await page.route(`**/api/v1/groups/${A.id}`, (route) => json(route, detail(A)));
+  await page.route(`**/api/v1/groups/${A.id}/members`, (route) => json(route, []));
+  await page.route(`**/api/v1/groups/${A.id}/invitations`, (route) => json(route, []));
+  await page.route(`**/api/v1/groups/${A.id}/players/merge`, (route) => {
+    const body = route.request().postDataJSON() as { apply: boolean };
+    if (body.apply) applied = body;
+    return json(route, { source: 'Ben B.', target: 'Ben', tournaments: 2, matches: 5, merged: body.apply });
+  });
+
+  await page.goto(`/gruppe/${A.id}`);
+  const merge = page.getByRole('region', { name: 'Spieler zusammenführen' });
+  await merge.getByLabel('Dieser Spieler …').selectOption('p-gast');
+  await merge.getByLabel('… geht auf in').selectOption('p-ben');
+  await merge.getByRole('button', { name: 'Vorschau' }).click();
+  await expect(merge).toContainText('2 Turnier(e), 5 Match(es)');
+  await merge.getByRole('button', { name: 'Jetzt zusammenführen' }).click();
+  await expect(page.getByRole('status')).toHaveText('Ben B. ist jetzt Ben.');
+  expect(applied).toEqual({ source_id: 'p-gast', target_id: 'p-ben', apply: true });
+});
+
+test('Gast bekommt nach dem Beitritt das Angebot „Profil anlegen“ (UC-05)', async ({ page }) => {
+  await page.route('**/api/v1/me', (route) => route.fulfill({ status: 401, contentType: 'application/problem+json', body: '{"status":401}' }));
+  await page.route('**/api/v1/guest/tok', (route) =>
+    route.request().method() === 'POST'
+      ? json(route, { tournament_id: 't-1', player_id: 'p-g', display_name: 'Gina', claim_url: 'https://topstack.win/einladung/claim1' }, 201)
+      : json(route, { group_name: 'Draft-Runde', set_code: 'DSK', open: true }),
+  );
+  await page.goto('/gast/tok');
+  await page.getByLabel('Dein Name').fill('Gina');
+  await page.getByRole('button', { name: 'Als Gast mitspielen' }).click();
+  await expect(page.getByRole('heading', { name: 'Du bist dabei, Gina!' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Profil anlegen' })).toHaveAttribute('href', '/einladung/claim1');
+});

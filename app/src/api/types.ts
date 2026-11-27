@@ -246,6 +246,8 @@ export interface GuestJoined {
   tournament_id: string;
   player_id: string;
   display_name: string;
+  /** Persönlicher Link zum Profil: Ergebnisse bleiben erhalten (UC-05, UC-18). */
+  claim_url?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -367,4 +369,23 @@ export interface DeletedGroup {
   name: string;
   deleted_at: string;
   purge_on: string;
+}
+
+/** Offener Einladungslink einer Gruppe (Phase 5, AP-2). */
+export interface InvitationOut {
+  id: string;
+  created_by: string | null;
+  mine: boolean;
+  expires_at: string;
+  uses: number;
+  max_uses: number | null;
+  player_name: string | null;
+}
+
+export interface MergeResult {
+  source: string;
+  target: string;
+  tournaments: number;
+  matches: number;
+  merged: boolean;
 }

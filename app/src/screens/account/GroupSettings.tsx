@@ -2,6 +2,7 @@ import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { api, errorText } from '../../api/client';
 import type { GroupDetail, GroupMember, GroupRole, GroupRules, GroupRulesChanged, LeftGroup } from '../../api/types';
 import { ROLE_LABEL, SEASON_LABEL, bestOf, fitInto } from '../../domain/activeGroup';
+import { InviteLinks, MergePlayers } from './GroupLinks';
 import { GroupMembers } from './GroupMembers';
 
 interface Props {
@@ -49,6 +50,7 @@ export function GroupSettings({ id, onChanged, onGone, onBack }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<'leave' | 'delete' | null>(null);
   const [imageVersion, setImageVersion] = useState(0);
+  const [playersVersion, setPlayersVersion] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -228,8 +230,20 @@ export function GroupSettings({ id, onChanged, onGone, onBack }: Props) {
           </ul>
           <p className="muted small">Zuschauer sehen Live-Ansicht, Rangliste und Statistik, aber keine Profile und spielen nicht mit.</p>
           <h3>Alle Spieler</h3>
-          <GroupMembers groupId={id} groupName={group.name} />
+          <GroupMembers key={playersVersion} groupId={id} groupName={group.name} canManage={editable} />
         </section>
+      )}
+
+      {group.can_invite && !group.archived && <InviteLinks groupId={id} groupName={group.name} />}
+
+      {editable && (
+        <MergePlayers
+          groupId={id}
+          onMerged={(text) => {
+            setMessage(text);
+            setPlayersVersion((v) => v + 1);
+          }}
+        />
       )}
 
       <RulesSection group={group} editable={editable} busy={busy} run={run} onSaved={setGroup} />

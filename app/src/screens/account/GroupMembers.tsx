@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { api, errorText } from '../../api/client';
 import type { GroupPlayer } from '../../api/types';
+import { PersonalLink } from './GroupLinks';
 
 /**
  * Wer gehört zur Gruppe? Mitglieder mit Konto und vorgemerkte Spieler ohne Konto (ADR-0015),
  * dieselbe Liste wie beim Einladen zum Turnier. Gäste zählen nur im Turnier und fehlen hier.
  */
-export function GroupMembers({ groupId, groupName }: { groupId: string; groupName: string }) {
+export function GroupMembers({ groupId, groupName, canManage = false }: { groupId: string; groupName: string; canManage?: boolean }) {
   const [players, setPlayers] = useState<GroupPlayer[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +37,7 @@ export function GroupMembers({ groupId, groupName }: { groupId: string; groupNam
             <span>{p.display_name}</span>
             {p.is_me && <span className="muted small">du</span>}
             {p.kind === 'reserved' && <span className="muted small">ohne Konto</span>}
+            {p.kind === 'reserved' && canManage && <PersonalLink groupId={groupId} player={p} />}
           </li>
         ))}
       </ul>

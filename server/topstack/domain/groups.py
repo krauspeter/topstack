@@ -21,13 +21,15 @@ class Permission(StrEnum):
     VIEW = "view"  # Live-Ansicht, Rangliste, Statistik, Turnierliste
     VIEW_PROFILES = "view_profiles"  # Spielerliste, Profile anderer
     PLAY = "play"  # Turniere starten, mitspielen, eingeladen werden
-    INVITE = "invite"  # Einladungslinks in die Gruppe (ab AP-2 für alle Mitglieder)
+    INVITE = "invite"  # Gruppenlinks erzeugen und eigene zurückziehen (seit AP-2 alle Mitglieder)
     MANAGE = "manage"  # Name, Bild, Regeln, Rollen, Spieler ohne Konto, archivieren, löschen
 
 
 RIGHTS: dict[str, frozenset[Permission]] = {
     "admin": frozenset(Permission),
-    "member": frozenset({Permission.VIEW, Permission.VIEW_PROFILES, Permission.PLAY}),
+    "member": frozenset(
+        {Permission.VIEW, Permission.VIEW_PROFILES, Permission.PLAY, Permission.INVITE}
+    ),
     "viewer": frozenset({Permission.VIEW}),
 }
 

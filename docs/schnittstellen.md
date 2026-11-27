@@ -40,10 +40,13 @@ Seit Phase 5 (AP-1, ADR-0018). Fremde und gelöschte Gruppen antworten mit `404`
 | DELETE | `/groups/{gid}` | In den Papierkorb (nur ohne offenes Turnier); nach 30 Tagen endgültig gelöscht | Admin |
 | GET | `/me/deleted-groups` | Eigene gelöschte Gruppen mit `purge_on` | angemeldet |
 | POST | `/groups/{gid}/restore` | Aus dem Papierkorb holen | Admin |
-| POST | `/groups/{gid}/invitations` | Einladungslink erzeugen | Admin |
+| POST | `/groups/{gid}/invitations` | Gruppenlink erzeugen (alle Mitglieder); mit `player_id` persönlicher Link für einen Spieler ohne Konto (nur Admins) | Admin, Mitglied |
+| GET | `/groups/{gid}/invitations` | Offene Links mit Ersteller, Ablauf, Nutzungen; Admins sehen alle, Mitglieder ihre eigenen | Admin, Mitglied |
+| DELETE | `/groups/{gid}/invitations/{id}` | Link zurückziehen (Ersteller oder Admin) | Admin, Mitglied |
+| POST | `/groups/{gid}/players/merge` | Spieler ohne Konto (`source_id`) in einen anderen (`target_id`) übernehmen; ohne `apply` nur Vorschau mit Zahl der Turniere und Matches; verweigert, wenn beide im selben Turnier stehen | Admin |
 | GET | `/invitations/{token}` | Gruppenname und Ablauf für die Einladungsseite; archivierte und gelöschte Gruppen `410` | öffentlich |
 | POST | `/invitations/{token}/accept` | Einladung annehmen (UC-02); wer ausgetreten war, bekommt seinen alten Spieler zurück | angemeldet |
-| GET | `/groups/{gid}/players` | Spielerliste | Admin, Mitglied |
+| GET | `/groups/{gid}/players` | Spielerliste; mit `?all=true` (Admins) auch Gäste und Ehemalige | Admin, Mitglied |
 
 ### Spieler der Gruppe
 
@@ -68,7 +71,7 @@ Turnier-Antworten enthalten `actions`: was der angemeldete Nutzer im aktuellen S
 | DELETE | `/tournaments/{tid}/entries/{pid}` | Teilnehmer vor der Auslosung entfernen | UC-04 |
 | POST | `/tournaments/{tid}/guest-link` | QR-Code-/Link-Token für Gäste, 12 Stunden gültig; App-Seite `/gast/<token>` | UC-05 |
 | GET | `/guest/{token}` | Öffentlich: Gruppe, Set, ob die Anmeldung offen ist | UC-05 |
-| POST | `/guest/{token}` | Gast tritt mit Namen bei (`{display_name}`), ohne Konto | UC-05 |
+| POST | `/guest/{token}` | Gast tritt mit Namen bei (`{display_name}`), ohne Konto; Antwort mit `claim_url`: persönlicher Link (30 Tage), mit dem er sich ein Profil anlegt und seine Ergebnisse behält | UC-05, UC-18 |
 | POST | `/tournaments/{tid}/seating` | Draftplätze auslosen (erneut = neu auslosen); Antwort enthält `seating.seed` und `seating.draw` für die gleiche Animation auf allen Handys | UC-06 |
 | POST | `/tournaments/{tid}/draft` | Draft beginnen (`seated` → `drafting`) | – |
 | PUT | `/tournaments/{tid}/entries/{pid}/colors` | Farben melden, z. B. `"UB"`, farblos `""`; für Gäste und vorgemerkte Spieler auch durch Starter oder Admin | UC-07 |

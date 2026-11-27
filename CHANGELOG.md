@@ -23,6 +23,13 @@ section into a release; a short German "Was ist neu" for the app lives in
 - Group rules can be changed in the app; once a group has tournaments, changes
   wait for the next season, which the next tournament start now begins by
   itself (#188)
+- Every member can create group invitation links; open links are listed in the
+  group screen and can be revoked; admins get a "personal link" button next to
+  players without an account (#190)
+- Guests get a personal link right after joining a tournament to create a
+  profile and keep their results (UC-05, UC-18) (#190)
+- Admins merge duplicate players in the app (preview first) or with
+  `admin.sh merge-player`; all results move to the remaining player (#190)
 
 ### Changed
 

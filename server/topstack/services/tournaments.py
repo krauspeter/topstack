@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from topstack.config import settings
 from topstack.db.models import (
+    PLAYER_KINDS,
     AppUser,
     Invitation,
     Membership,
@@ -120,12 +121,20 @@ async def load(
 # ---------------------------------------------------------------------------
 
 
-async def list_players(db: AsyncSession, group_id: uuid.UUID, user: AppUser) -> list[Player]:
-    """Spieler der Gruppe; Zuschauer sehen keine Profile (ADR-0018)."""
-    await group_access(db, group_id, user, Permission.VIEW_PROFILES)
+async def list_players(
+    db: AsyncSession, group_id: uuid.UUID, user: AppUser, *, everyone: bool = False
+) -> list[Player]:
+    """Spieler der Gruppe; Zuschauer sehen keine Profile (ADR-0018).
+
+    ``everyone`` (nur Admins, zum Zusammenführen): auch Gäste und Ehemalige.
+    """
+    await group_access(
+        db, group_id, user, Permission.MANAGE if everyone else Permission.VIEW_PROFILES
+    )
+    kinds = PLAYER_KINDS if everyone else INVITABLE_KINDS
     stmt = (
         select(Player)
-        .where(Player.group_id == group_id, Player.kind.in_(INVITABLE_KINDS))
+        .where(Player.group_id == group_id, Player.kind.in_(kinds))
         .order_by(func.lower(Player.display_name))
     )
     return list(await db.scalars(stmt))

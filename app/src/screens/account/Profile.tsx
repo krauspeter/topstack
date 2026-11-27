@@ -194,7 +194,7 @@ export function Profile({ me, onChange, onSignOut, onBack, onFeedback, onOpenGro
                 </button>
               </div>
               <GroupMembers groupId={g.id} groupName={g.name} />
-              {g.role === 'admin' &&
+              {g.role !== 'viewer' &&
                 !g.archived &&
                 (invites[g.id] ? (
                   <div className="stack">
