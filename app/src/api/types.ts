@@ -320,7 +320,7 @@ export interface PlayerStats {
   opponents: (WinRecord & { player_id: string; display_name: string })[];
   /** Eigene Kombinationen, beste Siegquote zuerst. */
   with_colors: ColorRecord[];
-  /** Einzelne Gegner-Farben, meiste Niederlagen zuerst. */
+  /** Farbkombinationen der Gegner, meiste Niederlagen zuerst. */
   vs_colors: ColorRecord[];
 }
 

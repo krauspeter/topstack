@@ -70,46 +70,55 @@ export function TournamentRulesForm({ groupId, onChange }: { groupId: string; on
   const int = (v: string, fallback: number) => (Number.isFinite(Number.parseInt(v, 10)) ? Number.parseInt(v, 10) : fallback);
 
   return (
-    <details className="card stack">
+    <details className="rules-panel">
       <summary>Regeln für dieses Turnier anpassen</summary>
-      <p className="muted small">Vorbelegt mit den Regeln der Gruppe. Änderungen gelten nur für dieses Turnier.</p>
-      <label className="field">
-        <span>Matchformat</span>
-        <select value={draft.games_to_win} onChange={(e) => set('games_to_win', int(e.target.value, 2))}>
-          {[1, 2, 3].map((n) => (
-            <option key={n} value={n}>
-              {bestOf(n)}
-            </option>
+      <div className="rules-body">
+        <p className="muted small">Vorbelegt mit den Regeln der Gruppe. Änderungen gelten nur für dieses Turnier.</p>
+        <label className="field">
+          <span>Matchformat</span>
+          <select value={draft.games_to_win} onChange={(e) => set('games_to_win', int(e.target.value, 2))}>
+            {[1, 2, 3].map((n) => (
+              <option key={n} value={n}>
+                {bestOf(n)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>Startleben</span>
+          <input
+            type="number"
+            min={1}
+            max={100}
+            value={draft.starting_life}
+            onChange={(e) => set('starting_life', int(e.target.value, group.starting_life))}
+          />
+        </label>
+        <label className="field">
+          <span>Zeitlimit pro Match in Minuten (leer = aus)</span>
+          <input
+            type="number"
+            min={5}
+            max={180}
+            value={draft.match_time_limit_min ?? ''}
+            onChange={(e) => set('match_time_limit_min', e.target.value === '' ? null : int(e.target.value, 50))}
+          />
+        </label>
+        <fieldset className="field points-trio">
+          <legend>Matchpunkte</legend>
+          {(
+            [
+              ['match_points_win', 'Sieg'],
+              ['match_points_draw', 'Unentschieden'],
+              ['match_points_loss', 'Niederlage'],
+            ] as const
+          ).map(([key, label]) => (
+            <label className="field" key={key}>
+              <span>{label}</span>
+              <input type="number" min={0} max={10} value={draft[key]} onChange={(e) => set(key, int(e.target.value, 0))} />
+            </label>
           ))}
-        </select>
-      </label>
-      <label className="field">
-        <span>Startleben</span>
-        <input type="number" min={1} max={100} value={draft.starting_life} onChange={(e) => set('starting_life', int(e.target.value, group.starting_life))} />
-      </label>
-      <label className="field">
-        <span>Zeitlimit pro Match in Minuten (leer = aus)</span>
-        <input
-          type="number"
-          min={5}
-          max={180}
-          value={draft.match_time_limit_min ?? ''}
-          onChange={(e) => set('match_time_limit_min', e.target.value === '' ? null : int(e.target.value, 50))}
-        />
-      </label>
-      <div className="nav-pair">
-        {(
-          [
-            ['match_points_win', 'Punkte Sieg'],
-            ['match_points_draw', 'Unentschieden'],
-            ['match_points_loss', 'Niederlage'],
-          ] as const
-        ).map(([key, label]) => (
-          <label className="field" key={key}>
-            <span>{label}</span>
-            <input type="number" min={0} max={10} value={draft[key]} onChange={(e) => set(key, int(e.target.value, 0))} />
-          </label>
-        ))}
+        </fieldset>
       </div>
     </details>
   );

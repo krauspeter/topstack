@@ -13,6 +13,13 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ## [Unreleased]
 
+### Fixed
+
+- Stats "Gegen Farben" count the opponent's whole colour combination (e.g. BR)
+  instead of each colour separately, like your own colours (#)
+- Tournament rules form: more space between fields, left aligned, match points
+  side by side; labels and values are no longer cut off (#)
+
 ### Added
 
 - Elo in the app (design B, ADR-0020): the leaderboard switches between points

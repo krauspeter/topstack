@@ -107,11 +107,11 @@ def test_color_records_by_hand():
     s = player_stats([T1, T2], "A")
     # T1 mit Grün: 3 Siege; T2 mit BRG: Niederlage gegen B, Sieg gegen C
     assert {k: rec(r) for k, r in s.with_combo.items()} == {"G": (3, 0, 0), "BRG": (1, 0, 1)}
-    # Gegner-Farben: B spielte UW (T1, Sieg) und W (T2, Niederlage), C farblos (T1, Sieg)
-    # und R (T2, Sieg), D ohne Meldung zählt nicht
+    # Gegner-Farben als ganze Kombination: B spielte UW (T1, Sieg) und W (T2, Niederlage),
+    # C farblos (T1, Sieg) und R (T2, Sieg), D ohne Meldung zählt nicht
     assert {k: rec(r) for k, r in s.vs_color.items()} == {
-        "U": (1, 0, 0),
-        "W": (1, 0, 1),
+        "UW": (1, 0, 0),
+        "W": (0, 0, 1),
         "C": (1, 0, 0),
         "R": (1, 0, 0),
     }
@@ -120,8 +120,7 @@ def test_color_records_by_hand():
     assert d.with_combo == {}
     assert {k: rec(r) for k, r in d.vs_color.items()} == {
         "G": (0, 0, 1),
-        "U": (0, 0, 1),
-        "W": (0, 0, 1),
+        "UW": (0, 0, 1),
         "C": (0, 1, 0),
     }
 
@@ -136,7 +135,7 @@ def test_guest_colors_count_for_opponents():
     )
     s = player_stats([t], "A")
     assert {k: rec(r) for k, r in s.with_combo.items()} == {"R": (0, 0, 1)}
-    assert {k: rec(r) for k, r in s.vs_color.items()} == {"U": (0, 0, 1), "B": (0, 0, 1)}
+    assert {k: rec(r) for k, r in s.vs_color.items()} == {"UB": (0, 0, 1)}
 
 
 def test_tournament_with_own_match_points():
