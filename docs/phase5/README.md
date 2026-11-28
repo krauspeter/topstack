@@ -191,7 +191,8 @@ Anlass: Beta hing auf PC und Handy tagelang auf Update #164, weil Cloudflare Acc
 
 **Cloudflare und Betrieb (Peter)**
 
-- [ ] Access-Anwendung „TopStack Beta“ nur noch für `beta.topstack.win/api/*` und `beta.topstack.win/ws`; App-Dateien ohne Anmeldung ladbar
+- [x] Access-Anwendung „TopStack Beta“ nur noch für `beta.topstack.win/api` und `/ws`, „TopStack Beta – App“ (Bypass) für den Rest; geprüft ohne Anmeldung: App-Dateien 200, API und `/ws` leiten zur Anmeldung um (28.11.2026)
+- [x] Cloudflare „Browser Cache TTL“ auf „Respect Existing Headers“, damit `sw.js` mit `no-cache` ankommt (28.11.2026)
 - [ ] Uptime Kuma: Monitor „Beta App“ auf `https://beta.topstack.win/sw.js`, ohne Anmeldung, erwartet 200
 
 **App**

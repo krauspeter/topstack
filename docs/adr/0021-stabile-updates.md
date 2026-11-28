@@ -29,6 +29,6 @@ Die Caddy-Header sind richtig (`sw.js` und `index.html` mit `no-cache`, gehashte
 - **Reset-Seite ohne App (`/reset` mit `Clear-Site-Data`):** würde auch die Spielstände in IndexedDB löschen; der Knopf in der App kann gezielter löschen.
 
 ## Folgen
-- Peter stellt die Access-Anwendung „TopStack Beta“ in Cloudflare auf die Pfade `/api/*` und `/ws` um (Anleitung in `docs/phase3/heimserver.md`, Abschnitt Staging).
+- Peter stellt die Access-Anwendung „TopStack Beta“ in Cloudflare auf die Pfade `/api/*` und `/ws` um (Anleitung in `docs/phase3/heimserver.md`, Abschnitt Staging). Erledigt am 28.11.2026; dabei fiel auf, dass Cloudflare mit der Standard-„Browser Cache TTL“ (4 h) das `no-cache` für `sw.js` und `push-sw.js` überschrieb. Seitdem steht sie auf „Respect Existing Headers“ (Produktion und Beta).
 - Neue Uptime-Kuma-Überwachung für `beta.topstack.win/sw.js`.
 - Die Anforderung steht als N-07 in der Roadmap, die Umsetzung als AP-14 im Phase-5-Plan (Testfälle TC-163 bis TC-167).
