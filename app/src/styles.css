@@ -440,3 +440,35 @@ select { min-height: 48px; padding: 0 12px; border-radius: var(--radius-sm); bor
 .elo-steps .bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
 .elo-steps .bar i.up { background: var(--up); }
 .elo-steps .bar i.down { background: var(--down); }
+
+/* Head-to-Head (Phase 5, AP-6, Entwurf B): Rivalen-Liste und Duell als Anzeigetafel */
+.rivals { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rivals button {
+  width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center;
+  padding: 10px 12px; min-height: 48px; background: var(--surface); border: 1px solid transparent; border-radius: var(--radius-sm);
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.rivals .nemesis button { border-color: var(--gold); }
+.rivals .who { font-weight: 600; min-width: 0; }
+.rivals .who small { display: block; font-weight: 400; color: var(--muted); font-size: 0.75rem; }
+.rivals .score { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.rivals .tag { grid-column: 1 / -1; font-size: 0.75rem; color: var(--gold); }
+.split { grid-column: 1 / -1; display: flex; gap: 2px; height: 7px; border-radius: 4px; overflow: hidden; }
+.split.big { height: 10px; border-radius: 5px; }
+.split i.w { background: var(--up); }
+.split i.d { background: var(--muted); }
+.split i.l { background: var(--down); }
+.duel-board { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; text-align: center; padding: 14px 6px; background: var(--surface-2); border-radius: var(--radius); }
+.duel-board b { display: block; font-family: var(--font-display); font-weight: 800; font-size: 3.6rem; line-height: 0.9; font-variant-numeric: tabular-nums; }
+.duel-board b.me { color: var(--gold); }
+.duel-board small { display: block; color: var(--muted); font-size: 0.75rem; margin-top: 4px; }
+.duel-board .colon { font-family: var(--font-display); font-size: 2rem; color: var(--muted); padding-bottom: 14px; }
+.duel-legend { display: flex; justify-content: space-between; gap: 8px; margin: 0; }
+.duel h4 { margin: 4px 0 0; font-size: 0.9rem; }
+.meetings { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 0.85rem; }
+.meetings li { display: grid; grid-template-columns: 5.6rem minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.meetings .res { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.meetings .badge { margin-left: 6px; }
+.skeleton { border-radius: var(--radius-sm); background: linear-gradient(90deg, var(--surface), var(--surface-2), var(--surface)); background-size: 200% 100%; animation: skeleton 1.4s ease-in-out infinite; }
+@keyframes skeleton { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }

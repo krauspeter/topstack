@@ -242,3 +242,72 @@ test('Elo-Leiter, Vergleich mit mir und letzte Matches (AP-5)', async ({ page })
   await page.reload();
   await expect(page.getByRole('list', { name: 'Rangliste nach Elo' })).toBeVisible();
 });
+
+test('Duelle: Rivalen-Liste mit Angstgegner und Duell als Anzeigetafel (AP-6)', async ({ page }) => {
+  await page.route('**/api/v1/me', (route) =>
+    json(route, 200, {
+      id: 'u1',
+      email: 'peter@example.org',
+      display_name: 'Peter',
+      favorite_colors: '',
+      locale: 'de',
+      has_passkey: true,
+      groups: [{ id: GROUP, name: 'Draft-Runde', role: 'admin', player_id: PETER }],
+    }),
+  );
+  await page.route(`**/api/v1/groups/${GROUP}/seasons`, (route) => json(route, 200, []));
+  await page.route(`**/api/v1/groups/${GROUP}/leaderboard**`, (route) =>
+    json(route, 200, { tournaments: 1, rows: [row(1, PETER, 'Peter', 10, 12), row(2, 'p-ben', 'Ben', 8, 9)] }),
+  );
+  const pair = (a: string, b: string, w: number, d: number, l: number, imported = 0) => ({
+    player_id: a,
+    opponent_id: b,
+    wins: w,
+    draws: d,
+    losses: l,
+    games_won: 0,
+    games_lost: 0,
+    imported,
+  });
+  await page.route(`**/api/v1/groups/${GROUP}/head-to-head`, (route) =>
+    json(route, 200, {
+      players: [
+        { player_id: 'p-ben', display_name: 'Ben' },
+        { player_id: 'p-chris', display_name: 'Chris' },
+        { player_id: 'p-finn', display_name: 'Finn' },
+        { player_id: PETER, display_name: 'Peter' },
+      ],
+      pairs: [pair(PETER, 'p-ben', 3, 1, 5, 2), pair(PETER, 'p-chris', 6, 0, 2), pair('p-ben', PETER, 5, 1, 3, 2)],
+    }),
+  );
+  await page.route(`**/api/v1/groups/${GROUP}/head-to-head/${PETER}/p-ben`, (route) =>
+    json(route, 200, {
+      player: { player_id: PETER, display_name: 'Peter' },
+      opponent: { player_id: 'p-ben', display_name: 'Ben' },
+      wins: 3,
+      draws: 1,
+      losses: 5,
+      games_won: 9,
+      games_lost: 12,
+      imported: 2,
+      elo: 1061,
+      opponent_elo: 1084,
+      meetings: [
+        { played_on: '2026-12-27', set_code: 'DSK', games_won: 1, games_lost: 2, imported: false },
+        { played_on: '2019-05-03', set_code: 'WAR', games_won: 0, games_lost: 2, imported: true },
+      ],
+    }),
+  );
+
+  await page.goto('/rangliste');
+  await page.getByRole('button', { name: 'Duelle', exact: true }).click();
+  const list = page.getByRole('list', { name: 'Deine Bilanz gegen jeden Gegner' });
+  await expect(list.getByRole('button')).toHaveText([/^Ben9 Matches3–1–5Angstgegner$/, /^Chris8 Matches6–0–2$/, /^Finnnoch nie gespielt–$/]);
+
+  await list.getByRole('button', { name: /Duell gegen Ben/ }).click();
+  const duel = page.getByTestId('duel');
+  await expect(duel).toContainText('3 Siege');
+  await expect(duel).toContainText('5 Niederlagen');
+  await expect(duel).toContainText('Spiele 9:12 · 2 Matches aus Altdaten');
+  await expect(duel.getByRole('list', { name: 'Begegnungen' }).getByRole('listitem')).toHaveText([/DSK.*1:2/, /WARAltdaten.*0:2/]);
+});

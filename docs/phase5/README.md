@@ -178,10 +178,10 @@ AP-1 kommt zuerst, weil fast alles danach die aktive Gruppe und die Rechteprüfu
 
 ### AP-6 · Head-to-Head (ca. 4 h) · Branch `feat/p5-h2h` · F-22
 
-- [ ] Endpunkt für die Tabelle aller Paarungen einer Gruppe und den Direktvergleich zweier Spieler (Matches, Spiele, letzte Begegnungen, Elo beider)
-- [ ] Importierte Matches zählen mit und sind markiert
-- [ ] App: Tabelle unter „Statistik“, Direktvergleich aus dem Profil eines anderen Spielers; die Pause-Ansicht nutzt ihn für den nächsten Gegner
-- [ ] Tests: Bilanz mit Unentschieden, ohne gemeinsame Matches
+- [x] Endpunkte `/groups/{gid}/head-to-head` (alle Paarungen) und `…/head-to-head/{a}/{b}` (Bilanz, Spiele, letzte 10 Begegnungen, Elo beider)
+- [x] Importierte Matches zählen mit und sind markiert
+- [x] App nach Entwurf B (28.11.2026): Rangliste → „Duelle“ mit Rivalen-Liste und Angstgegner, Duell als Anzeigetafel; aus der Statistik eines Spielers „Duell mit … ansehen“. Offen: Pause-Ansicht für den nächsten Gegner
+- [x] Tests: Bilanz mit Unentschieden, ohne gemeinsame Matches (TC-154), Rivalen-Liste, E2E
 
 **Fertig, wenn:** Aus jedem Profil öffnet sich der Direktvergleich mit mir.
 
