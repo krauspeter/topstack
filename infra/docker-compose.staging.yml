@@ -32,6 +32,8 @@ services:
       TOPSTACK_MAIL_FROM: ${MAIL_FROM:-TopStack Beta <login@topstack.win>}
       # Pflicht auf Staging: nur an diese Adressen werden Anmeldelinks wirklich verschickt
       TOPSTACK_MAIL_ALLOWLIST: ${MAIL_ALLOWLIST:?MAIL_ALLOWLIST fehlt in .env (kommagetrennte Adressen)}
+      # Feedback als Issue mit Label „beta“ (28.11.2026); leer = bleibt in der Datenbank
+      TOPSTACK_GITHUB_TOKEN: ${FEEDBACK_GITHUB_TOKEN:-}
       # Kein Web Push auf Staging (keine VAPID-Schlüssel)
     depends_on:
       db: { condition: service_healthy }

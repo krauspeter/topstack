@@ -253,7 +253,7 @@ jobs:
           # Eigener Klon wie auf dem Heimserver (~/topstack-beta); gebaut wurde oben mit dem Tag latest
           beta=/tmp/topstack-beta
           git clone -q .. "$beta"
-          printf 'TOPSTACK_STACK=staging\nTOPSTACK_VERSION=latest\nTOPSTACK_PUBLIC_ORIGIN=http://localhost:8081\nPOSTGRES_PASSWORD=ci-beta\nMAIL_ALLOWLIST=peter@example.com\n' > "$beta/infra/.env"
+          printf 'TOPSTACK_STACK=staging\nTOPSTACK_VERSION=latest\nTOPSTACK_PUBLIC_ORIGIN=http://localhost:8081\nPOSTGRES_PASSWORD=ci-beta\nMAIL_ALLOWLIST=peter@example.com\nFEEDBACK_GITHUB_TOKEN=ci-probe\n' > "$beta/infra/.env"
           docker network create topstack-edge 2>/dev/null || true
           cd "$beta/infra"
           docker compose -f docker-compose.staging.yml --env-file .env up -d --wait --wait-timeout 180
@@ -261,6 +261,7 @@ jobs:
           check "Manifest „TopStack Beta“" "curl -fsS http://localhost:8081/manifest.webmanifest | grep -q 'TopStack Beta'"
           check "Beta-Icon statt des normalen" "curl -fsS -o /tmp/beta.png http://localhost:8081/icon-512.png && ! cmp -s /tmp/beta.png $GITHUB_WORKSPACE/app/public/icon-512.png"
           check "keine Suchmaschinen" "curl -fsSI http://localhost:8081/ | grep -qi 'x-robots-tag: noindex'"
+          check "Feedback-Token erreicht die Staging-API" "docker compose -f docker-compose.staging.yml --env-file .env exec -T api printenv TOPSTACK_GITHUB_TOKEN | grep -qx ci-probe"
           # Stabile Updates (AP-14, ADR-0021, TC-165): App-Dateien kommen frisch, gehashte lange gespeichert
           check "sw.js wird immer neu geprüft" "curl -fsSI http://localhost:8081/sw.js | grep -qi 'cache-control: no-cache'"
           check "index.html wird immer neu geprüft" "curl -fsSI http://localhost:8081/ | grep -qi 'cache-control: no-cache'"

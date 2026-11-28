@@ -20,6 +20,8 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ### Fixed
 
+- Staging passes the feedback token to the API; without it beta feedback stayed
+  in the database (#202)
 - The app no longer hangs unnoticed on an old version (ADR-0021): it compares
   its update number with the server on start, on return and every 30 minutes,
   asks the service worker for updates and shows "Neue Version da" with a button,
