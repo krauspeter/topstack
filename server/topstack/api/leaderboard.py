@@ -14,6 +14,7 @@ from topstack.db.models import Player
 from topstack.domain.elo import START, EloState
 from topstack.domain.h2h import matrix, pair
 from topstack.domain.leaderboard import Record, leaderboard, player_stats, rate
+from topstack.services import avatars
 from topstack.services import elo as elo_svc
 from topstack.services import h2h as h2h_svc
 from topstack.services import leaderboard as svc
@@ -37,6 +38,7 @@ class LeaderboardRowOut(BaseModel):
     rank: int
     player_id: uuid.UUID
     display_name: str
+    avatar: str | None = None  # Profilbild (AP-15)
     kind: str
     tournaments: int
     wins: int  # Turniersiege
@@ -148,6 +150,7 @@ async def get_leaderboard(
     """Rangliste: ohne ``season`` gesamt; ``from``/``to`` grenzen nach Turnierdatum ein."""
     await _member(db, gid, user)
     res = await svc.load(db, gid, _filter(season, since, until))
+    pics = await avatars.for_players(db, res.players)
     elo = await elo_svc.group_elo(db, gid)
     return LeaderboardOut(
         tournaments=len(res.tournaments),
@@ -156,6 +159,7 @@ async def get_leaderboard(
                 rank=r.rank,
                 player_id=r.player,
                 display_name=res.players[r.player].display_name,
+                avatar=pics.get(r.player),
                 kind=res.players[r.player].kind,
                 tournaments=r.tournaments,
                 wins=r.wins,
@@ -268,6 +272,7 @@ async def get_player_stats(
 class H2HPlayerOut(BaseModel):
     player_id: uuid.UUID
     display_name: str
+    avatar: str | None = None  # Profilbild (AP-15)
 
 
 class H2HPairOut(RecordOut):
@@ -310,9 +315,13 @@ async def head_to_head_table(gid: uuid.UUID, user: CurrentUser, db: Db) -> H2HTa
     await _member(db, gid, user)
     found, players = await h2h_svc.meetings(db, gid)
     pairs = matrix(found)
+    pics = await avatars.for_players(db, players)
     return H2HTableOut(
         players=sorted(
-            (H2HPlayerOut(player_id=p.id, display_name=p.display_name) for p in players.values()),
+            (
+                H2HPlayerOut(player_id=p.id, display_name=p.display_name, avatar=pics.get(p.id))
+                for p in players.values()
+            ),
             key=lambda p: p.display_name.lower(),
         ),
         pairs=[
@@ -343,6 +352,9 @@ async def head_to_head_duel(
         if p is None or p.group_id != gid or p.kind == "guest":
             raise problem(404, "Spieler nicht gefunden.")
         people[x] = H2HPlayerOut(player_id=p.id, display_name=p.display_name)
+    pics = await avatars.for_players(db, people)
+    for x, out in people.items():
+        out.avatar = pics.get(x)
     if pid == oid:
         raise problem(422, "Bitte zwei verschiedene Spieler wählen.")
     found, _ = await h2h_svc.meetings(db, gid)

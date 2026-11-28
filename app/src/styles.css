@@ -22,6 +22,13 @@
   --down: #f08c7c;
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Big Shoulders Display', 'Arial Narrow', var(--font);
+  /* Manafarben für Linien der Profilbilder (AP-15), hell genug auf dunklem Grund */
+  --mana-w: #f1e3b5;
+  --mana-u: #6aa9e0;
+  --mana-b: #b9a2c8;
+  --mana-r: #e0715b;
+  --mana-g: #6fbf7a;
+  --mana-c: #b8b5c4;
   --up: #7fc48a;
   --down: #e08a7a;
   --radius: 14px;
@@ -238,7 +245,8 @@ h3 { font-size: 1.05rem; }
 .group-list > li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 10px; }
 .group-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .member-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
-.member-list li { display: flex; align-items: baseline; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.member-list li { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.member-list li > .avatar-grid { flex-basis: 100%; }
 .member-list li:first-child { border-top: none; }
 .card p { line-height: 1.5; }
 
@@ -417,7 +425,7 @@ select { min-height: 48px; padding: 0 12px; border-radius: var(--radius-sm); bor
 .elo-down { color: var(--down); }
 .elo-ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .elo-ladder button {
-  width: 100%; display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) 64px 3.6rem; align-items: center; gap: 8px;
+  width: 100%; display: grid; grid-template-columns: 2.4rem 32px minmax(0, 1fr) 64px 3.6rem; align-items: center; gap: 8px;
   padding: 8px 6px; min-height: 48px; background: none; border: 0; color: inherit; font: inherit; text-align: left;
   border-radius: var(--radius-sm); cursor: pointer;
 }
@@ -462,7 +470,7 @@ select { min-height: 48px; padding: 0 12px; border-radius: var(--radius-sm); bor
 /* Head-to-Head (Phase 5, AP-6, Entwurf B): Rivalen-Liste und Duell als Anzeigetafel */
 .rivals { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .rivals button {
-  width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center;
+  width: 100%; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center;
   padding: 10px 12px; min-height: 48px; background: var(--surface); border: 1px solid transparent; border-radius: var(--radius-sm);
   color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
@@ -499,3 +507,34 @@ select { min-height: 48px; padding: 0 12px; border-radius: var(--radius-sm); bor
   background: var(--surface-2); border-bottom: 1px solid var(--gold);
 }
 .update-banner p { margin: 0; flex: 1 1 14rem; font-size: 0.9rem; }
+
+/* Profilbilder (Phase 5, AP-15): Wesen als Linienzeichnung, eigenes Bild oder Initialen */
+.avatar { flex: none; display: inline-grid; place-items: center; border-radius: 50%; overflow: hidden; background: var(--surface-2); width: var(--av-size, 36px); height: var(--av-size, 36px); }
+.avatar svg { width: 100%; height: 100%; display: block; }
+.avatar .ring { fill: none; stroke: currentColor; stroke-width: 2; opacity: 0.55; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar.initials { color: var(--bg); font-weight: 700; font-size: calc(var(--av-size, 36px) * 0.36); letter-spacing: 0.02em; }
+.av-f { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.av-t { fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
+.av-s { fill: currentColor; stroke: none; }
+.av-soft { fill: currentColor; stroke: none; opacity: 0.16; }
+.av-bg { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; opacity: 0.3; }
+.mana-w { color: var(--mana-w); }
+.mana-u { color: var(--mana-u); }
+.mana-b { color: var(--mana-b); }
+.mana-r { color: var(--mana-r); }
+.mana-g { color: var(--mana-g); }
+.mana-c { color: var(--mana-c); }
+.avatar-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.avatar-current { display: flex; align-items: center; gap: 14px; }
+.avatar-current p { margin: 0; }
+.avatar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 8px; }
+.avatar-choice { display: grid; place-items: center; padding: 4px; min-height: 60px; background: none; border: 2px solid transparent; border-radius: 50%; cursor: pointer; }
+.avatar-choice.on { border-color: var(--gold); }
+.cropper { justify-items: center; }
+.crop-canvas { width: min(240px, 70vw); height: auto; aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--gold); touch-action: none; cursor: grab; background: var(--surface-2); }
+.cropper .field { width: 100%; }
+.avatar.initials::before { content: attr(data-initials); }
+.name-cell { display: inline-flex; align-items: center; gap: 8px; }
+.match-names .avatar { vertical-align: middle; margin-right: 4px; }
+.duel-board .avatar { margin: 0 auto 6px; }

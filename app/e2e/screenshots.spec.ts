@@ -18,6 +18,8 @@ test.use({
 });
 
 const OUT = '../docs/img';
+/** Profilbilder (AP-15): Wesen für alle außer Chris, der zeigt die Initialen. */
+const AV: Record<string, string> = { 'p-anna': 'preset:eule', 'p-ben': 'preset:golem', 'p-dana': 'preset:drache', 'p-eli': 'preset:elf', 'p-finn': 'preset:goblin' };
 const GROUP = 'g-1';
 const TID = 't-1';
 const ME = 'p-anna';
@@ -61,8 +63,10 @@ function liveTournament() {
     id,
     player_a_id: a,
     player_a: name(a),
+    avatar_a: AV[a] ?? null,
     player_b_id: b,
     player_b: name(b),
+    avatar_b: AV[b] ?? null,
     status: 'scheduled',
     games_a: 0,
     games_b: 0,
@@ -81,6 +85,7 @@ function liveTournament() {
   const standing = (id: string, rank: number, w: number, l: number, gw: number, gl: number) => ({
     player_id: id,
     display_name: name(id),
+    avatar: AV[id] ?? null,
     rank,
     played: w + l,
     wins: w,
@@ -202,6 +207,7 @@ test('Rangliste', async ({ page }) => {
     rank,
     player_id: id,
     display_name: n,
+    avatar: AV[id] ?? null,
     kind: 'member',
     tournaments: t,
     wins,
@@ -300,4 +306,24 @@ test('Anleitung: Feedback', async ({ page }) => {
   await page.getByLabel('Was wünschst du dir?').fill('Eine Statistik, wer am häufigsten gegen wen gewinnt.');
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${GUIDE}/feedback.png` });
+});
+
+test('Siegerehrung', async ({ page }) => {
+  await signedIn(page);
+  const t = liveTournament();
+  const place = (s: (typeof t.standings)[number], p: number, rp: number) => ({ ...s, final_place: p, ranking_points: rp });
+  const finished = {
+    ...t,
+    status: 'finished',
+    actions: [],
+    rounds: t.rounds.map((r) => ({ ...r, status: 'finished' })),
+    standings: t.standings.map((s, i) => place(s, i + 1, [5, 3, 2, 1, 0][i])),
+  };
+  await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, finished));
+  await page.routeWebSocket('**/ws', () => undefined);
+  await page.goto(`/turnier/${TID}`);
+  await expect(page.getByTestId('ceremony')).toBeVisible();
+  // Das Podest baut sich nacheinander auf; erst das fertige Bild aufnehmen
+  await page.waitForTimeout(3000);
+  await shoot(page, 'siegerehrung');
 });

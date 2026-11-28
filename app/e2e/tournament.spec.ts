@@ -407,7 +407,11 @@ test('Siegerehrung nach dem Abschluss', async ({ page }) => {
   const state = tournament('finished', PLAYERS, {
     actions: [],
     rounds: [{ number: 1, status: 'finished', bye: null, matches: [match('m1', PETER, BEN, { status: 'finished', games_a: 2 })] }],
-    standings: [done(ME_PLAYER, 'Maximilian', 1, 6, 5), done('p-chris', 'Christopher', 2, 3, 3), done('p-ben', 'Sebastian', 3, 0, 1)],
+    standings: [
+      { ...done(ME_PLAYER, 'Maximilian', 1, 6, 5), avatar: 'preset:drache' },
+      done('p-chris', 'Christopher', 2, 3, 3),
+      done('p-ben', 'Sebastian', 3, 0, 1),
+    ],
   });
   await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, 200, state));
   // Schmales Handy und lange Namen (Feedback #203)
@@ -417,6 +421,9 @@ test('Siegerehrung nach dem Abschluss', async ({ page }) => {
   await expect(ceremony.getByRole('heading', { name: 'Siegerehrung' })).toBeVisible();
   await expect(ceremony.getByRole('listitem')).toHaveCount(3);
   await expect(ceremony.getByRole('listitem').first()).toContainText('Maximilian');
+  // Profilbilder auf dem Podest: Wesen beim Sieger, Initialen bei den anderen (AP-15)
+  await expect(ceremony.getByRole('img', { name: 'Maximilian: Drache' })).toBeVisible();
+  await expect(ceremony.locator('.avatar.initials')).toHaveCount(2);
   // Namen in Textgröße, nicht in der Größe der Tasten des Life-Trackers (Klasse „step“ kollidierte)
   const nameSize = await ceremony.getByText('Christopher').evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
   expect(nameSize).toBeLessThan(20);

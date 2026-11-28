@@ -4,6 +4,7 @@ import type { H2HPair, H2HPlayer } from '../api/types';
 export interface Rival {
   id: string;
   name: string;
+  avatar: string | null;
   wins: number;
   draws: number;
   losses: number;
@@ -25,7 +26,7 @@ export function rivals(me: string, players: readonly H2HPlayer[], pairs: readonl
       const wins = r?.wins ?? 0;
       const draws = r?.draws ?? 0;
       const losses = r?.losses ?? 0;
-      return { id: p.player_id, name: p.display_name, wins, draws, losses, played: wins + draws + losses, imported: r?.imported ?? 0, nemesis: false };
+      return { id: p.player_id, name: p.display_name, avatar: p.avatar ?? null, wins, draws, losses, played: wins + draws + losses, imported: r?.imported ?? 0, nemesis: false };
     })
     .sort((a, b) => b.played - a.played || a.name.localeCompare(b.name, 'de'));
   const candidates = list.filter((r) => r.played >= 3 && r.losses > r.wins);

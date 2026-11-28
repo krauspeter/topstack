@@ -223,12 +223,12 @@ Wunsch aus dem Beta-Test: Profilbilder mit Namen in der Siegerehrung, eine lusti
 
 **Aufgaben**
 
-- [ ] Entwurf der Fantasy-Wesen, Auswahl durch Peter
-- [ ] Server: Bild je Konto (Vorauswahl-Schlüssel oder eigenes Bild), Bild je vorgemerktem Spieler (nur Vorauswahl, Admin); Endpunkte zum Setzen, Löschen und Ausliefern; Prüfung von Typ und Größe; Migration
-- [ ] Spieler- und Turnier-Antworten liefern das Bild mit (Schlüssel oder Adresse)
-- [ ] App: Auswahl im Profil (Vorauswahl oder Hochladen mit Zuschnitt), Admin-Auswahl in „Gruppe“ bei Spielern ohne Konto
-- [ ] Baustein `Avatar` mit Initialen als Rückfall; eingebaut in Siegerehrung, Rangliste, Elo-Leiter, Duelle, Turnier-Tabelle, Spielplan, Live-Ansicht
-- [ ] Tests: Upload mit falschem Typ oder zu groß, Rückfall auf Initialen, E2E Auswahl und Anzeige in der Siegerehrung
+- [x] Entwurf der Fantasy-Wesen, Auswahl durch Peter
+- [x] Server: Bild je Konto (Vorauswahl-Schlüssel oder eigenes Bild), Bild je vorgemerktem Spieler (nur Vorauswahl, Admin); Endpunkte zum Setzen, Löschen und Ausliefern; Prüfung von Typ und Größe; Migration
+- [x] Spieler- und Turnier-Antworten liefern das Bild mit (Schlüssel oder Adresse)
+- [x] App: Auswahl im Profil (Vorauswahl oder Hochladen mit Zuschnitt), Admin-Auswahl in „Gruppe“ bei Spielern ohne Konto
+- [x] Baustein `Avatar` mit Initialen als Rückfall; eingebaut in Siegerehrung, Rangliste, Elo-Leiter, Duelle, Turnier-Tabelle, Spielplan, Live-Ansicht
+- [x] Tests: Upload mit falschem Typ oder zu groß, Rückfall auf Initialen, E2E Auswahl und Anzeige in der Siegerehrung
 
 **Fertig, wenn:** Die Siegerehrung zeigt auf dem Handy Bild und Name aller drei Plätze, auch für einen Spieler ohne Konto.
 

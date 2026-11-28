@@ -38,6 +38,11 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ### Added
 
+- Profile pictures (Phase 5, AP-15): pick one of 16 fantasy creatures or upload
+  your own PNG or JPEG, cropped to a 256 px circle; admins give players without
+  an account a creature. Pictures show on the podium, in standings, match list,
+  leaderboard, Elo ladder and duels; without a picture the initials appear in
+  the favourite colours (#210)
 - Head-to-head (design B): the leaderboard gets a third view "Duelle" with your
   record against every opponent, a bar of wins, draws and losses and your
   nemesis marked; a duel shows the score like a scoreboard, both Elo ratings

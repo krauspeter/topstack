@@ -49,7 +49,7 @@ from topstack.config import settings
 from topstack.db.models import AppUser, Match, Tournament, TournamentEntry
 from topstack.domain.groups import InvalidRules
 from topstack.domain.tournament import Status, allowed_actions
-from topstack.services import invitations, notify, rounds, tracker
+from topstack.services import avatars, invitations, notify, rounds, tracker
 from topstack.services import tournaments as svc
 
 router = APIRouter(tags=["Turniere"])
@@ -105,6 +105,7 @@ async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
     final = {e.player_id: e for e, _ in entries}
     may_report_all = ctx.actor.is_starter or ctx.actor.is_admin
     playing = ctx.status in (Status.RUNNING, Status.PAUSED)
+    pics = await avatars.for_players(db, [p.id for _, p in entries])
 
     def match_out(m: Match) -> MatchOut:
         mine = me in (m.player_a_id, m.player_b_id)
@@ -114,6 +115,8 @@ async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
             player_b_id=m.player_b_id,
             player_a=ov.names.get(m.player_a_id, "?"),
             player_b=ov.names.get(m.player_b_id, "?"),
+            avatar_a=pics.get(m.player_a_id),
+            avatar_b=pics.get(m.player_b_id),
             status=m.status,
             games_a=m.games_a,
             games_b=m.games_b,
@@ -145,6 +148,7 @@ async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
                 player_id=p.id,
                 display_name=p.display_name,
                 kind=p.kind,
+                avatar=pics.get(p.id),
                 status=e.status,
                 seat_no=e.seat_no,
                 colors=e.colors,
@@ -170,6 +174,7 @@ async def tournament_out(db: Db, ctx: svc.Context) -> TournamentOut:
             StandingOut(
                 player_id=row.player,
                 display_name=ov.names.get(row.player, "?"),
+                avatar=pics.get(row.player),
                 rank=row.rank,
                 played=row.played,
                 wins=row.wins,
@@ -228,8 +233,15 @@ async def list_players(
     """Mitglieder und Vorgemerkte; mit ``?all=true`` (Admins) auch Gäste und Ehemalige."""
     async with errors():
         players = await svc.list_players(db, gid, user, everyone=all)
+    pics = await avatars.for_players(db, [p.id for p in players])
     return [
-        PlayerOut(id=p.id, display_name=p.display_name, kind=p.kind, is_me=p.app_user_id == user.id)
+        PlayerOut(
+            id=p.id,
+            display_name=p.display_name,
+            kind=p.kind,
+            is_me=p.app_user_id == user.id,
+            avatar=pics.get(p.id),
+        )
         for p in players
     ]
 

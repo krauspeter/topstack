@@ -4,6 +4,7 @@ import { App } from './App';
 import { BUILD } from './build';
 import { EnvBand } from './EnvBand';
 import { UpdateBanner } from './UpdateBanner';
+import { AvatarSprite } from './Avatar';
 import { rememberStartupVersion } from './whatsNew';
 import './styles.css';
 
@@ -13,6 +14,7 @@ rememberStartupVersion(BUILD.version);
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <UpdateBanner />
+    <AvatarSprite />
     <App />
     <EnvBand />
   </StrictMode>,

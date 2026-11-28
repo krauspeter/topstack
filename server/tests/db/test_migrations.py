@@ -19,7 +19,7 @@ async def test_all_model_tables_exist(session: AsyncSession):
 
 async def test_head_revision(session: AsyncSession):
     version = await session.scalar(text("SELECT version_num FROM alembic_version"))
-    assert version == "0007"
+    assert version == "0008"
 
 
 def test_models_match_migrations(migrated_url: str):

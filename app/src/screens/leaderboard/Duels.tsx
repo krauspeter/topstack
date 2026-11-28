@@ -3,6 +3,7 @@ import { api, errorText } from '../../api/client';
 import type { H2HDuel, H2HTable } from '../../api/types';
 import { eloText } from '../../domain/elo';
 import { type Rival, recordText, rivals } from '../../domain/rivals';
+import { Avatar } from '../../Avatar';
 
 /** Meine Bilanz gegen jeden Gegner (Phase 5, AP-6, Entwurf B). */
 export function RivalList({ groupId, me, onOpen }: { groupId: string; me: string; onOpen(id: string): void }) {
@@ -27,6 +28,7 @@ export function RivalList({ groupId, me, onOpen }: { groupId: string; me: string
       {list.map((r) => (
         <li key={r.id} className={r.nemesis ? 'nemesis' : ''}>
           <button type="button" onClick={() => onOpen(r.id)} aria-label={`Duell gegen ${r.name}: ${recordText(r)}`}>
+            <Avatar avatar={r.avatar} name={r.name} size={36} />
             <span className="who">
               {r.name}
               <small>{r.played === 0 ? 'noch nie gespielt' : r.played === 1 ? '1 Match' : `${r.played} Matches`}</small>
@@ -81,6 +83,7 @@ export function Duel({ groupId, me, opponent, onClose }: { groupId: string; me: 
         <>
           <div className="duel-board">
             <div>
+              <Avatar avatar={d.player.avatar} name={d.player.display_name} size={56} />
               <b className="me">{d.wins}</b>
               <small>
                 {d.player.display_name}
@@ -90,6 +93,7 @@ export function Duel({ groupId, me, opponent, onClose }: { groupId: string; me: 
             </div>
             <span className="colon">:</span>
             <div>
+              <Avatar avatar={d.opponent.avatar} name={d.opponent.display_name} size={56} />
               <b>{d.losses}</b>
               <small>
                 {d.opponent.display_name}

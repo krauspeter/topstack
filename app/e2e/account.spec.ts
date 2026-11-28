@@ -155,7 +155,7 @@ test('Profil: Mitglieder der Gruppe, Name und Lieblingsfarben speichern, Einladu
 
   await page.goto('/');
   await page.getByRole('button', { name: /Angemeldet als Anna/ }).click();
-  await expect(page.getByRole('heading', { name: 'Profil' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Profil', exact: true })).toBeVisible();
 
   const members = page.getByRole('list', { name: 'Mitglieder von Draft-Runde' });
   await expect(members.getByRole('listitem')).toHaveText([/^Anna\s*du$/, 'Ben', /^Chris\s*ohne Konto$/]);
@@ -183,4 +183,27 @@ test('Abmelden', async ({ page }) => {
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole('button', { name: 'Anmelden' })).toBeVisible();
   expect(loggedOut).toBe(true);
+});
+
+test('Profilbild: Wesen aus der Vorauswahl wählen und wieder entfernen (TC-168)', async ({ page }) => {
+  await mockMe(page, ME);
+  await page.route(`**/api/v1/groups/${ME.groups[0].id}/players`, (route) => json(route, 200, []));
+  let body: unknown = 'leer';
+  await page.route('**/api/v1/me/avatar', (route) => {
+    if (route.request().method() === 'DELETE') return json(route, 200, { ...ME, avatar: null });
+    body = route.request().postDataJSON();
+    return json(route, 200, { ...ME, avatar: 'preset:drache' });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: /Angemeldet als Anna/ }).click();
+  const picker = page.getByRole('region', { name: 'Profilbild' });
+  await expect(picker.getByRole('group', { name: 'Wesen wählen' }).getByRole('button')).toHaveCount(16);
+  await picker.getByRole('button', { name: 'Drache' }).click();
+  expect(body).toEqual({ preset: 'drache' });
+  await expect(picker.getByRole('img', { name: 'Anna: Drache' })).toBeVisible();
+  await expect(picker.getByRole('button', { name: 'Drache' })).toHaveAttribute('aria-pressed', 'true');
+
+  await picker.getByRole('button', { name: 'Profilbild entfernen' }).click();
+  await expect(picker.getByRole('img', { name: 'Anna: Drache' })).toHaveCount(0);
 });
