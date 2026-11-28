@@ -12,8 +12,10 @@ from topstack.api.deps import CurrentUser, Db
 from topstack.api.problems import problem
 from topstack.db.models import Player
 from topstack.domain.elo import START, EloState
+from topstack.domain.h2h import matrix, pair
 from topstack.domain.leaderboard import Record, leaderboard, player_stats, rate
 from topstack.services import elo as elo_svc
+from topstack.services import h2h as h2h_svc
 from topstack.services import leaderboard as svc
 
 router = APIRouter(tags=["Rangliste"])
@@ -241,4 +243,116 @@ async def get_player_stats(
             color_records(s.vs_color),
             key=lambda x: (-x.losses, x.win_rate, x.key),
         ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Head-to-Head (Phase 5, AP-6, F-22)
+# ---------------------------------------------------------------------------
+
+
+class H2HPlayerOut(BaseModel):
+    player_id: uuid.UUID
+    display_name: str
+
+
+class H2HPairOut(RecordOut):
+    """Bilanz von ``player_id`` gegen ``opponent_id``."""
+
+    player_id: uuid.UUID
+    opponent_id: uuid.UUID
+    games_won: int
+    games_lost: int
+    imported: int  # davon aus den Altdaten
+
+
+class H2HTableOut(BaseModel):
+    players: list[H2HPlayerOut]  # nach Name
+    pairs: list[H2HPairOut]  # beide Richtungen
+
+
+class MeetingOut(BaseModel):
+    played_on: date
+    set_code: str
+    games_won: int  # aus Sicht des ersten Spielers
+    games_lost: int
+    imported: bool
+
+
+class H2HDuelOut(RecordOut):
+    player: H2HPlayerOut
+    opponent: H2HPlayerOut
+    games_won: int
+    games_lost: int
+    imported: int
+    elo: float
+    opponent_elo: float
+    meetings: list[MeetingOut]  # neueste zuerst, höchstens 10
+
+
+@router.get("/groups/{gid}/head-to-head")
+async def head_to_head_table(gid: uuid.UUID, user: CurrentUser, db: Db) -> H2HTableOut:
+    """Alle Paarungen der Gruppe über alle Zeit, mit Altdaten (markiert)."""
+    await _member(db, gid, user)
+    found, players = await h2h_svc.meetings(db, gid)
+    pairs = matrix(found)
+    return H2HTableOut(
+        players=sorted(
+            (H2HPlayerOut(player_id=p.id, display_name=p.display_name) for p in players.values()),
+            key=lambda p: p.display_name.lower(),
+        ),
+        pairs=[
+            H2HPairOut(
+                player_id=a,
+                opponent_id=b,
+                wins=p.wins,
+                draws=p.draws,
+                losses=p.losses,
+                games_won=p.games_won,
+                games_lost=p.games_lost,
+                imported=p.imported,
+            )
+            for (a, b), p in pairs.items()
+        ],
+    )
+
+
+@router.get("/groups/{gid}/head-to-head/{pid}/{oid}")
+async def head_to_head_duel(
+    gid: uuid.UUID, pid: uuid.UUID, oid: uuid.UUID, user: CurrentUser, db: Db
+) -> H2HDuelOut:
+    """Direktvergleich zweier Spieler; auch ohne gemeinsame Matches."""
+    await _member(db, gid, user)
+    people = {}
+    for x in (pid, oid):
+        p = await db.get(Player, x)
+        if p is None or p.group_id != gid or p.kind == "guest":
+            raise problem(404, "Spieler nicht gefunden.")
+        people[x] = H2HPlayerOut(player_id=p.id, display_name=p.display_name)
+    if pid == oid:
+        raise problem(422, "Bitte zwei verschiedene Spieler wählen.")
+    found, _ = await h2h_svc.meetings(db, gid)
+    d = pair(found, pid, oid)
+    elo = await elo_svc.group_elo(db, gid)
+    return H2HDuelOut(
+        player=people[pid],
+        opponent=people[oid],
+        wins=d.wins,
+        draws=d.draws,
+        losses=d.losses,
+        games_won=d.games_won,
+        games_lost=d.games_lost,
+        imported=d.imported,
+        elo=round(elo.get(pid, EloState()).rating, 1),
+        opponent_elo=round(elo.get(oid, EloState()).rating, 1),
+        meetings=[
+            MeetingOut(
+                played_on=m.played_on,
+                set_code=m.set_code,
+                games_won=m.games_a if m.a == pid else m.games_b,
+                games_lost=m.games_b if m.a == pid else m.games_a,
+                imported=m.imported,
+            )
+            for m in reversed(d.meetings[-10:])
+        ],
     )
