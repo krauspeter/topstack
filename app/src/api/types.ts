@@ -451,3 +451,42 @@ export interface EloPoint {
   opponent_id: string | null;
   opponent: string | null;
 }
+
+/** Head-to-Head (Phase 5, AP-6). */
+export interface H2HPlayer {
+  player_id: string;
+  display_name: string;
+}
+
+export interface H2HPair extends WinRecord {
+  player_id: string;
+  opponent_id: string;
+  games_won: number;
+  games_lost: number;
+  /** Davon aus den Altdaten. */
+  imported: number;
+}
+
+export interface H2HTable {
+  players: H2HPlayer[];
+  pairs: H2HPair[];
+}
+
+export interface Meeting {
+  played_on: string;
+  set_code: string;
+  games_won: number;
+  games_lost: number;
+  imported: boolean;
+}
+
+export interface H2HDuel extends WinRecord {
+  player: H2HPlayer;
+  opponent: H2HPlayer;
+  games_won: number;
+  games_lost: number;
+  imported: number;
+  elo: number;
+  opponent_elo: number;
+  meetings: Meeting[];
+}

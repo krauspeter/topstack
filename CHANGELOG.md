@@ -15,6 +15,10 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ### Added
 
+- Head-to-head (design B): the leaderboard gets a third view "Duelle" with your
+  record against every opponent, a bar of wins, draws and losses and your
+  nemesis marked; a duel shows the score like a scoreboard, both Elo ratings
+  and all meetings, legacy ones marked; also reachable from a player's stats (#)
 - Elo in the app (design B, ADR-0020): the leaderboard switches between points
   and an Elo ladder with a mini trend per player; a player's stats compare their
   Elo with yours, show what a win or loss against them would change and list
