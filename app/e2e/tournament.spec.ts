@@ -407,14 +407,19 @@ test('Siegerehrung nach dem Abschluss', async ({ page }) => {
   const state = tournament('finished', PLAYERS, {
     actions: [],
     rounds: [{ number: 1, status: 'finished', bye: null, matches: [match('m1', PETER, BEN, { status: 'finished', games_a: 2 })] }],
-    standings: [done(ME_PLAYER, 'Peter', 1, 6, 5), done('p-chris', 'Chris', 2, 3, 3), done('p-ben', 'Ben', 3, 0, 1)],
+    standings: [done(ME_PLAYER, 'Maximilian', 1, 6, 5), done('p-chris', 'Christopher', 2, 3, 3), done('p-ben', 'Sebastian', 3, 0, 1)],
   });
   await page.route(`**/api/v1/tournaments/${TID}`, (route) => json(route, 200, state));
+  // Schmales Handy und lange Namen (Feedback #203)
+  await page.setViewportSize({ width: 360, height: 800 });
   await page.goto(`/turnier/${TID}`);
   const ceremony = page.getByTestId('ceremony');
   await expect(ceremony.getByRole('heading', { name: 'Siegerehrung' })).toBeVisible();
   await expect(ceremony.getByRole('listitem')).toHaveCount(3);
-  await expect(ceremony.getByRole('listitem').first()).toContainText('Peter');
+  await expect(ceremony.getByRole('listitem').first()).toContainText('Maximilian');
+  // Namen in Textgröße, nicht in der Größe der Tasten des Life-Trackers (Klasse „step“ kollidierte)
+  const nameSize = await ceremony.getByText('Christopher').evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+  expect(nameSize).toBeLessThan(20);
   await expect(ceremony.getByRole('listitem').first()).toContainText('+5');
   // Podest 2-1-3: Platz 1 steht in der Mitte
   const box = async (i: number) => (await ceremony.getByRole('listitem').nth(i).boundingBox())!.x;

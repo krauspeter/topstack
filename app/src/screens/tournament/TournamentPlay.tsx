@@ -569,7 +569,7 @@ function Ceremony({ standings, entries }: { standings: Standing[]; entries: Tour
         {podium.map((s) => {
           const colors = colorsOf(s.player_id);
           return (
-            <li key={s.player_id} className={`step step-${place(s)}`}>
+            <li key={s.player_id} className={`podium-step place-${place(s)}`}>
               <div className="step-name">
                 {place(s) === 1 && (
                   <svg className="crown" viewBox="0 0 24 16" aria-hidden="true">
