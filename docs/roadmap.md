@@ -228,6 +228,7 @@ Dauer etwa 11 Wochen ab 28.11.2026 (vorgezogen am 27.11.2026). v1.1 öffnet TopS
 - [ ] Tisch-Modus fürs Tablet
 - [ ] Ruhe im Match (N-06, 28.11.2026): eigene Push-Nachrichten während des eigenen Matches zurückhalten und danach gesammelt schicken; Hinweis „Nicht stören“ beim Matchstart; Bildschirm bleibt in der Turnier-Ansicht an, solange man im laufenden Turnier mitspielt, mit Hinweis, wenn das Handy die Sperre verweigert (Energiesparmodus); keine Tasten im oberen Rand des Life-Trackers
 - [ ] Stabile Updates (N-07, ADR-0021, 28.11.2026): Abgleich der Update-Nummer mit dem Server, Hinweis „Neue Version da“, Notausgang „App zurücksetzen“, Cloudflare Access auf Beta nur vor der API; vor AP-7
+- [ ] Profilbilder (28.11.2026): Vorauswahl eigener Fantasy-Wesen und eigene Bilder, ein Bild je Konto, Admin wählt für Spieler ohne Konto; Anzeige in Siegerehrung, Rangliste, Duellen, Turnier und Live-Ansicht; vor AP-7 (AP-15)
 - ~~Google-Login sowie Benutzername und Passwort~~: gestrichen am 27.11.2026, niemand in der Gruppe braucht es (Issue bleibt im Backlog)
 - [x] Vorab: Backlog-Skript (`scripts/backlog.tsv`) an den Versionsplan vom 22.11.2026 angepasst (27.11.2026); GitHub-Aufräumen in AP-0
 
