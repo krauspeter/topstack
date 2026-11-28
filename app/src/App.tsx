@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from './api/client';
 import { useWakeLock } from './hooks';
 import { useLocation } from './router';
@@ -25,6 +25,7 @@ import { deviceId, useMatch } from './store/useMatch';
 import { controls } from './domain/match';
 import { fromApi, lobbyFrom, remoteStatus } from './domain/remote';
 import { useSync } from './store/useSync';
+import { setMatchActive } from './store/appUpdate';
 import { playerColors } from './theme';
 
 type Screen = 'home' | 'setup' | 'seating';
@@ -44,6 +45,9 @@ export function App() {
   const { record, state } = match;
 
   useWakeLock(url.pathname === '/' && (record !== null || screen === 'seating'));
+  // Läuft ein Match, wartet der Hinweis auf eine neue Version bis danach (AP-14, N-06)
+  const inMatch = record !== null && state !== null && state.phase !== 'finished';
+  useEffect(() => setMatchActive(inMatch), [inMatch]);
 
   const home = () => navigate('/');
 

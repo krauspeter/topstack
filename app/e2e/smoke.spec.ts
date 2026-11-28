@@ -115,8 +115,8 @@ test('Startbildschirm zeigt, welches Update läuft', async ({ page }) => {
   );
   await page.goto('/');
   const build = page.getByTestId('build');
-  // Lokal und in der CI ohne Build-Angaben: Entwicklungsstand; der Server meldet ein anderes Update
-  await expect(build).toContainText('Entwicklungsstand');
+  // Die E2E-Builds tragen Update #100 (vite --mode e2e); der Server meldet ein anderes Update
+  await expect(build).toContainText('Update #100');
   await expect(build).toContainText(/v\d+\.\d+\.\d+/);
   await expect(build).toContainText('Server #999');
 });

@@ -218,9 +218,9 @@ test('Cloudflare-Anmeldung abgelaufen (Staging): Hinweis und neu anmelden über 
   });
 
   await page.goto('/');
-  const note = page.getByRole('status');
+  const note = page.getByRole('status').filter({ hasText: 'Cloudflare' });
   await expect(note).toContainText('Anmeldung bei Cloudflare abgelaufen');
-  await note.getByRole('button', { name: 'Seite neu laden' }).click();
+  await note.getByRole('button', { name: 'Bei Cloudflare anmelden' }).click();
   await expect.poll(() => returned).toBe(true);
 });
 

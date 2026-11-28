@@ -6,6 +6,7 @@ import { createPasskey, passkeysSupported } from '../../api/passkeys';
 import type { DeletedGroup, GroupDetail, InvitationCreated, Me } from '../../api/types';
 import { MANA, type Mana, choiceName, describeColors, normalizeColors } from '../../domain/colors';
 import { choiceSurface } from '../../theme';
+import { ResetAppButton } from '../../UpdateBanner';
 
 interface Props {
   me: Me;
@@ -258,6 +259,12 @@ export function Profile({ me, onChange, onSignOut, onBack, onFeedback, onOpenGro
       <button className="btn" onClick={onFeedback}>
         Feedback geben: Fehler oder Wunsch melden
       </button>
+
+      <section className="stack">
+        <h3>Hängt die App?</h3>
+        <p className="muted small">Zeigt sie eine alte Version oder lädt nicht richtig, hilft Zurücksetzen. Spielstände und Anmeldung bleiben.</p>
+        <ResetAppButton />
+      </section>
 
       <button className="btn danger" onClick={onSignOut} disabled={busy}>
         Abmelden

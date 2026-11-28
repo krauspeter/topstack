@@ -14,9 +14,12 @@ const build = {
   sha: (process.env.BUILD_SHA ?? '').slice(0, 7),
   time: process.env.BUILD_TIME ?? '',
 };
+// Für die E2E-Tests (vite build --mode e2e): feste Update-Nummer #100, damit die Hinweise auf
+// eine neuere Version (AP-14) geprüft werden können
+const E2E_BUILD = { ...build, pr: '100' };
 
-export default defineConfig({
-  define: { __BUILD__: JSON.stringify(build) },
+export default defineConfig(({ mode }) => ({
+  define: { __BUILD__: JSON.stringify(mode === 'e2e' ? E2E_BUILD : build) },
   plugins: [
     react(),
     VitePWA({
@@ -60,4 +63,4 @@ export default defineConfig({
     proxy: { '/api': 'http://localhost:8000', '/ws': { target: 'ws://localhost:8000', ws: true } },
   },
   test: { include: ['src/**/*.test.ts'] },
-});
+}));
