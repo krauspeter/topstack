@@ -145,18 +145,18 @@ AP-1 kommt zuerst, weil fast alles danach die aktive Gruppe und die Rechteprüfu
 
 **Server**
 
-- [ ] Migration: `import_run`, `tournament.import_run_id`
-- [ ] CSV-Prüfung ohne Speichern: Pflichtfelder Datum, Spieler, Platz; Set und Matches optional; Set-Kürzel gegen eine Liste offizieller Kürzel, unbekannt wird `UNK`; Fehlerliste mit Zeilennummer; Namensabgleich mit vorhandenen Spielern, neue Namen werden Ehemalige
-- [ ] Übernehmen in einer Transaktion; Turniere zählen in die Saison ihres Datums und in die ewige Tabelle, nicht in die Elo
-- [ ] Importlauf zurücknehmen
-- [ ] Tests mit den Beispiel-CSVs aus der Roadmap, mit Fehlern, mit Rücknahme
+- [x] Migration 0006: `import_run`, `tournament.import_run_id`
+- [x] CSV-Prüfung ohne Speichern (Komma oder Semikolon): Pflichtfelder Datum, Spieler, Platz; Set und Matches optional; leer oder „?“ wird `UNK` (keine Liste offizieller Kürzel, Draft-Namen wie „Cube“ bleiben erlaubt); Fehlerliste mit Zeilennummer; Namensabgleich mit vorhandenen Spielern, neue Namen werden Ehemalige
+- [x] Übernehmen in einer Transaktion; Turniere zählen in die Saison ihres Datums und in die ewige Tabelle, nicht in die Elo
+- [x] Importlauf zurücknehmen
+- [x] Tests mit den Beispiel-CSVs aus der Roadmap, mit Fehlern, mit Rücknahme (`tests/domain/test_legacy.py`, `tests/api/test_imports.py`)
 
 **App (nur Admins)**
 
-- [ ] Bildschirm „Altdaten“: CSV-Vorlagen herunterladen, zwei Dateien hochladen, Vorschau (Turniere, Spieler, neue Ehemalige, Fehler), Übernehmen, Liste der Läufe mit „Zurücknehmen“
-- [ ] Formular für ein einzelnes Turnier (Papier): Datum, Set, Teilnehmer mit Platz, optional Matches
-- [ ] Importierte Turniere mit Kennzeichen „importiert“ in Turnierliste, Rangliste und Statistik
-- [ ] E2E: Import mit Vorschau, Übernehmen, Rücknahme
+- [x] Bildschirm „Altdaten“ (Gruppe → Verwalten): CSV-Vorlagen herunterladen, zwei Dateien hochladen, Vorschau (Turniere, Spieler, neue Ehemalige, Fehler), Übernehmen, Liste der Läufe mit „Zurücknehmen“
+- [x] Formular für ein einzelnes Turnier (Papier): Datum, Set, Teilnehmer mit Platz (Matches nur über die API)
+- [x] Importierte Turniere mit Kennzeichen „importiert“ in Turnierliste und Turnier-Ansicht; Tabelle folgt den Plätzen aus den Unterlagen. Offen: Die Turnierliste zeigt nur die neuesten 20
+- [x] E2E: Import mit Vorschau, Übernehmen, Rücknahme
 
 **Altdaten (Peter)**
 
@@ -168,9 +168,9 @@ AP-1 kommt zuerst, weil fast alles danach die aktive Gruppe und die Rechteprüfu
 
 ### AP-5 · Elo (ca. 5 h) · Branch `feat/p5-elo` · F-19, ADR-0019
 
-- [ ] `server/topstack/domain/elo.py`: reine Funktion über die sortierten Matches; Start 1000, K = 40 für die ersten 10 Matches, danach 32; Unentschieden 0,5; Gäste und importierte Turniere zählen nicht; alle Matches seit v1.0 (E5)
-- [ ] Gruppen-Elo je Spieler, globale Elo je Konto; Zwischenspeicher, der bei jedem Ergebnis ungültig wird
-- [ ] Migration: `elo_rating` entfernen
+- [x] `server/topstack/domain/elo.py`: reine Funktion über die sortierten Matches; Start 1000, K = 40 für die ersten 10 Matches, danach 32; Unentschieden 0,5; Gäste und importierte Turniere zählen nicht; alle Matches seit v1.0 (E5)
+- [x] Gruppen-Elo je Spieler, globale Elo je Konto (`services/elo.py`); ohne Zwischenspeicher, weil die Rechnung bei einigen hundert Matches Millisekunden dauert
+- [x] Migration 0007: `elo_rating` entfernen
 - [ ] Anzeige: Spalte Elo in der Rangliste, Elo und Verlauf im Profil
 - [ ] Unit-Tests mit von Hand gerechneten Beispielen (Sieg, Unentschieden, K-Wechsel nach 10 Matches, Korrektur rechnet neu)
 
@@ -229,6 +229,16 @@ AP-1 kommt zuerst, weil fast alles danach die aktive Gruppe und die Rechteprüfu
 - [ ] E2E mit Tablet-Viewport
 
 **Fertig, wenn:** Das Tablet zeigt einen ganzen Abend lang den Stand, ohne dass jemand tippt.
+
+### AP-13 · Ruhe im Match (ca. 4 h) · Branch `feat/p5-quiet-match` · N-06, ergänzt am 28.11.2026
+
+- [ ] Server hält Push-Nachrichten an ein Konto zurück, solange dessen Match läuft, und schickt sie nach Matchende gesammelt; Ausnahme: Abbruch beantragt
+- [ ] Hinweis „Nicht stören einschalten?“ beim Matchstart mit Anleitung für Android und iPhone, „Nicht mehr zeigen“
+- [ ] Bildschirm bleibt in der Turnier-Ansicht an, solange man im laufenden Turnier mitspielt; Hinweis, wenn das Handy die Sperre verweigert
+- [ ] Life-Tracker ohne Tasten im oberen Rand (Banner anderer Apps)
+- [ ] Tests: zurückgehaltene Push-Nachricht kommt nach Matchende, Hinweis nur einmal
+
+**Fertig, wenn:** Während eines Matches kommt keine Nachricht von TopStack, und der Bildschirm bleibt im ganzen Turnier an.
 
 ### AP-12 · Release v1.1.1 (ca. 1 h)
 

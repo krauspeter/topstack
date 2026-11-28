@@ -11,7 +11,9 @@ from pydantic import BaseModel
 from topstack.api.deps import CurrentUser, Db
 from topstack.api.problems import problem
 from topstack.db.models import Player
+from topstack.domain.elo import START, EloState
 from topstack.domain.leaderboard import Record, leaderboard, player_stats, rate
+from topstack.services import elo as elo_svc
 from topstack.services import leaderboard as svc
 
 router = APIRouter(tags=["Rangliste"])
@@ -39,6 +41,8 @@ class LeaderboardRowOut(BaseModel):
     ranking_points: int
     match_points: int
     avg_match_points: float
+    elo: float  # Gruppen-Elo, über alle Saisons (AP-5)
+    elo_matches: int
 
 
 class LeaderboardOut(BaseModel):
@@ -67,9 +71,18 @@ class CountOut(BaseModel):
     count: int
 
 
+class EloPointOut(BaseModel):
+    played_on: date
+    rating: float
+
+
 class PlayerStatsOut(BaseModel):
     player_id: uuid.UUID
     display_name: str
+    elo: float  # Gruppen-Elo über alle Saisons, unabhängig vom Filter (AP-5)
+    elo_matches: int
+    elo_global: float | None  # über alle Gruppen, nur mit Konto
+    elo_history: list[EloPointOut]  # nach jedem Match
     tournaments: int
     tournament_wins: int
     ranking_points: int
@@ -129,6 +142,7 @@ async def get_leaderboard(
     """Rangliste: ohne ``season`` gesamt; ``from``/``to`` grenzen nach Turnierdatum ein."""
     await _member(db, gid, user)
     res = await svc.load(db, gid, _filter(season, since, until))
+    elo = await elo_svc.group_elo(db, gid)
     return LeaderboardOut(
         tournaments=len(res.tournaments),
         rows=[
@@ -142,6 +156,8 @@ async def get_leaderboard(
                 ranking_points=r.ranking_points,
                 match_points=r.match_points,
                 avg_match_points=r.avg_match_points,
+                elo=round(elo[r.player].rating if r.player in elo else START, 1),
+                elo_matches=elo[r.player].matches if r.player in elo else 0,
             )
             for r in leaderboard(res.tournaments, res.rules)
         ],
@@ -165,6 +181,12 @@ async def get_player_stats(
     if player is None or player.group_id != gid:
         raise problem(404, "Spieler nicht gefunden.")
     s = player_stats(res.tournaments, pid)
+    own = (await elo_svc.group_elo(db, gid)).get(pid, EloState())
+    glob = (
+        (await elo_svc.global_elo(db)).get(player.app_user_id, EloState())
+        if player.app_user_id
+        else None
+    )
     names = {k: p.display_name for k, p in res.players.items()}
 
     def counts(c: Counter[str]) -> list[CountOut]:
@@ -181,6 +203,10 @@ async def get_player_stats(
     return PlayerStatsOut(
         player_id=pid,
         display_name=player.display_name,
+        elo=round(own.rating, 1),
+        elo_matches=own.matches,
+        elo_global=round(glob.rating, 1) if glob else None,
+        elo_history=[EloPointOut(played_on=p.played_on, rating=p.rating) for p in own.history],
         tournaments=s.tournaments,
         tournament_wins=s.tournament_wins,
         ranking_points=s.ranking_points,

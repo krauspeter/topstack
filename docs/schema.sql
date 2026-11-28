@@ -278,17 +278,8 @@ CREATE TABLE game_event (
 CREATE INDEX game_event_game_idx ON game_event (game_id, client_ts);
 
 -- ---------------------------------------------------------------------------
--- v1.1: Elo, Awards
+-- v1.1: Awards (Elo wird berechnet, ADR-0019)
 -- ---------------------------------------------------------------------------
-CREATE TABLE elo_rating (
-    player_id   uuid NOT NULL REFERENCES player(id) ON DELETE CASCADE,
-    scope       text NOT NULL CHECK (scope IN ('group', 'global')),
-    rating      numeric(7,2) NOT NULL DEFAULT 1000,
-    matches     int NOT NULL DEFAULT 0,
-    updated_at  timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (player_id, scope)
-);
-
 CREATE TABLE award (
     id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     group_id       uuid NOT NULL REFERENCES play_group(id) ON DELETE CASCADE,

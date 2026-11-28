@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from topstack.db.models import (
     Award,
-    EloRating,
     Game,
     GameEvent,
     Match,
@@ -112,7 +111,6 @@ async def merge(db: AsyncSession, p: MergePlan) -> None:
     )
     for col in _player_columns():
         await db.execute(update(col.table).where(col == src).values({col.name: dst}))
-    await db.execute(delete(EloRating).where(EloRating.player_id == src))
     # Ein Gast oder Ehemaliger, der in einem Vorgemerkten aufgeht, macht diesen nicht zum Gast
     if p.target.kind == "guest" and p.source.kind in ("reserved", "former"):
         p.target.kind = p.source.kind
