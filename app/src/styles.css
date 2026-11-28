@@ -308,23 +308,25 @@ input { min-width: 0; max-width: 100%; }
 /* Siegerehrung (UC-17): Podest 2-1-3, Stufen wachsen nacheinander, danach Konfetti */
 .trophy { position: relative; overflow: hidden; }
 .podium { list-style: none; padding: 0; margin: 8px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 8px; }
-.podium .step { display: grid; gap: 8px; justify-items: center; text-align: center; }
-.podium .step-1 { order: 2; }
-.podium .step-2 { order: 1; }
-.podium .step-3 { order: 3; }
-.step-name { display: grid; gap: 4px; justify-items: center; min-width: 0; overflow-wrap: anywhere; }
+.podium-step { display: grid; gap: 8px; justify-items: center; text-align: center; min-width: 0; }
+.podium-step.place-1 { order: 2; }
+.podium-step.place-2 { order: 1; }
+.podium-step.place-3 { order: 3; }
+/* Namen: normale Größe, Umbruch an Wortgrenzen; nur sehr lange einzelne Wörter brechen (Feedback #203) */
+.step-name { display: grid; gap: 4px; justify-items: center; min-width: 0; max-width: 100%; font-size: 0.95rem; line-height: 1.25; color: var(--text); overflow-wrap: break-word; hyphens: auto; }
+.step-name strong { display: block; max-width: 100%; }
 .step-block { width: 100%; display: grid; place-items: center; border-radius: 10px 10px 4px 4px; background: var(--surface-2, #262633); border: 1px solid var(--line); font-size: 1.6rem; font-weight: 700; transform-origin: bottom; }
-.step-1 .step-block { height: 120px; background: color-mix(in srgb, var(--gold) 22%, var(--surface)); border-color: var(--gold); color: var(--gold); }
-.step-2 .step-block { height: 86px; }
-.step-3 .step-block { height: 60px; }
+.place-1 .step-block { height: 120px; background: color-mix(in srgb, var(--gold) 22%, var(--surface)); border-color: var(--gold); color: var(--gold); }
+.place-2 .step-block { height: 86px; }
+.place-3 .step-block { height: 60px; }
 .crown { width: 30px; fill: var(--gold); }
 .confetti { position: absolute; inset: 0; pointer-events: none; }
 .confetti i { position: absolute; top: -12px; width: 8px; height: 12px; border-radius: 2px; opacity: 0; }
 @media (prefers-reduced-motion: no-preference) {
-  .podium .step { animation: step-in 0.5s ease-out both; }
-  .podium .step-3 { animation-delay: 0.1s; }
-  .podium .step-2 { animation-delay: 0.45s; }
-  .podium .step-1 { animation-delay: 0.8s; }
+  .podium-step { animation: step-in 0.5s ease-out both; }
+  .podium-step.place-3 { animation-delay: 0.1s; }
+  .podium-step.place-2 { animation-delay: 0.45s; }
+  .podium-step.place-1 { animation-delay: 0.8s; }
   .step-block { animation: rise 0.6s cubic-bezier(.2,.9,.3,1.2) both; animation-delay: inherit; }
   .crown { animation: crown 0.5s ease-out 1.3s both; }
   .confetti i { animation: confetti 2.6s ease-in forwards; }

@@ -193,7 +193,7 @@ Anlass: Beta hing auf PC und Handy tagelang auf Update #164, weil Cloudflare Acc
 
 - [x] Access-Anwendung „TopStack Beta“ nur noch für `beta.topstack.win/api` und `/ws`, „TopStack Beta – App“ (Bypass) für den Rest; geprüft ohne Anmeldung: App-Dateien 200, API und `/ws` leiten zur Anmeldung um (28.11.2026)
 - [x] Cloudflare „Browser Cache TTL“ auf „Respect Existing Headers“, damit `sw.js` mit `no-cache` ankommt (28.11.2026)
-- [ ] Uptime Kuma: Monitor „Beta App“ auf `https://beta.topstack.win/sw.js`, ohne Anmeldung, erwartet 200
+- [x] Uptime Kuma: Monitor „Beta App“ auf `https://beta.topstack.win/sw.js`, ohne Anmeldung, erwartet 200; online mit ntfy (28.11.2026)
 
 **App**
 
@@ -209,7 +209,7 @@ Anlass: Beta hing auf PC und Handy tagelang auf Update #164, weil Cloudflare Acc
 - [x] Smoke-Test in der CI: `sw.js`, `index.html`, `/assets` im Staging-Stack mit den erwarteten Cache-Headern (TC-165)
 - [x] Anleitung in `docs/phase3/heimserver.md`, Abschnitt „Access nur vor der API“ (Access-Pfade, Monitor)
 
-**Fertig, wenn:** Nach abgelaufener Access-Sitzung zeigt Beta auf dem Handy ohne Löschen von Website-Daten die neueste Version, und „App zurücksetzen“ behält einen laufenden Spielstand.
+**Fertig, wenn:** Nach abgelaufener Access-Sitzung zeigt Beta auf dem Handy ohne Löschen von Website-Daten die neueste Version, und „App zurücksetzen“ behält einen laufenden Spielstand. **Erledigt am 28.11.2026:** Handy nach einmaligem Aufräumen auf dem neuen Stand, Access und Cache geprüft.
 
 ### AP-7 · Zuschauer-Link (ca. 3 h) · Branch `feat/p5-spectator`
 

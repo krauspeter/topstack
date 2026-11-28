@@ -20,6 +20,9 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ### Fixed
 
+- Award ceremony: names on the podium had the size of the life tracker buttons
+  because both used the class "step"; they now show in text size and wrap at
+  word boundaries on narrow phones (#208, feedback #203)
 - Staging passes the feedback token to the API; without it beta feedback stayed
   in the database (#202)
 - The app no longer hangs unnoticed on an old version (ADR-0021): it compares
