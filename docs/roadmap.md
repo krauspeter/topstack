@@ -99,6 +99,7 @@ Bewusst nicht vorgesehen: Archetypen, Fotos, Mulligans. Gift und weitere Zähler
 | N-04 | Live-Ansicht aktualisiert sich bei allen in unter 2 Sekunden | Should | v1.0 |
 | N-05 | Betrieb für fremde Nutzer: Lasttest, DSGVO, Konto in der App löschbar | Must (v4.0) | geplant |
 | N-06 | Ruhe im Match: Während eines laufenden Matches stören weder TopStack noch das Handy; eigene Push-Nachrichten warten bis Matchende, Hinweis auf „Nicht stören“, Bildschirm bleibt im ganzen laufenden Turnier an. Fremde Apps lassen sich aus der PWA nicht stummschalten, das kann erst die Android-App (28.11.2026) | Should | v1.1, „Nicht stören“ automatisch v4.0 |
+| N-07 | Stabile Updates: Keine App hängt unbemerkt auf einer alten Version. Sie erkennt neuere Stände am Server, bietet das Update mit einem Knopf an (nicht mitten im Match), führt bei abgelaufener Cloudflare-Anmeldung sauber zur Anmeldung und hat einen Notausgang „App zurücksetzen“, der Spielstände behält. Auf Beta schützt Access nur die API (ADR-0021, 28.11.2026) | Must | v1.1 (AP-14) |
 
 **Punkteregeln (festgelegt am 15.11.2026)**
 
@@ -226,6 +227,7 @@ Dauer etwa 11 Wochen ab 28.11.2026 (vorgezogen am 27.11.2026). v1.1 öffnet TopS
 - [ ] Teilen-Bild nach dem Turnier, Lebenspunkte-Kurve
 - [ ] Tisch-Modus fürs Tablet
 - [ ] Ruhe im Match (N-06, 28.11.2026): eigene Push-Nachrichten während des eigenen Matches zurückhalten und danach gesammelt schicken; Hinweis „Nicht stören“ beim Matchstart; Bildschirm bleibt in der Turnier-Ansicht an, solange man im laufenden Turnier mitspielt, mit Hinweis, wenn das Handy die Sperre verweigert (Energiesparmodus); keine Tasten im oberen Rand des Life-Trackers
+- [ ] Stabile Updates (N-07, ADR-0021, 28.11.2026): Abgleich der Update-Nummer mit dem Server, Hinweis „Neue Version da“, Notausgang „App zurücksetzen“, Cloudflare Access auf Beta nur vor der API; vor AP-7
 - ~~Google-Login sowie Benutzername und Passwort~~: gestrichen am 27.11.2026, niemand in der Gruppe braucht es (Issue bleibt im Backlog)
 - [x] Vorab: Backlog-Skript (`scripts/backlog.tsv`) an den Versionsplan vom 22.11.2026 angepasst (27.11.2026); GitHub-Aufräumen in AP-0
 
