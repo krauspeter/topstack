@@ -33,6 +33,8 @@ class EloMatch[P: Hashable]:
 class EloPoint:
     played_on: date
     rating: float
+    opponent: Hashable = None  # Gegner in diesem Match
+    delta: float = 0.0  # Änderung durch dieses Match
 
 
 @dataclass
@@ -44,6 +46,11 @@ class EloState:
     @property
     def k(self) -> int:
         return K_NEW if self.matches < NEW_MATCHES else K
+
+    def trend(self, points: int = 8) -> list[float]:
+        """Die letzten Stände für eine Mini-Kurve, vorne mit dem Startwert aufgefüllt."""
+        last = [p.rating for p in self.history[-points:]]
+        return [START] * (points - len(last)) + last
 
 
 def expected(rating: float, other: float) -> float:
@@ -68,7 +75,7 @@ def ratings[P: Hashable](matches: Iterable[EloMatch[P]]) -> dict[P, EloState]:
         delta_b = b.k * ((1 - s) - (1 - ea))
         a.rating += delta_a
         b.rating += delta_b
-        for st in (a, b):
+        for st, other, delta in ((a, m.b, delta_a), (b, m.a, delta_b)):
             st.matches += 1
-            st.history.append(EloPoint(m.played_on, round(st.rating, 1)))
+            st.history.append(EloPoint(m.played_on, round(st.rating, 1), other, round(delta, 1)))
     return states

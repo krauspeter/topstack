@@ -162,3 +162,83 @@ test('Leere Rangliste', async ({ page }) => {
   await page.goto('/rangliste');
   await expect(page.getByTestId('empty')).toHaveText('Noch keine abgeschlossenen Turniere.');
 });
+
+test('Elo-Leiter, Vergleich mit mir und letzte Matches (AP-5)', async ({ page }) => {
+  await page.route('**/api/v1/me', (route) =>
+    json(route, 200, {
+      id: 'u1',
+      email: 'peter@example.org',
+      display_name: 'Peter',
+      favorite_colors: '',
+      locale: 'de',
+      has_passkey: true,
+      groups: [{ id: GROUP, name: 'Draft-Runde', role: 'admin', player_id: PETER }],
+    }),
+  );
+  await page.route(`**/api/v1/groups/${GROUP}/seasons`, (route) => json(route, 200, []));
+  const elo = (r: ReturnType<typeof row>, value: number, matches: number, trend: number[]) => ({
+    ...r,
+    elo: value,
+    elo_matches: matches,
+    elo_trend: trend,
+  });
+  await page.route(`**/api/v1/groups/${GROUP}/leaderboard**`, (route) =>
+    json(route, 200, {
+      tournaments: 2,
+      rows: [
+        elo(row(1, PETER, 'Peter', 10, 12), 1061, 38, [1000, 1010, 1020, 1030, 1040, 1050, 1055, 1061]),
+        elo(row(2, 'p-ben', 'Ben', 8, 9), 1084, 41, [1060, 1062, 1065, 1070, 1072, 1078, 1080, 1084]),
+        elo(row(3, 'p-finn', 'Finn', 4, 3), 900, 9, [1000, 990, 970, 950, 940, 930, 910, 900]),
+      ],
+    }),
+  );
+  await page.route(`**/api/v1/groups/${GROUP}/players/p-ben/stats**`, (route) =>
+    json(route, 200, {
+      player_id: 'p-ben',
+      display_name: 'Ben',
+      elo: 1084,
+      elo_matches: 41,
+      elo_global: 1084,
+      elo_history: [
+        { played_on: '2026-12-27', rating: 1078, delta: 6, opponent_id: 'p-finn', opponent: 'Finn' },
+        { played_on: '2026-12-27', rating: 1084, delta: 6.4, opponent_id: PETER, opponent: 'Peter' },
+      ],
+      tournaments: 2,
+      tournament_wins: 0,
+      ranking_points: 8,
+      places: { '2': 2 },
+      avg_place: 2,
+      matches: { wins: 4, draws: 0, losses: 2 },
+      match_win_rate: 66.7,
+      games_won: 9,
+      games_lost: 5,
+      games_drawn: 0,
+      game_win_rate: 64.3,
+      colors: [],
+      combos: [],
+      opponents: [],
+      with_colors: [],
+      vs_colors: [],
+    }),
+  );
+
+  await page.goto('/rangliste');
+  await page.getByRole('button', { name: 'Elo', exact: true }).click();
+  const ladder = page.getByRole('list', { name: 'Rangliste nach Elo' });
+  await expect(ladder.getByRole('button')).toHaveText([/^1Ben.*1084$/, /^2Peter.*1061$/, /^3Finn.*noch neu.*900$/]);
+
+  await ladder.getByRole('button', { name: /Ben/ }).click();
+  const card = page.getByTestId('player-stats');
+  await expect(card.getByTestId('elo-duel')).toContainText('1061');
+  await expect(card.getByTestId('elo-duel')).toContainText('1084');
+  // Peter (1061, 38 Matches) gegen Ben (1084): K = 32, erwartet 0,467 → +17 / −15
+  await expect(card).toContainText('Ein Sieg gegen Ben bringt dir +17, eine Niederlage kostet −15.');
+  await expect(card.getByRole('list', { name: 'Letzte Matches mit Elo-Änderung' }).getByRole('listitem')).toHaveText([
+    /\+6 · Peter/,
+    /\+6 · Finn/,
+  ]);
+
+  // Die Wahl „Elo“ bleibt nach dem Neuladen
+  await page.reload();
+  await expect(page.getByRole('list', { name: 'Rangliste nach Elo' })).toBeVisible();
+});

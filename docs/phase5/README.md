@@ -171,8 +171,8 @@ AP-1 kommt zuerst, weil fast alles danach die aktive Gruppe und die Rechteprüfu
 - [x] `server/topstack/domain/elo.py`: reine Funktion über die sortierten Matches; Start 1000, K = 40 für die ersten 10 Matches, danach 32; Unentschieden 0,5; Gäste und importierte Turniere zählen nicht; alle Matches seit v1.0 (E5)
 - [x] Gruppen-Elo je Spieler, globale Elo je Konto (`services/elo.py`); ohne Zwischenspeicher, weil die Rechnung bei einigen hundert Matches Millisekunden dauert
 - [x] Migration 0007: `elo_rating` entfernen
-- [ ] Anzeige: Spalte Elo in der Rangliste, Elo und Verlauf im Profil
-- [ ] Unit-Tests mit von Hand gerechneten Beispielen (Sieg, Unentschieden, K-Wechsel nach 10 Matches, Korrektur rechnet neu)
+- [x] Anzeige nach Entwurf B (28.11.2026): Rangliste mit Umschalter „Punkte“/„Elo“, Elo-Leiter mit Mini-Kurve; in der Spielerstatistik Vergleich mit mir (was ein Sieg oder eine Niederlage brächte) und die letzten Matches mit Elo-Änderung. Ein eigener Profil-Bildschirm mit Statistik fehlt noch, deshalb sitzt der Vergleich in der Statistik-Karte der Rangliste
+- [x] Unit-Tests mit von Hand gerechneten Beispielen (Sieg, Unentschieden, K-Wechsel nach 10 Matches, Korrektur rechnet neu)
 
 **Fertig, wenn:** Die Rangliste zeigt die Elo, und eine Ergebniskorrektur ändert sie sofort.
 

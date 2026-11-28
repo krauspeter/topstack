@@ -279,6 +279,11 @@ export interface LeaderboardRow {
   ranking_points: number;
   match_points: number;
   avg_match_points: number;
+  /** Gruppen-Elo über alle Saisons (AP-5); fehlt bei älteren Servern. */
+  elo?: number;
+  elo_matches?: number;
+  /** Letzte 8 Stände für die Mini-Kurve. */
+  elo_trend?: number[];
 }
 
 export interface Leaderboard {
@@ -295,6 +300,10 @@ export interface WinRecord {
 export interface PlayerStats {
   player_id: string;
   display_name: string;
+  elo?: number;
+  elo_matches?: number;
+  elo_global?: number | null;
+  elo_history?: EloPoint[];
   tournaments: number;
   tournament_wins: number;
   ranking_points: number;
@@ -432,4 +441,13 @@ export interface ImportRun {
   tournaments: number;
   new_players: number;
   undone_at: string | null;
+}
+
+/** Elo nach einem Match (Phase 5, AP-5). */
+export interface EloPoint {
+  played_on: string;
+  rating: number;
+  delta: number;
+  opponent_id: string | null;
+  opponent: string | null;
 }
