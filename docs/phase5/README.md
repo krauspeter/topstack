@@ -196,17 +196,17 @@ Anlass: Beta hing auf PC und Handy tagelang auf Update #164, weil Cloudflare Acc
 
 **App**
 
-- [ ] Update-Nummer der App mit `build.pr` aus `/api/v1/health` vergleichen, beim Start und beim Zurückkehren in die App
-- [ ] Service Worker beim Öffnen und alle 30 Minuten aktiv nach Updates fragen (`registration.update()`)
-- [ ] Hinweis „Neue Version da – jetzt laden“ mit Knopf; während eines laufenden Matches erst nach Matchende
-- [ ] Abgelaufene Access-Anmeldung: Hinweis, Knopf führt zur Anmeldung und zurück an dieselbe Stelle; Life-Tracker läuft offline weiter
-- [ ] „App zurücksetzen“ im Profil und im Offline-Hinweis: Service Worker abmelden, Zwischenspeicher leeren, neu laden; IndexedDB (Spielstände, Outbox) und Anmeldung bleiben
+- [x] Update-Nummer der App mit `build.pr` aus `/api/v1/health` vergleichen, beim Start und beim Zurückkehren in die App
+- [x] Service Worker beim Öffnen und alle 30 Minuten aktiv nach Updates fragen (`registration.update()`)
+- [x] Hinweis „Neue Version da“ mit Knopf oben im Seitenfluss (verdeckt keine Knöpfe); während eines laufenden Matches erst danach; hilft Neuladen nicht, bietet er „App zurücksetzen“ an
+- [x] Abgelaufene Access-Anmeldung: Hinweis, Knopf führt zur Anmeldung und zurück an dieselbe Stelle; Life-Tracker läuft offline weiter
+- [x] „App zurücksetzen“ im Profil und im Offline-Hinweis: Service Worker abmelden, Zwischenspeicher leeren, neu laden; IndexedDB (Spielstände, Outbox) und Anmeldung bleiben
 
 **Prüfung**
 
-- [ ] E2E „veraltete App“ und „Access abgelaufen“ (TC-163, TC-164)
-- [ ] Smoke-Test in der CI: `sw.js`, `index.html`, `/assets` im Staging-Stack mit den erwarteten Cache-Headern (TC-165)
-- [ ] Anleitung in `docs/phase3/heimserver.md` (Access-Pfade, Monitor)
+- [x] E2E „veraltete App“ und „Access abgelaufen“ (TC-163, TC-164, TC-166); E2E-Builds tragen Update #100 (`vite --mode e2e`)
+- [x] Smoke-Test in der CI: `sw.js`, `index.html`, `/assets` im Staging-Stack mit den erwarteten Cache-Headern (TC-165)
+- [x] Anleitung in `docs/phase3/heimserver.md`, Abschnitt „Access nur vor der API“ (Access-Pfade, Monitor)
 
 **Fertig, wenn:** Nach abgelaufener Access-Sitzung zeigt Beta auf dem Handy ohne Löschen von Website-Daten die neueste Version, und „App zurücksetzen“ behält einen laufenden Spielstand.
 

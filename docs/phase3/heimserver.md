@@ -425,7 +425,7 @@ Reihenfolge wichtig: erst Access, dann der Hostname im Tunnel, sonst ist `beta.t
 3. **Access-Anwendung:** **Zero Trust → Access controls → Applications → Create new application → Self-hosted and private**. Name „TopStack Beta“, Public hostname `beta` · `topstack.win`, Pfad leer. Richtlinie „Nur Peter“: Action **Allow**, Include **Emails** mit deiner Adresse (später die der Tester).
 4. **Installation erlauben:** Eine zweite Anwendung „TopStack Beta – Installation“ mit sechs Public hostnames `beta` · `topstack.win` und den Pfaden `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`, `icon.svg`. Richtlinie „Installation öffentlich“: Action **Bypass**, Include **Everyone**. Grund: Der Browser lädt das Manifest ohne Cookie; hinter Access bekommt er die Anmeldeseite statt des Manifests, und „Installieren“ bleibt ausgegraut. Diese Dateien enthalten nichts Vertrauliches.
 5. **Hostname im Tunnel:** **Networking → Tunnels → `topstack` → Routes → Add route → Published application:** Subdomain `beta`, Domain `topstack.win`, Service URL `http://beta-caddy:80` (http, nicht https).
-6. Prüfen in einem privaten Fenster: `https://beta.topstack.win` zeigt die Anmeldeseite von Cloudflare Access (solange Staging noch nicht läuft, nach der Anmeldung ein Fehler 502); `https://beta.topstack.win/manifest.webmanifest` zeigt direkt das JSON „TopStack Beta“.
+6. Prüfen in einem privaten Fenster (Stand vor AP-14; seit 28.11.2026 gilt „Access nur vor der API“ weiter unten): `https://beta.topstack.win` zeigt die Anmeldeseite von Cloudflare Access (solange Staging noch nicht läuft, nach der Anmeldung ein Fehler 502); `https://beta.topstack.win/manifest.webmanifest` zeigt direkt das JSON „TopStack Beta“.
 
 ### 2. Produktion einmal neu starten (auf dem Heimserver)
 
@@ -467,6 +467,20 @@ In Uptime Kuma (Abschnitt „Monitoring einrichten“) einen Monitor „Beta“ 
 ### 6. Auf dem Handy
 
 `https://beta.topstack.win` öffnen, über Cloudflare Access anmelden, dann „Zum Home-Bildschirm“. Die App heißt „TopStack Beta“, hat ein Icon mit orangem Band und oben das Band „BETA · Testumgebung“. Anmeldung, Daten und Passkeys sind getrennt von der echten App.
+
+### Access nur vor der API (Phase 5, AP-14, ADR-0021)
+
+Seit 28.11.2026 schützt Cloudflare Access auf Beta nur noch die Daten (`/api`, `/ws`). Die App-Dateien sind öffentlich, damit sich die App auch nach Ablauf der Access-Sitzung selbst aktualisieren kann. Einmalig umstellen, **auf dem PC im Browser**:
+
+1. **Zero Trust → Access controls → Applications →** „TopStack Beta – Installation“ öffnen → **Edit**. Name in „TopStack Beta – App“ ändern. Unter **Public hostnames** alle sechs Einträge mit Pfad löschen und **einen** Eintrag `beta` · `topstack.win` **ohne Pfad** anlegen. Richtlinie bleibt „Installation öffentlich“ (Bypass, Everyone). **Save**.
+2. „TopStack Beta“ öffnen → **Edit**. Unter **Public hostnames** den Eintrag ohne Pfad ersetzen durch zwei Einträge: `beta` · `topstack.win` mit Pfad `api` und `beta` · `topstack.win` mit Pfad `ws`. Richtlinie „Nur Peter“ (Allow) bleibt. **Save**. Cloudflare wendet bei gleichem Hostnamen die Anwendung mit dem genaueren Pfad an; `/api` und `/ws` bleiben also geschützt.
+3. Prüfen in einem **privaten Fenster**:
+   - `https://beta.topstack.win/sw.js` zeigt JavaScript, keine Anmeldeseite.
+   - `https://beta.topstack.win/api/v1/health` zeigt die Anmeldeseite von Cloudflare.
+   - `https://beta.topstack.win` zeigt die App mit dem Hinweis „Anmeldung bei Cloudflare abgelaufen“; der Knopf „Bei Cloudflare anmelden“ führt zur Anmeldung und zurück.
+4. **Uptime Kuma** (per SSH-Tunnel wie in „Monitoring einrichten“): **Add New Monitor** → Typ HTTP(s), Name „Beta App“, URL `https://beta.topstack.win/sw.js`, Intervall 300 s, Benachrichtigung ntfy. Der Monitor meldet sich, wenn Access die App-Dateien wieder blockiert.
+
+Hängt ein Handy trotzdem auf einer alten Version: im Profil **„App zurücksetzen“**. Spielstände und Anmeldung bleiben erhalten.
 
 ### Einen Pull Request auf Staging ansehen (auf dem PC)
 

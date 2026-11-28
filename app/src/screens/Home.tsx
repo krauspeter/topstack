@@ -3,6 +3,7 @@ import { BUILD, buildLabel } from '../build';
 import { markVersionSeen, pendingWhatsNew, seenAtStartup } from '../whatsNew';
 import { type Account, reauthenticate } from '../store/useAccount';
 import { TournamentCard, useHomeCards } from './HomeTournament';
+import { ResetAppButton } from '../UpdateBanner';
 
 interface Props {
   account: Account;
@@ -149,10 +150,11 @@ function OfflineNote({ reason, onRetry }: { reason: 'network' | 'access'; onRetr
   if (reason === 'access') {
     return (
       <div className="offline-note" role="status">
-        <p>Anmeldung bei Cloudflare abgelaufen. Konto und Turniere kommen nach dem Neuladen zurück.</p>
-        <button className="btn small" onClick={() => reauthenticate()}>
-          Seite neu laden
+        <p>Anmeldung bei Cloudflare abgelaufen. Nach der Anmeldung sind Konto und Turniere wieder da; der Life-Tracker geht auch so.</p>
+        <button className="btn small" onClick={() => reauthenticate(window.location.pathname)}>
+          Bei Cloudflare anmelden
         </button>
+        <ResetAppButton className="btn small ghost" />
       </div>
     );
   }

@@ -261,6 +261,11 @@ jobs:
           check "Manifest „TopStack Beta“" "curl -fsS http://localhost:8081/manifest.webmanifest | grep -q 'TopStack Beta'"
           check "Beta-Icon statt des normalen" "curl -fsS -o /tmp/beta.png http://localhost:8081/icon-512.png && ! cmp -s /tmp/beta.png $GITHUB_WORKSPACE/app/public/icon-512.png"
           check "keine Suchmaschinen" "curl -fsSI http://localhost:8081/ | grep -qi 'x-robots-tag: noindex'"
+          # Stabile Updates (AP-14, ADR-0021, TC-165): App-Dateien kommen frisch, gehashte lange gespeichert
+          check "sw.js wird immer neu geprüft" "curl -fsSI http://localhost:8081/sw.js | grep -qi 'cache-control: no-cache'"
+          check "index.html wird immer neu geprüft" "curl -fsSI http://localhost:8081/ | grep -qi 'cache-control: no-cache'"
+          asset=$(curl -fsS http://localhost:8081/ | grep -o '/assets/[^\"]*\.js' | head -n1)
+          check "gehashte Dateien unveränderlich ($asset)" "curl -fsSI http://localhost:8081$asset | grep -qi 'immutable'"
           check "Produktion bleibt prod" "curl -fsS http://localhost/api/v1/health | grep -q '\"environment\":\"prod\"'"
           check "Produktion mit normalem Manifest" "! curl -fsS http://localhost/manifest.webmanifest | grep -q Beta"
           check "Tunnel-Netz erreicht beta-caddy" "docker run --rm --network topstack-edge curlimages/curl -fsS http://beta-caddy/api/v1/health | grep -q staging"

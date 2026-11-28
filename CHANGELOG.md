@@ -15,6 +15,12 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ### Fixed
 
+- The app no longer hangs unnoticed on an old version (ADR-0021): it compares
+  its update number with the server on start, on return and every 30 minutes,
+  asks the service worker for updates and shows "Neue Version da" with a button,
+  not during a match; "App zurücksetzen" in the profile clears the app cache
+  and keeps game state and sign-in; the Cloudflare notice now leads straight to
+  the sign-in (#200)
 - Stats "Gegen Farben" count the opponent's whole colour combination (e.g. BR)
   instead of each colour separately, like your own colours (#198)
 - Tournament rules form: more space between fields, left aligned, match points
