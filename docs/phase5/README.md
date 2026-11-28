@@ -185,6 +185,31 @@ AP-1 kommt zuerst, weil fast alles danach die aktive Gruppe und die Rechteprüfu
 
 **Fertig, wenn:** Aus jedem Profil öffnet sich der Direktvergleich mit mir.
 
+### AP-14 · Stabile Updates (ca. 5 h) · Branch `feat/p5-stable-updates` · N-07, ADR-0021, ergänzt am 28.11.2026, **vor AP-7**
+
+Anlass: Beta hing auf PC und Handy tagelang auf Update #164, weil Cloudflare Access nach Ablauf der Sitzung auch `sw.js` blockierte.
+
+**Cloudflare und Betrieb (Peter)**
+
+- [ ] Access-Anwendung „TopStack Beta“ nur noch für `beta.topstack.win/api/*` und `beta.topstack.win/ws`; App-Dateien ohne Anmeldung ladbar
+- [ ] Uptime Kuma: Monitor „Beta App“ auf `https://beta.topstack.win/sw.js`, ohne Anmeldung, erwartet 200
+
+**App**
+
+- [ ] Update-Nummer der App mit `build.pr` aus `/api/v1/health` vergleichen, beim Start und beim Zurückkehren in die App
+- [ ] Service Worker beim Öffnen und alle 30 Minuten aktiv nach Updates fragen (`registration.update()`)
+- [ ] Hinweis „Neue Version da – jetzt laden“ mit Knopf; während eines laufenden Matches erst nach Matchende
+- [ ] Abgelaufene Access-Anmeldung: Hinweis, Knopf führt zur Anmeldung und zurück an dieselbe Stelle; Life-Tracker läuft offline weiter
+- [ ] „App zurücksetzen“ im Profil und im Offline-Hinweis: Service Worker abmelden, Zwischenspeicher leeren, neu laden; IndexedDB (Spielstände, Outbox) und Anmeldung bleiben
+
+**Prüfung**
+
+- [ ] E2E „veraltete App“ und „Access abgelaufen“ (TC-163, TC-164)
+- [ ] Smoke-Test in der CI: `sw.js`, `index.html`, `/assets` im Staging-Stack mit den erwarteten Cache-Headern (TC-165)
+- [ ] Anleitung in `docs/phase3/heimserver.md` (Access-Pfade, Monitor)
+
+**Fertig, wenn:** Nach abgelaufener Access-Sitzung zeigt Beta auf dem Handy ohne Löschen von Website-Daten die neueste Version, und „App zurücksetzen“ behält einen laufenden Spielstand.
+
 ### AP-7 · Zuschauer-Link (ca. 3 h) · Branch `feat/p5-spectator`
 
 - [ ] Mitglieder erzeugen für ein laufendes Turnier einen Zuschauer-Link (`invitation.kind = 'spectator'`), gültig bis 6 Uhr am nächsten Morgen
@@ -286,6 +311,11 @@ AP-1 kommt zuerst, weil fast alles danach die aktive Gruppe und die Rechteprüfu
 | TC-160 | Lebenspunkte-Kurve | Kurve entspricht den Ereignissen, Rückgängig berücksichtigt | AP-10 | mittel |
 | TC-161 | Tisch-Modus | Tablet zeigt Tabelle, Matches, Timer, Tischgrafik; Bildschirm bleibt 30 Minuten an | AP-11 | mittel |
 | TC-162 | Gate G5 | Testgruppe spielt ein Turnier, beide Gruppen sehen sich gegenseitig nicht | AP-8 | hoch |
+| TC-163 | Veraltete App | Server meldet neuere Update-Nummer → Hinweis „Neue Version da“, Knopf lädt die neue Version; während eines Matches erst danach | AP-14 | hoch |
+| TC-164 | Access abgelaufen | API leitet zu Cloudflare um → Hinweis, Knopf führt zur Anmeldung und zurück; Life-Tracker weiter nutzbar | AP-14 | hoch |
+| TC-165 | App-Dateien ohne Anmeldung | `sw.js`, `index.html`, `/assets` auf Beta ohne Access ladbar, `sw.js` mit `no-cache` | AP-14 | hoch |
+| TC-166 | App zurücksetzen | Zwischenspeicher und Service Worker weg, laufender Spielstand und Anmeldung bleiben | AP-14 | hoch |
+| TC-167 | Update nach langer Pause | Handy 2 Tage nicht genutzt, Access abgelaufen → nach dem Öffnen und der Anmeldung neueste Version ohne Daten löschen | AP-14 | mittel |
 
 ---
 
@@ -303,7 +333,7 @@ Bei etwa 6 Stunden pro Woche, Start am 28.11.2026 (E3). Der Draftabend am 27.12.
 | 8 | AP-8 · **v1.1.0** | 2 h |
 | 9–10 | AP-9, AP-10 | 10 h |
 | 11 | AP-11, AP-12 · **v1.1.1** | 5 h |
-| **gesamt** | | **ca. 58 h** |
+| **gesamt** | | **ca. 58 h** (dazu AP-13 4 h, AP-14 5 h) |
 
 v1.1.0 also etwa Ende Januar 2027, v1.1.1 Mitte Februar 2027.
 

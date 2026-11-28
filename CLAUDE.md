@@ -133,7 +133,7 @@ Jede Phase hatte bisher denselben Ablauf; halte ihn ein:
 
 1. Den Abschnitt der Phase in [`docs/roadmap.md`](docs/roadmap.md) lesen: Inhalt, Festlegungen aus den Befragungen, Gate.
 2. Offene Fragen mit Peter klären (kurze Multiple-Choice-Fragen), Entscheidungen mit Datum festhalten.
-3. Plan als `docs/phase<N>/README.md` anlegen, nach dem Vorbild von [`docs/phase4/README.md`](docs/phase4/README.md): Ziel und Gate, Arbeitspakete (AP-0, AP-1, …) mit Schätzung, Anforderungen und Aufgaben als Checklisten, Testfälle mit fortlaufender Nummer (Phase 5 endet bei TC-162), Entscheidungen. Architekturentscheidungen als neue ADR (nächste Nummer: 0021).
+3. Plan als `docs/phase<N>/README.md` anlegen, nach dem Vorbild von [`docs/phase4/README.md`](docs/phase4/README.md): Ziel und Gate, Arbeitspakete (AP-0, AP-1, …) mit Schätzung, Anforderungen und Aufgaben als Checklisten, Testfälle mit fortlaufender Nummer (Phase 5 endet bei TC-167), Entscheidungen. Architekturentscheidungen als neue ADR (nächste Nummer: 0022).
 4. Die Arbeitspakete einzeln umsetzen, je ein oder mehrere PRs, und nach jedem PR den Plan abhaken.
 5. Am Ende Gate abnehmen, Release machen, Roadmap und Plan auf „abgeschlossen“ setzen.
 
