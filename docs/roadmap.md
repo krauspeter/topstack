@@ -98,6 +98,7 @@ Bewusst nicht vorgesehen: Archetypen, Fotos, Mulligans. Gift und weitere Zähler
 | N-03 | Läuft auf iOS und Android ohne App-Store (PWA), Daten auf dem Heimserver mit täglichem Backup | Must | v1.0 (iPhone noch nicht auf echtem Gerät getestet) |
 | N-04 | Live-Ansicht aktualisiert sich bei allen in unter 2 Sekunden | Should | v1.0 |
 | N-05 | Betrieb für fremde Nutzer: Lasttest, DSGVO, Konto in der App löschbar | Must (v4.0) | geplant |
+| N-06 | Ruhe im Match: Während eines laufenden Matches stören weder TopStack noch das Handy; eigene Push-Nachrichten warten bis Matchende, Hinweis auf „Nicht stören“, Bildschirm bleibt im ganzen laufenden Turnier an. Fremde Apps lassen sich aus der PWA nicht stummschalten, das kann erst die Android-App (28.11.2026) | Should | v1.1, „Nicht stören“ automatisch v4.0 |
 
 **Punkteregeln (festgelegt am 15.11.2026)**
 
@@ -163,7 +164,7 @@ Reihenfolge in der Turniertabelle bei Punktgleichheit: 1. Matchpunkte (3/1/0); 2
 - **Awards & Erfolge:** Längstes und kürzestes Spiel, Comeback, lustige Awards, Langzeit-Erfolge und „Bester der letzten 3 Drafts“ (v1.1).
 - **Statistik:** Im Profil Siegquoten, Platzierungskurve, Lieblings- und Erfolgsfarben, Elo-Verlauf. Head-to-Head als Tabelle und als Direktvergleich. Für die Gruppe beste Farbkombination je Set, meiste Turniersiege, ewige Tabelle, Statistik pro Set. Filter nach Saison und Zeitraum; ab v1.3 nach Turnierart, ab v1.4 nach Format.
 - **Elo:** Start 1000, pro Match (Unentschieden 0,5), pro Gruppe und global. K-Faktor 32, in den ersten 10 Matches 40. Matches gegen Gäste zählen nicht, Altdaten fließen nicht ein. Ab v1.3/v1.4 getrennt nach Turnierart plus Gesamt-Elo, ab v2.1 ein eigenes Commander-Elo.
-- **Benachrichtigungen:** Push und in der App. Ereignisse: Du bist dran, neue Runde, Turnierende, Einladung, Ergebnis korrigiert, Abbruch beantragt (alle seit v1.0), neuer Erfolg, in der Rangliste überholt (später). Jedes Ereignis einzeln abschaltbar.
+- **Benachrichtigungen:** Push und in der App. Ereignisse: Du bist dran, neue Runde, Turnierende, Einladung, Ergebnis korrigiert, Abbruch beantragt (alle seit v1.0), neuer Erfolg, in der Rangliste überholt (später). Jedes Ereignis einzeln abschaltbar. **Ruhe im Match (N-06, 28.11.2026):** Während des eigenen laufenden Matches hält der Server Push-Nachrichten an dieses Konto zurück und schickt sie danach gesammelt (Ausnahme: Abbruch beantragt). Beim Matchstart einmal der Hinweis „Nicht stören einschalten?“ mit Anleitung für Android und iPhone, abschaltbar. Die Tasten des Life-Trackers liegen nicht im oberen Rand, wo Banner anderer Apps erscheinen. Ab der Android-App (v4.0) schaltet TopStack „Nicht stören“ während des Matches selbst ein, nach Erlaubnis.
 - **Altdaten:** Liegen in Excel, Google Sheets und auf Papier. Import per CSV oder manuell, nur durch den Gruppen-Admin.
 - **Oberfläche:** Deutsch (Englisch und Portugiesisch in v2.0), Dark Mode, Tisch-Modus fürs Tablet (v1.1).
 - **Betrieb:** Gruppen können ihre Daten exportieren (v2.0). Fällt der Heimserver aus, reicht es, wenn der Life-Tracker weiterläuft. Vorerst kostenlos.
@@ -173,7 +174,7 @@ Reihenfolge in der Turniertabelle bei Punktgleichheit: 1. Matchpunkte (3/1/0); 2
 | Version | Ziel | Inhalt |
 | --- | --- | --- |
 | v1.0 (25.11.2026) | Die Gruppe spielt Draft | Kompletter Draft-Ablauf, Life-Tracker mit 1 oder 2 Handys, Live-Ansicht, Push, Siegerehrung, Rangliste, Basis-Statistik, Turnier-Karte auf der Startseite, Feedback-Knopf; Betrieb mit Backup, Monitoring, Deployment, Staging |
-| v1.1 | Mehrere Gruppen, Geschichte | Gruppen mit Rollen und eigenen Regeln, archivieren, Zuschauer-Link, Gast in Profil umwandeln, Altdaten-Import, Elo, Head-to-Head, Awards, Teilen-Bild, Lebenspunkte-Kurve, Tisch-Modus; in zwei Releases v1.1.0 und v1.1.1 (27.11.2026) |
+| v1.1 | Mehrere Gruppen, Geschichte | Gruppen mit Rollen und eigenen Regeln, archivieren, Zuschauer-Link, Gast in Profil umwandeln, Altdaten-Import, Elo, Head-to-Head, Awards, Teilen-Bild, Lebenspunkte-Kurve, Tisch-Modus, Ruhe im Match (N-06); in zwei Releases v1.1.0 und v1.1.1 (27.11.2026) |
 | v1.2 | Spieleabende planen | Terminumfrage, Set-Abstimmung, Kalender-Export (.ics), Erinnerung, Turnier aus dem Termin, Ausgaben teilen |
 | v1.3 | Sealed | Turnierart Sealed, Deckbau-Timer, Filter nach Turnierart; Cube als Draft-Variante |
 | v1.4 | Constructed | Format, Schweizer System mit Drop, Top-Cut, mehrere Turniere gleichzeitig, Deckname und Deckliste-Link |
@@ -224,6 +225,7 @@ Dauer etwa 11 Wochen ab 28.11.2026 (vorgezogen am 27.11.2026). v1.1 öffnet TopS
 - [ ] Awards, Langzeit-Erfolge, „Bester der letzten 3 Drafts“
 - [ ] Teilen-Bild nach dem Turnier, Lebenspunkte-Kurve
 - [ ] Tisch-Modus fürs Tablet
+- [ ] Ruhe im Match (N-06, 28.11.2026): eigene Push-Nachrichten während des eigenen Matches zurückhalten und danach gesammelt schicken; Hinweis „Nicht stören“ beim Matchstart; Bildschirm bleibt in der Turnier-Ansicht an, solange man im laufenden Turnier mitspielt, mit Hinweis, wenn das Handy die Sperre verweigert (Energiesparmodus); keine Tasten im oberen Rand des Life-Trackers
 - ~~Google-Login sowie Benutzername und Passwort~~: gestrichen am 27.11.2026, niemand in der Gruppe braucht es (Issue bleibt im Backlog)
 - [x] Vorab: Backlog-Skript (`scripts/backlog.tsv`) an den Versionsplan vom 22.11.2026 angepasst (27.11.2026); GitHub-Aufräumen in AP-0
 
@@ -452,7 +454,7 @@ Dauer etwa 10–12 Wochen, September bis November 2028. Ab hier können Gruppen 
 - [ ] Lasttest mit k6 oder Locust
 - [ ] Umzug auf einen Mietserver für höchstens 10 € im Monat, ADR „Betrieb ab v4.0“; der Heimserver bleibt für Staging, Entwicklung und KI
 - [ ] Öffentliche Statusseite, Support-Adresse
-- [ ] Native Hülle mit Capacitor; native Funktionen gegen Apples Guideline 4.2 (Push über APNs und FCM, Vibration, Bildschirm-an, Widget, Kopplung mit dem Steuergerät)
+- [ ] Native Hülle mit Capacitor; native Funktionen gegen Apples Guideline 4.2 (Push über APNs und FCM, Vibration, Bildschirm-an, „Nicht stören“ während eines Matches mit Erlaubnis des Nutzers (N-06), Widget, Kopplung mit dem Steuergerät)
 - [ ] Google Play: privates Entwicklerkonto, geschlossener Test mit mindestens 12 Testern über 14 Tage, danach Antrag auf Produktion
 - [ ] Apple: Developer Program, Build über macOS-Runner in GitHub Actions, TestFlight, Review
 - [ ] Store-Einträge in drei Sprachen; die PWA bleibt; Store-Builds in `release.yml`
