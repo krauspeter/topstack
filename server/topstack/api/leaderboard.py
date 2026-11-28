@@ -45,6 +45,7 @@ class LeaderboardRowOut(BaseModel):
     avg_match_points: float
     elo: float  # Gruppen-Elo, über alle Saisons (AP-5)
     elo_matches: int
+    elo_trend: list[float]  # letzte 8 Stände für die Mini-Kurve
 
 
 class LeaderboardOut(BaseModel):
@@ -76,6 +77,9 @@ class CountOut(BaseModel):
 class EloPointOut(BaseModel):
     played_on: date
     rating: float
+    delta: float
+    opponent_id: uuid.UUID | None
+    opponent: str | None
 
 
 class PlayerStatsOut(BaseModel):
@@ -160,6 +164,7 @@ async def get_leaderboard(
                 avg_match_points=r.avg_match_points,
                 elo=round(elo[r.player].rating if r.player in elo else START, 1),
                 elo_matches=elo[r.player].matches if r.player in elo else 0,
+                elo_trend=elo.get(r.player, EloState()).trend(),
             )
             for r in leaderboard(res.tournaments, res.rules)
         ],
@@ -208,7 +213,16 @@ async def get_player_stats(
         elo=round(own.rating, 1),
         elo_matches=own.matches,
         elo_global=round(glob.rating, 1) if glob else None,
-        elo_history=[EloPointOut(played_on=p.played_on, rating=p.rating) for p in own.history],
+        elo_history=[
+            EloPointOut(
+                played_on=p.played_on,
+                rating=p.rating,
+                delta=p.delta,
+                opponent_id=p.opponent,
+                opponent=await _name(db, names, p.opponent),
+            )
+            for p in own.history
+        ],
         tournaments=s.tournaments,
         tournament_wins=s.tournament_wins,
         ranking_points=s.ranking_points,
@@ -356,3 +370,13 @@ async def head_to_head_duel(
             for m in reversed(d.meetings[-10:])
         ],
     )
+
+
+async def _name(db: Db, names: dict[uuid.UUID, str], pid: object) -> str | None:
+    """Name eines Gegners; Spieler außerhalb des Filters werden nachgeladen."""
+    if not isinstance(pid, uuid.UUID):
+        return None
+    if pid not in names:
+        p = await db.get(Player, pid)
+        names[pid] = p.display_name if p else "?"
+    return names[pid]

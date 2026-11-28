@@ -52,3 +52,11 @@ def test_history_per_match():
 def test_score_and_expected():
     assert (score(2, 0), score(1, 1), score(0, 2)) == (1.0, 0.5, 0.0)
     assert expected(1400, 1000) == pytest.approx(0.909, abs=0.001)
+
+
+def test_history_names_opponent_and_delta_and_trend():
+    r = ratings([m("anna", "ben", 2, 0)])
+    p = r["anna"].history[0]
+    assert (p.opponent, p.delta) == ("ben", 20.0)
+    assert r["ben"].history[0].delta == -20.0
+    assert r["anna"].trend(4) == [1000.0, 1000.0, 1000.0, 1020.0]
