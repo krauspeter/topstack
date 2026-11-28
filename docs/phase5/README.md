@@ -314,6 +314,41 @@ Befragung vom 27.11.2026:
 | E7 | Wie läuft der Import? | In der App für Admins: CSV mit Vorschau und Rücknahme, Formular für einzelne Turniere |
 | E8 | Backlog auf GitHub? | Komplett aufräumen: Doppelte schließen, Meilensteine nach Versionsplan, ein Issue pro Arbeitspaket |
 
+**Frontend-Design** (Befragung vom 28.11.2026, 30 Fragen, festgehalten in [ADR-0020](../adr/0020-frontend-design.md)):
+
+| Nr. | Frage | Entscheidung |
+| --- | --- | --- |
+| F1 | Einsatz des Plugins `frontend-design` | Neue Bildschirme von Phase 5 und bestehende überarbeiten |
+| F2 | „Dunkel & Gold“ | Weiterentwickeln |
+| F3 | Ablauf | Erst Entwurf zum Anschauen, dann bauen |
+| F4 | Ab wann | Ab sofort, ab AP-5 |
+| F5 | Stimmung | Edel und ruhig |
+| F6 | Magic-Bezug | Dezent: Manafarben und -symbole |
+| F7 | Schriften | Inter plus Display-Schrift für Überschriften und große Zahlen |
+| F8 | Farben außer Gold | Nur Manafarben für Spieler |
+| F9 | Hell/Dunkel | Nur dunkel |
+| F10 | Barrierefreiheit | WCAG AA |
+| F11 | Bedienung | Hauptaktion unten, Tippflächen ≥ 48 px |
+| F12 | Bewegung reduzieren | Respektieren |
+| F13 | Umfang Animation | Gezielt an Höhepunkten |
+| F14 | Wo Animation | Siegerehrung und Awards, Würfeln und Auslosung |
+| F15 | Vibration/Ton | Vibration wie bisher, keine Töne |
+| F16 | Ladezustände | Platzhalter-Gerüst (Skeleton) |
+| F17 | Geräte | Android-Handy im Fokus |
+| F18 | Breite Bildschirme | Mobile-first, Tabellen und Import breiter |
+| F19 | Navigation | Untere Tab-Leiste |
+| F20 | Querformat | Nur im Life-Tracker |
+| F21 | Überarbeitung zuerst | Turnier-Ansicht, Startseite, Rangliste & Statistik, Profil & Gruppe |
+| F22 | Life-Tracker | Nur Feinschliff |
+| F23 | Statistik | Tabellen plus kleine Diagramme |
+| F24 | Diagramme | Eigenes SVG |
+| F25 | Styling-Technik | Eigene CSS-Tokens weiter |
+| F26 | Icons | Lucide, Mana-Symbole, eigene SVGs |
+| F27 | Bilder | Gruppenbild und Avatare, später Scryfall-Kartenbilder |
+| F28 | Leere Zustände | Mit nächstem Schritt, kein Onboarding |
+| F29 | Prüfung | Screenshots im PR und visuelle Regressionstests |
+| F30 | Tonfall | Du, freundlich-knapp |
+
 Aus der Roadmap übernommen (Befragung vom 22.11.2026): höchstens 5 Gruppen pro Nutzer, mehrere Admins, alle Mitglieder laden ein, Links 7 Tage, persönliche Links einmalig, Archivieren und Löschen mit 30 Tagen, Regeln ab der nächsten Saison, Zuschauer ohne Profile, zuletzt genutzte Gruppe mit Umschalter.
 
 ---

@@ -42,6 +42,7 @@ Wichtige Grundsätze (Details in den ADRs):
 - **Mehrgruppenfähiges Datenmodell** seit v1.0 (ADR-0010), Spieler ohne Konto (ADR-0015).
 - **Turnier-Zustände und Rechte** zentral in `server/topstack/domain/tournament.py` (ADR-0013).
 - **Design „Dunkel & Gold“** (ADR-0011): Gold markiert genau einen nächsten Schritt pro Bildschirm. Kontrast mindestens 4,5:1. Farben als Tokens in `app/src/styles.css` und `app/src/theme.ts`.
+- **Frontend-Design (ADR-0020):** Für neue und überarbeitete Bildschirme das Skill `frontend-design` laden und die Vorgaben aus ADR-0020 einhalten. Vor dem Bauen 1–2 Entwürfe als Artifact zeigen und Peter wählen lassen; PRs mit sichtbaren Änderungen zeigen Vorher/Nachher-Screenshots.
 - **Live** per WebSocket `/ws` mit Themen `tournament:<id>` und `game:<id>` (ADR-0006).
 
 ## Lokal prüfen (PC)
@@ -132,7 +133,7 @@ Jede Phase hatte bisher denselben Ablauf; halte ihn ein:
 
 1. Den Abschnitt der Phase in [`docs/roadmap.md`](docs/roadmap.md) lesen: Inhalt, Festlegungen aus den Befragungen, Gate.
 2. Offene Fragen mit Peter klären (kurze Multiple-Choice-Fragen), Entscheidungen mit Datum festhalten.
-3. Plan als `docs/phase<N>/README.md` anlegen, nach dem Vorbild von [`docs/phase4/README.md`](docs/phase4/README.md): Ziel und Gate, Arbeitspakete (AP-0, AP-1, …) mit Schätzung, Anforderungen und Aufgaben als Checklisten, Testfälle mit fortlaufender Nummer (Phase 5 endet bei TC-162), Entscheidungen. Architekturentscheidungen als neue ADR (nächste Nummer: 0020).
+3. Plan als `docs/phase<N>/README.md` anlegen, nach dem Vorbild von [`docs/phase4/README.md`](docs/phase4/README.md): Ziel und Gate, Arbeitspakete (AP-0, AP-1, …) mit Schätzung, Anforderungen und Aufgaben als Checklisten, Testfälle mit fortlaufender Nummer (Phase 5 endet bei TC-162), Entscheidungen. Architekturentscheidungen als neue ADR (nächste Nummer: 0021).
 4. Die Arbeitspakete einzeln umsetzen, je ein oder mehrere PRs, und nach jedem PR den Plan abhaken.
 5. Am Ende Gate abnehmen, Release machen, Roadmap und Plan auf „abgeschlossen“ setzen.
 
