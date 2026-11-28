@@ -211,6 +211,27 @@ Anlass: Beta hing auf PC und Handy tagelang auf Update #164, weil Cloudflare Acc
 
 **Fertig, wenn:** Nach abgelaufener Access-Sitzung zeigt Beta auf dem Handy ohne Löschen von Website-Daten die neueste Version, und „App zurücksetzen“ behält einen laufenden Spielstand. **Erledigt am 28.11.2026:** Handy nach einmaligem Aufräumen auf dem neuen Stand, Access und Cache geprüft.
 
+### AP-15 · Profilbilder (ca. 6 h) · Branch `feat/p5-avatars` · ergänzt am 28.11.2026, **vor AP-7**
+
+Wunsch aus dem Beta-Test: Profilbilder mit Namen in der Siegerehrung, eine lustige Vorauswahl und eigene Bilder. Festlegungen vom 28.11.2026:
+
+- **Vorauswahl:** ca. 16 eigene Fantasy-Wesen als SVG im Stil „Dunkel & Gold“, je in einer Manafarbe (keine Kunst von Wizards of the Coast); erst als Entwurf zur Auswahl (ADR-0020)
+- **Eigene Bilder:** PNG oder JPEG, im Handy quadratisch/rund zuschneiden, auf 256 px verkleinert; liegen nur auf dem Heimserver, nie in GitHub; änderbar und löschbar
+- **Ein Bild je Konto** für alle Gruppen (wie Anzeigename und Lieblingsfarben)
+- **Spieler ohne Konto:** Der Gruppen-Admin wählt für vorgemerkte Spieler ein Bild aus der Vorauswahl; Gäste und alle ohne Wahl bekommen Initialen auf einem Kreis in ihren Farben
+- **Anzeige:** Siegerehrung (groß über dem Namen), Rangliste, Elo-Leiter, Duelle, Turnier-Tabelle, Spielplan und Live-Ansicht
+
+**Aufgaben**
+
+- [ ] Entwurf der Fantasy-Wesen, Auswahl durch Peter
+- [ ] Server: Bild je Konto (Vorauswahl-Schlüssel oder eigenes Bild), Bild je vorgemerktem Spieler (nur Vorauswahl, Admin); Endpunkte zum Setzen, Löschen und Ausliefern; Prüfung von Typ und Größe; Migration
+- [ ] Spieler- und Turnier-Antworten liefern das Bild mit (Schlüssel oder Adresse)
+- [ ] App: Auswahl im Profil (Vorauswahl oder Hochladen mit Zuschnitt), Admin-Auswahl in „Gruppe“ bei Spielern ohne Konto
+- [ ] Baustein `Avatar` mit Initialen als Rückfall; eingebaut in Siegerehrung, Rangliste, Elo-Leiter, Duelle, Turnier-Tabelle, Spielplan, Live-Ansicht
+- [ ] Tests: Upload mit falschem Typ oder zu groß, Rückfall auf Initialen, E2E Auswahl und Anzeige in der Siegerehrung
+
+**Fertig, wenn:** Die Siegerehrung zeigt auf dem Handy Bild und Name aller drei Plätze, auch für einen Spieler ohne Konto.
+
 ### AP-7 · Zuschauer-Link (ca. 3 h) · Branch `feat/p5-spectator`
 
 - [ ] Mitglieder erzeugen für ein laufendes Turnier einen Zuschauer-Link (`invitation.kind = 'spectator'`), gültig bis 6 Uhr am nächsten Morgen
@@ -317,6 +338,10 @@ Anlass: Beta hing auf PC und Handy tagelang auf Update #164, weil Cloudflare Acc
 | TC-165 | App-Dateien ohne Anmeldung | `sw.js`, `index.html`, `/assets` auf Beta ohne Access ladbar, `sw.js` mit `no-cache` | AP-14 | hoch |
 | TC-166 | App zurücksetzen | Zwischenspeicher und Service Worker weg, laufender Spielstand und Anmeldung bleiben | AP-14 | hoch |
 | TC-167 | Update nach langer Pause | Handy 2 Tage nicht genutzt, Access abgelaufen → nach dem Öffnen und der Anmeldung neueste Version ohne Daten löschen | AP-14 | mittel |
+| TC-168 | Profilbild aus Vorauswahl | Im Profil ein Wesen wählen → erscheint in Siegerehrung, Rangliste und Live-Ansicht | AP-15 | hoch |
+| TC-169 | Eigenes Profilbild | PNG oder JPEG hochladen, Ausschnitt wählen → 256 px, auf allen Geräten sichtbar; GIF oder zu große Dateien abgelehnt | AP-15 | hoch |
+| TC-170 | Spieler ohne Konto | Admin wählt für einen vorgemerkten Spieler ein Wesen; Gäste zeigen Initialen | AP-15 | mittel |
+| TC-171 | Bild entfernen | Bild löschen → Initialen; die Datei ist auf dem Server weg | AP-15 | mittel |
 
 ---
 
