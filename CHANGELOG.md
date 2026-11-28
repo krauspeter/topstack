@@ -15,6 +15,10 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ### Added
 
+- Elo in the app (design B, ADR-0020): the leaderboard switches between points
+  and an Elo ladder with a mini trend per player; a player's stats compare their
+  Elo with yours, show what a win or loss against them would change and list
+  the last matches with their Elo change; display font Big Shoulders Display (#196)
 - Elo rating (ADR-0019): computed from all matches since v1.0 without guests and
   legacy data, per group and globally per account; the leaderboard and player
   stats return it with its history; table elo_rating is dropped (#195)

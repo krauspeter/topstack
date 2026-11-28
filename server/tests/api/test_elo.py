@@ -6,6 +6,7 @@ from sqlalchemy import select
 from tests.api.test_rounds import current_matches, report, running
 from topstack.db.models import Player
 from topstack.domain.legacy import template_tournaments
+from topstack.scripts import admin
 
 
 async def elo_by_name(client, group) -> dict[str, float]:
@@ -42,6 +43,9 @@ async def test_elo_without_guests_and_after_correction(client, session):  # TC-1
     s = await stats(client, group, winner)
     assert s["elo"] == pytest.approx(1020) and s["elo_matches"] == 1
     assert [p["rating"] for p in s["elo_history"]] == [1020.0]
+    assert s["elo_history"][0]["delta"] == 20.0
+    assert s["elo_history"][0]["opponent_id"] == own["player_b_id"]
+    assert s["elo_history"][0]["opponent"]
     if with_guest:
         # Das Match gegen den Gast zählt für niemanden
         other = next(
@@ -77,5 +81,9 @@ async def test_leaderboard_has_elo_column(client, session):  # TC-151
         r = await report(client, t, m, 2, 1)
         assert r.status_code == 200, r.text
         t = r.json()
+    # Die Rangliste zeigt nur abgeschlossene Turniere: den Rest abschließen
+    done = await admin.finish_tournament(session, t["id"][:8], group=None, apply=True)
+    assert done.changed
     board = (await client.get(f"/api/v1/groups/{group.id}/leaderboard")).json()
-    assert all("elo" in row and "elo_matches" in row for row in board["rows"])
+    assert board["rows"] and all(len(row["elo_trend"]) == 8 for row in board["rows"])
+    assert any(row["elo_trend"][-1] != 1000 for row in board["rows"])
