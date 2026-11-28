@@ -168,9 +168,9 @@ AP-1 kommt zuerst, weil fast alles danach die aktive Gruppe und die Rechteprüfu
 
 ### AP-5 · Elo (ca. 5 h) · Branch `feat/p5-elo` · F-19, ADR-0019
 
-- [ ] `server/topstack/domain/elo.py`: reine Funktion über die sortierten Matches; Start 1000, K = 40 für die ersten 10 Matches, danach 32; Unentschieden 0,5; Gäste und importierte Turniere zählen nicht; alle Matches seit v1.0 (E5)
-- [ ] Gruppen-Elo je Spieler, globale Elo je Konto; Zwischenspeicher, der bei jedem Ergebnis ungültig wird
-- [ ] Migration: `elo_rating` entfernen
+- [x] `server/topstack/domain/elo.py`: reine Funktion über die sortierten Matches; Start 1000, K = 40 für die ersten 10 Matches, danach 32; Unentschieden 0,5; Gäste und importierte Turniere zählen nicht; alle Matches seit v1.0 (E5)
+- [x] Gruppen-Elo je Spieler, globale Elo je Konto (`services/elo.py`); ohne Zwischenspeicher, weil die Rechnung bei einigen hundert Matches Millisekunden dauert
+- [x] Migration 0007: `elo_rating` entfernen
 - [ ] Anzeige: Spalte Elo in der Rangliste, Elo und Verlauf im Profil
 - [ ] Unit-Tests mit von Hand gerechneten Beispielen (Sieg, Unentschieden, K-Wechsel nach 10 Matches, Korrektur rechnet neu)
 

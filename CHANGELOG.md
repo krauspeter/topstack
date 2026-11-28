@@ -15,6 +15,9 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ### Added
 
+- Elo rating (ADR-0019): computed from all matches since v1.0 without guests and
+  legacy data, per group and globally per account; the leaderboard and player
+  stats return it with its history; table elo_rating is dropped (#195)
 - Several groups (ADR-0018): create up to five groups, rename them, set a group
   image, give members the roles admin, member or viewer, archive a group (read
   only) or delete it (30 days in the trash, then gone); the app remembers the

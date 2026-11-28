@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime, timedelta
-from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
@@ -27,7 +26,6 @@ from sqlalchemy import (
     Index,
     Integer,
     LargeBinary,
-    Numeric,
     Text,
     UniqueConstraint,
     Uuid,
@@ -501,21 +499,6 @@ class GameEvent(Base):
 # ---------------------------------------------------------------------------
 # v1.1: Elo, Awards
 # ---------------------------------------------------------------------------
-
-
-class EloRating(Base):
-    __tablename__ = "elo_rating"
-    __table_args__ = (
-        CheckConstraint("scope IN ('group', 'global')", name="elo_rating_scope_check"),
-    )
-
-    player_id: Mapped[uuid.UUID] = mapped_column(Uuid, fk("player.id", "CASCADE"), primary_key=True)
-    scope: Mapped[str] = mapped_column(Text, primary_key=True)
-    rating: Mapped[Decimal] = mapped_column(
-        Numeric(7, 2), nullable=False, server_default=text("1000")
-    )
-    matches: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
-    updated_at: Mapped[datetime] = created_at()
 
 
 class Award(Base):
