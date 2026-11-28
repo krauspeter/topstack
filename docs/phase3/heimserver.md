@@ -478,7 +478,8 @@ Seit 28.11.2026 schützt Cloudflare Access auf Beta nur noch die Daten (`/api`, 
    - `https://beta.topstack.win/sw.js` zeigt JavaScript, keine Anmeldeseite.
    - `https://beta.topstack.win/api/v1/health` zeigt die Anmeldeseite von Cloudflare.
    - `https://beta.topstack.win` zeigt die App mit dem Hinweis „Anmeldung bei Cloudflare abgelaufen“; der Knopf „Bei Cloudflare anmelden“ führt zur Anmeldung und zurück.
-4. **Uptime Kuma** (per SSH-Tunnel wie in „Monitoring einrichten“): **Add New Monitor** → Typ HTTP(s), Name „Beta App“, URL `https://beta.topstack.win/sw.js`, Intervall 300 s, Benachrichtigung ntfy. Der Monitor meldet sich, wenn Access die App-Dateien wieder blockiert.
+4. **Browser Cache TTL:** Im normalen Dashboard (`dash.cloudflare.com`) → Domain **topstack.win** → **Caching → Configuration → Browser Cache TTL** auf **Respect Existing Headers**. Sonst setzt Cloudflare für `.js`-Dateien wie `sw.js` 4 Stunden Cache und überschreibt das `no-cache` von Caddy (gilt für Produktion und Beta). Prüfen: `curl -sI https://topstack.win/sw.js` zeigt `cache-control: no-cache`.
+5. **Uptime Kuma** (per SSH-Tunnel wie in „Monitoring einrichten“): **Add New Monitor** → Typ HTTP(s), Name „Beta App“, URL `https://beta.topstack.win/sw.js`, Intervall 300 s, Benachrichtigung ntfy. Der Monitor meldet sich, wenn Access die App-Dateien wieder blockiert.
 
 Hängt ein Handy trotzdem auf einer alten Version: im Profil **„App zurücksetzen“**. Spielstände und Anmeldung bleiben erhalten.
 
