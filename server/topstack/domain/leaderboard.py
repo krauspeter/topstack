@@ -146,7 +146,7 @@ class PlayerStats[P: Hashable]:
     combos: Counter[str] = field(default_factory=Counter)  # ganze Kombination wie „BRG“
     opponents: dict[P, Record] = field(default_factory=dict)
     with_combo: dict[str, Record] = field(default_factory=dict)  # Bilanz je eigener Kombination
-    vs_color: dict[str, Record] = field(default_factory=dict)  # Bilanz gegen einzelne Farben
+    vs_color: dict[str, Record] = field(default_factory=dict)  # Bilanz gegen Farbkombinationen
 
     @property
     def avg_place(self) -> float:
@@ -190,9 +190,11 @@ def player_stats[P: Hashable](
             s.opponents.setdefault(other, Record()).add(o)
             if combo is not None:
                 s.with_combo.setdefault(combo, Record()).add(o)
-            # Eine Kombination wie „BR“ zählt für Schwarz und für Rot
-            for c in t.deck(other) or "":
-                s.vs_color.setdefault(c, Record()).add(o)
+            # Gegen die ganze Kombination des Gegners, wie bei den eigenen Farben (Beta-Test
+            # vom 28.11.2026): „BR“ zählt als Schwarz-Rot, nicht für Schwarz und Rot einzeln
+            vs = t.deck(other)
+            if vs is not None:
+                s.vs_color.setdefault(vs, Record()).add(o)
             s.games_won += won
             s.games_lost += lost
             s.games_drawn += m.games_drawn

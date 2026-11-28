@@ -104,7 +104,7 @@ class PlayerStatsOut(BaseModel):
     combos: list[CountOut]  # Kombinationen, häufigste zuerst
     opponents: list[OpponentOut]
     with_colors: list[ColorRecordOut]  # eigene Kombinationen, beste Siegquote zuerst
-    vs_colors: list[ColorRecordOut]  # Gegner-Farben, meiste Niederlagen zuerst
+    vs_colors: list[ColorRecordOut]  # Gegner-Kombinationen, meiste Niederlagen zuerst
 
 
 def _filter(season: uuid.UUID | None, since: date | None, until: date | None) -> svc.Filter:

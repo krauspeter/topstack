@@ -441,6 +441,22 @@ select { min-height: 48px; padding: 0 12px; border-radius: var(--radius-sm); bor
 .elo-steps .bar i.up { background: var(--up); }
 .elo-steps .bar i.down { background: var(--down); }
 
+/* Regeln für ein Turnier (AP-3), überarbeitet nach dem Beta-Test vom 28.11.2026:
+   eigener Rahmen statt .card, weil Abstände im <details> sonst nicht greifen; linksbündig */
+.rules-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.rules-panel > summary { min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 12px 16px; cursor: pointer; font-weight: 600; border-radius: var(--radius); }
+.rules-panel[open] > summary { border-bottom: 1px solid var(--line); border-radius: var(--radius) var(--radius) 0 0; }
+.rules-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 16px; text-align: left; }
+.rules-body .field > span, .rules-body legend { margin-bottom: 0; line-height: 1.35; }
+.rules-body input, .rules-body select { line-height: 1.3; padding-block: 10px; }
+.points-trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.points-trio legend { grid-column: 1 / -1; padding: 0; margin-bottom: 6px; }
+.points-trio .field > span { font-size: 0.8rem; overflow-wrap: anywhere; }
+.rules-panel > summary { list-style: none; }
+.rules-panel > summary::-webkit-details-marker { display: none; }
+.rules-panel > summary::after { content: '▾'; margin-left: auto; color: var(--muted); transition: transform 0.15s; }
+.rules-panel[open] > summary::after { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .rules-panel > summary::after { transition: none; } }
 /* Head-to-Head (Phase 5, AP-6, Entwurf B): Rivalen-Liste und Duell als Anzeigetafel */
 .rivals { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .rivals button {

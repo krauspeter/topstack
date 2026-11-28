@@ -132,7 +132,7 @@ Ereignisarten: `game_start`, `die_roll` (`value` 1–20), `life` (`delta` ≠ 0)
 | --- | --- | --- |
 | GET | `/groups/{gid}/seasons` | Saisons der Gruppe, neueste zuerst, mit `current` |
 | GET | `/groups/{gid}/leaderboard?season=&from=&to=` | Rangliste: Rang, Ranglistenpunkte, Turniere, Turniersiege, Summe und Schnitt der Matchpunkte. Ohne `season` gesamt; `from`/`to` (JJJJ-MM-TT) nach Turnierdatum. Sortiert nach Punkten, Matchpunkten, Schnitt, Turniersiegen; gleiche Werte teilen sich den Rang |
-| GET | `/groups/{gid}/players/{pid}/stats?season=&from=&to=` | Spielerstatistik: Turniersiege, Platzierungen, Match- und Spiel-Siegquote, Farben (einzeln und als Kombination), Bilanz gegen jeden Gegner, Bilanz je eigener Farbkombination (`with_colors`, beste Siegquote zuerst) und gegen einzelne Gegner-Farben inkl. Gästen (`vs_colors`, meiste Niederlagen zuerst) |
+| GET | `/groups/{gid}/players/{pid}/stats?season=&from=&to=` | Spielerstatistik: Turniersiege, Platzierungen, Match- und Spiel-Siegquote, Farben (einzeln und als Kombination), Bilanz gegen jeden Gegner, Bilanz je eigener Farbkombination (`with_colors`, beste Siegquote zuerst) und gegen die Farbkombination der Gegner inkl. Gästen (`vs_colors`, meiste Niederlagen zuerst; seit 28.11.2026 als Kombination, nicht mehr einzeln) |
 | GET | `/groups/{gid}/head-to-head` | Alle Paarungen in beide Richtungen mit Siegen, Unentschieden, Niederlagen, Spielen und Zahl der Altdaten-Matches (AP-6) |
 | GET | `/groups/{gid}/head-to-head/{a}/{b}` | Direktvergleich: Bilanz aus Sicht von `a`, Spiele, Elo beider, letzte 10 Begegnungen (neueste zuerst, Altdaten markiert) |
 | – | Gruppenstatistik, Direktvergleich | ab v1.1 (Head-to-Head, Statistik pro Set) |
