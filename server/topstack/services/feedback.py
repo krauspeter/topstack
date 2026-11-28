@@ -112,17 +112,23 @@ class Issue:
     labels: list[str]
 
 
-def render(fb: Feedback) -> Issue:
+def render(fb: Feedback, environment: str | None = None) -> Issue:
+    """Issue aus einem Feedback. Auf Staging mit Label „beta“ und „[Beta]“ im Titel (28.11.2026)."""
     label, labels = CATEGORIES[fb.category]
+    beta = (environment or settings.environment) == "staging"
+    if beta:
+        labels = [*labels, "beta"]
     message = scrub(fb.message)
     first_line = message.splitlines()[0] if message else ""
-    title = f"Feedback ({label}): {first_line[:60]}{'…' if len(first_line) > 60 else ''}"
+    prefix = "[Beta] " if beta else ""
+    title = f"{prefix}Feedback ({label}): {first_line[:60]}{'…' if len(first_line) > 60 else ''}"
     version = f"v{fb.app_version}" if fb.app_version else "unbekannt"
     if fb.build:
         version += f" · Update #{fb.build}"
     lines = [
         f"**Art:** {label}  ",
         f"**Von:** Tester `{anon_id(fb.app_user_id)}` (anonym)  ",
+        *(["**Umgebung:** Beta (beta.topstack.win)  "] if beta else []),
         f"**Version:** {version}  ",
         f"**Gerät:** {device(fb.user_agent)}",
     ]
