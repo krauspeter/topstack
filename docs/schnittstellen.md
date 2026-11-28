@@ -44,6 +44,10 @@ Seit Phase 5 (AP-1, ADR-0018). Fremde und gelöschte Gruppen antworten mit `404`
 | GET | `/groups/{gid}/invitations` | Offene Links mit Ersteller, Ablauf, Nutzungen; Admins sehen alle, Mitglieder ihre eigenen | Admin, Mitglied |
 | DELETE | `/groups/{gid}/invitations/{id}` | Link zurückziehen (Ersteller oder Admin) | Admin, Mitglied |
 | POST | `/groups/{gid}/players/merge` | Spieler ohne Konto (`source_id`) in einen anderen (`target_id`) übernehmen; ohne `apply` nur Vorschau mit Zahl der Turniere und Matches; verweigert, wenn beide im selben Turnier stehen | Admin |
+| POST | `/groups/{gid}/imports/csv` | Altdaten als CSV (`tournaments_csv`, optional `matches_csv`, `source`); ohne `apply` nur Vorschau mit Fehlern je Datei und Zeile, mit `apply` ein Importlauf (ADR-0019) | Admin |
+| POST | `/groups/{gid}/imports/manual` | Ein Turnier von Papier (`held_on`, `set_code`, `entries` mit Platz, optional `matches`), sonst wie oben | Admin |
+| GET | `/groups/{gid}/imports` | Importläufe mit Quelle, Zahl der Turniere und neuen Ehemaligen | Admin |
+| DELETE | `/groups/{gid}/imports/{id}` | Importlauf zurücknehmen: seine Turniere und ungenutzte Ehemalige verschwinden | Admin |
 | GET | `/invitations/{token}` | Gruppenname und Ablauf für die Einladungsseite; archivierte und gelöschte Gruppen `410` | öffentlich |
 | POST | `/invitations/{token}/accept` | Einladung annehmen (UC-02); wer ausgetreten war, bekommt seinen alten Spieler zurück | angemeldet |
 | GET | `/groups/{gid}/players` | Spielerliste; mit `?all=true` (Admins) auch Gäste und Ehemalige | Admin, Mitglied |
