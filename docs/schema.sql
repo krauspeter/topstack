@@ -25,11 +25,15 @@ CREATE TABLE app_user (
     id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     email            text UNIQUE,
     display_name     text NOT NULL,
-    avatar_url       text,
     favorite_colors  text NOT NULL DEFAULT '' CHECK (favorite_colors ~ '^[WUBRG]*$'),
     locale           text NOT NULL DEFAULT 'de',
     created_at       timestamptz NOT NULL DEFAULT now(),
-    deleted_at       timestamptz            -- Löschen = anonymisieren, Ergebnisse bleiben
+    deleted_at       timestamptz,           -- Löschen = anonymisieren, Ergebnisse bleiben
+    avatar             text,                -- Profilbild: Wesen (Schlüssel) oder 'image' (AP-15)
+    avatar_image       bytea,               -- eigenes Bild, 256 px, nur auf dem Heimserver
+    avatar_image_type  text,
+    avatar_updated_at  timestamptz,
+    CONSTRAINT app_user_avatar_image_check CHECK ((avatar_image IS NULL) = (avatar_image_type IS NULL))
 );
 
 CREATE TABLE passkey_credential (
@@ -114,6 +118,7 @@ CREATE TABLE player (
     kind          player_kind NOT NULL,
     display_name  text NOT NULL,
     created_at    timestamptz NOT NULL DEFAULT now(),
+    avatar        text,                     -- Wesen für Spieler ohne Konto, vom Admin gewählt (AP-15)
     CHECK ((kind = 'member') = (app_user_id IS NOT NULL)),
     UNIQUE (group_id, app_user_id)
 );

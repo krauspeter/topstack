@@ -287,3 +287,30 @@ test('Altdaten: CSV prüfen, übernehmen, zurücknehmen (AP-4)', async ({ page }
   await list.getByRole('button', { name: 'Ja, zurücknehmen' }).click();
   await expect(list).toContainText('zurückgenommen');
 });
+
+test('Admin gibt einem Spieler ohne Konto ein Wesen als Profilbild (TC-170)', async ({ page }) => {
+  await mockMe(page, [A]);
+  await page.route(`**/api/v1/groups/${A.id}`, (route) => json(route, detail(A)));
+  await page.route(`**/api/v1/groups/${A.id}/members`, (route) =>
+    json(route, [{ user_id: 'u-anna', display_name: 'Anna', role: 'admin', joined_at: '2026-11-28T10:00:00Z', player_id: 'p-a', is_me: true }]),
+  );
+  await page.route(`**/api/v1/groups/${A.id}/players`, (route) =>
+    json(route, [
+      { id: 'p-a', display_name: 'Anna', kind: 'member', is_me: true },
+      { id: 'p-dana', display_name: 'Dana', kind: 'reserved', is_me: false, avatar: null },
+    ]),
+  );
+  let chosen: unknown = null;
+  await page.route(`**/api/v1/groups/${A.id}/players/p-dana/avatar`, (route) => {
+    chosen = route.request().postDataJSON();
+    return route.fulfill({ status: 204 });
+  });
+
+  await page.goto(`/gruppe/${A.id}`);
+  // Nur Spieler ohne Konto bekommen den Knopf, Mitglieder wählen selbst
+  await expect(page.getByRole('button', { name: 'Bild für Anna' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Bild für Dana' }).click();
+  await page.getByRole('group', { name: 'Bild für Dana wählen' }).getByRole('button', { name: 'Eule' }).click();
+  expect(chosen).toEqual({ preset: 'eule' });
+  await expect(page.getByRole('img', { name: 'Dana: Eule' })).toBeVisible();
+});

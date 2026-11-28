@@ -52,6 +52,7 @@ class Me(BaseModel):
     locale: str
     has_passkey: bool
     groups: list[GroupMembership]
+    avatar: str | None = None  # „preset:<Wesen>“ oder Adresse des eigenen Bildes (AP-15)
 
 
 class MePatch(BaseModel):
@@ -122,6 +123,7 @@ class PlayerOut(BaseModel):
     display_name: str
     kind: str
     is_me: bool
+    avatar: str | None = None  # Profilbild (AP-15)
 
 
 class ReservedCreate(BaseModel):
@@ -159,6 +161,7 @@ class EntryOut(BaseModel):
     player_id: uuid.UUID
     display_name: str
     kind: str
+    avatar: str | None = None  # Profilbild (AP-15)
     status: str
     seat_no: int | None
     colors: str | None
@@ -174,6 +177,8 @@ class MatchOut(BaseModel):
     id: uuid.UUID
     player_a_id: uuid.UUID
     player_b_id: uuid.UUID
+    avatar_a: str | None = None  # Profilbilder (AP-15)
+    avatar_b: str | None = None
     player_a: str
     player_b: str
     status: str  # scheduled, running (vorgezogen oder mit Tracker), finished
@@ -200,6 +205,7 @@ class RoundOut(BaseModel):
 class StandingOut(BaseModel):
     player_id: uuid.UUID
     display_name: str
+    avatar: str | None = None  # Profilbild (AP-15)
     rank: int
     played: int
     wins: int
@@ -612,3 +618,14 @@ class ImportRunOut(BaseModel):
     tournaments: int
     new_players: int
     undone_at: datetime | None
+
+
+class AvatarBody(BaseModel):
+    """Genau eins von beiden: ein Wesen aus der Vorauswahl oder ein Bild als Data-URL."""
+
+    preset: str | None = Field(default=None, max_length=40)
+    image: str | None = Field(default=None, max_length=500_000)
+
+
+class PlayerAvatarBody(BaseModel):
+    preset: str | None = Field(default=None, max_length=40)

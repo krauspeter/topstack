@@ -109,16 +109,24 @@ class AppUser(Base):
     __tablename__ = "app_user"
     __table_args__ = (
         CheckConstraint("favorite_colors ~ '^[WUBRG]*$'", name="app_user_favorite_colors_check"),
+        CheckConstraint(
+            "(avatar_image IS NULL) = (avatar_image_type IS NULL)",
+            name="app_user_avatar_image_check",
+        ),
     )
 
     id: Mapped[uuid.UUID] = uuid_pk()
     email: Mapped[str | None] = mapped_column(Text, unique=True)
     display_name: Mapped[str] = mapped_column(Text, nullable=False)
-    avatar_url: Mapped[str | None] = mapped_column(Text)
     favorite_colors: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     locale: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'de'"))
     created_at: Mapped[datetime] = created_at()
     deleted_at: Mapped[datetime | None] = mapped_column(TZ)
+    # Profilbild (AP-15): Schlüssel eines Wesens oder "image" für ein eigenes Bild
+    avatar: Mapped[str | None] = mapped_column(Text)
+    avatar_image: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True)
+    avatar_image_type: Mapped[str | None] = mapped_column(Text)
+    avatar_updated_at: Mapped[datetime | None] = mapped_column(TZ)
 
 
 class PasskeyCredential(Base):
@@ -258,6 +266,7 @@ class Player(Base):
     kind: Mapped[str] = mapped_column(player_kind, nullable=False)
     display_name: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = created_at()
+    avatar: Mapped[str | None] = mapped_column(Text)  # Wesen, vom Admin gewählt (AP-15)
 
 
 class Season(Base):

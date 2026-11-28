@@ -20,12 +20,13 @@ from topstack.api.schemas import (
     MemberOut,
     MergeOut,
     MergeRequest,
+    PlayerAvatarBody,
     RoleChange,
 )
-from topstack.db.models import AppUser
+from topstack.db.models import AppUser, Player
 from topstack.db.repo import groups as repo
 from topstack.domain.groups import PURGE_AFTER, InvalidRules, Permission
-from topstack.services import feedback, players
+from topstack.services import avatars, feedback, players
 from topstack.services import groups as svc
 
 router = APIRouter(tags=["Gruppen"])
@@ -289,3 +290,26 @@ async def merge_players(gid: uuid.UUID, body: MergeRequest, user: CurrentUser, d
         await players.merge(db, p)
         await db.commit()
     return out
+
+
+# ---------------------------------------------------------------------------
+# Profilbild für Spieler ohne Konto (Phase 5, AP-15)
+# ---------------------------------------------------------------------------
+
+
+@router.put("/groups/{gid}/players/{pid}/avatar", status_code=status.HTTP_204_NO_CONTENT)
+async def put_player_avatar(
+    gid: uuid.UUID, pid: uuid.UUID, body: PlayerAvatarBody, user: CurrentUser, db: Db
+) -> None:
+    """Wesen für einen vorgemerkten oder ehemaligen Spieler; ``preset: null`` entfernt es."""
+    a = await _access(db, gid, user)
+    async with errors():
+        a.require(Permission.MANAGE)
+    player = await db.get(Player, pid)
+    if player is None or player.group_id != gid:
+        raise problem(404, "Spieler nicht gefunden.")
+    try:
+        avatars.set_player_preset(player, body.preset)
+    except avatars.InvalidAvatar as exc:
+        raise problem(422, str(exc)) from None
+    await db.commit()

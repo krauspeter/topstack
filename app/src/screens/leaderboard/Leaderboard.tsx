@@ -5,6 +5,7 @@ import { describeColors } from '../../domain/colors';
 import { useActiveGroup } from '../../store/activeGroup';
 import { GroupSwitcher } from '../GroupSwitcher';
 import { ManaPips } from '../ManaPips';
+import { Avatar } from '../../Avatar';
 import { Duel, RivalList } from './Duels';
 import { EloDuel, EloLadder, EloSteps } from './Elo';
 
@@ -195,7 +196,12 @@ export function Leaderboard({ me, onBack }: Props) {
                       aria-label={`Statistik von ${r.display_name}`}
                     >
                       <td>{r.rank}</td>
-                      <td className="left">{r.display_name}</td>
+                      <td className="left">
+                        <span className="name-cell">
+                          <Avatar avatar={r.avatar} name={r.display_name} size={24} />
+                          {r.display_name}
+                        </span>
+                      </td>
                       <td>
                         <strong>{r.ranking_points}</strong>
                       </td>

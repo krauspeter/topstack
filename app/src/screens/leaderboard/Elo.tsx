@@ -1,5 +1,6 @@
 import type { EloPoint, LeaderboardRow, PlayerStats } from '../../api/types';
 import { START, deltaText, direction, eloText, sparkPath, stakes } from '../../domain/elo';
+import { Avatar } from '../../Avatar';
 
 /** Rangliste nach Elo mit Mini-Kurve je Spieler (Phase 5, AP-5, Entwurf B). */
 export function EloLadder({
@@ -28,6 +29,7 @@ export function EloLadder({
               aria-label={`Platz ${i + 1}: ${r.display_name}, Elo ${eloText(r.elo ?? START)}. Statistik öffnen`}
             >
               <span className="rank">{i + 1}</span>
+              <Avatar avatar={r.avatar} name={r.display_name} size={32} />
               <span className="who">
                 {r.display_name}
                 <small>

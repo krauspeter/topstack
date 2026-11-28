@@ -7,6 +7,7 @@ import type { MatchConfig } from '../../domain/match';
 import { type ColorChoice, normalizeColors } from '../../domain/colors';
 import { choiceSurface } from '../../theme';
 import { ManaPips } from '../ManaPips';
+import { Avatar } from '../../Avatar';
 import { configFromTracker, defaultSide, fromApi } from '../../domain/remote';
 import { bestOf, matchResults } from '../../domain/activeGroup';
 
@@ -247,7 +248,8 @@ function MatchList({
         return (
           <li key={m.id} className={m.mine ? 'mine' : undefined} data-testid="match">
             <span className="match-names">
-              <strong>{m.player_a}</strong> <span className="muted">gegen</span> <strong>{m.player_b}</strong>
+              <Avatar avatar={m.avatar_a} name={m.player_a} size={24} /> <strong>{m.player_a}</strong> <span className="muted">gegen</span>{' '}
+              <Avatar avatar={m.avatar_b} name={m.player_b} size={24} /> <strong>{m.player_b}</strong>
             </span>
             <span className="match-score">
               {m.status === 'finished' ? (
@@ -499,7 +501,10 @@ function StandingsTable({ standings, finished }: { standings: Standing[]; finish
               <tr key={s.player_id}>
                 <td>{s.rank}</td>
                 <td className="left">
-                  {s.display_name}
+                  <span className="name-cell">
+                    <Avatar avatar={s.avatar} name={s.display_name} size={24} />
+                    {s.display_name}
+                  </span>
                   {s.roll !== null && <span className="muted small"> · W20: {s.roll}</span>}
                 </td>
                 <td>
@@ -576,6 +581,7 @@ function Ceremony({ standings, entries }: { standings: Standing[]; entries: Tour
                     <path d="M2 14 L4 4 L9 9 L12 2 L15 9 L20 4 L22 14 Z" />
                   </svg>
                 )}
+                <Avatar avatar={s.avatar} name={s.display_name} colors={colors} size={place(s) === 1 ? 76 : 60} />
                 <strong>{s.display_name}</strong>
                 {colors !== null && <ManaPips colors={colors} />}
                 <span className="muted small">

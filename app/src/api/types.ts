@@ -20,6 +20,8 @@ export interface Me {
   locale: string;
   has_passkey: boolean;
   groups: GroupMembership[];
+  /** Profilbild (AP-15): „preset:<Wesen>“ oder Adresse des eigenen Bildes. */
+  avatar?: string | null;
 }
 
 export interface InvitationInfo {
@@ -47,6 +49,7 @@ export interface GroupPlayer {
   display_name: string;
   kind: PlayerKind;
   is_me: boolean;
+  avatar?: string | null;
 }
 
 export type TournamentStatus = 'setup' | 'seated' | 'drafting' | 'running' | 'paused' | 'finished' | 'cancelled';
@@ -71,6 +74,8 @@ export interface MatchInfo {
   id: string;
   player_a_id: string;
   player_b_id: string;
+  avatar_a?: string | null;
+  avatar_b?: string | null;
   player_a: string;
   player_b: string;
   status: 'scheduled' | 'running' | 'finished';
@@ -107,6 +112,7 @@ export interface RoundInfo {
 export interface Standing {
   player_id: string;
   display_name: string;
+  avatar?: string | null;
   rank: number;
   played: number;
   wins: number;
@@ -136,6 +142,7 @@ export interface Entry {
   player_id: string;
   display_name: string;
   kind: PlayerKind;
+  avatar?: string | null;
   status: 'invited' | 'accepted' | 'declined' | 'removed';
   seat_no: number | null;
   colors: string | null;
@@ -273,6 +280,7 @@ export interface LeaderboardRow {
   rank: number;
   player_id: string;
   display_name: string;
+  avatar?: string | null;
   kind: PlayerKind;
   tournaments: number;
   wins: number;
@@ -456,6 +464,7 @@ export interface EloPoint {
 export interface H2HPlayer {
   player_id: string;
   display_name: string;
+  avatar?: string | null;
 }
 
 export interface H2HPair extends WinRecord {

@@ -16,7 +16,9 @@ Alle Zeiten in ISO 8601 UTC. Alle IDs sind UUIDs. Fehler als [RFC 9457 Problem D
 | POST | `/auth/passkey/login/options` · `/login/verify` | Mit Passkey anmelden |
 | POST | `/auth/logout` | Sitzung beenden |
 | GET | `/me` | Eigenes Profil, Gruppen, Rollen |
-| PATCH | `/me` | Anzeigename, Avatar, Lieblingsfarben |
+| PATCH | `/me` | Anzeigename, Lieblingsfarben |
+| PUT · DELETE | `/me/avatar` | Profilbild setzen (`{preset}` aus der Vorauswahl oder `{image}` als Data-URL, JPEG/PNG/WebP, höchstens 300 kB) oder entfernen; Antwort ist `/me` |
+| GET | `/avatars/{uid}` | Eigenes Bild eines Kontos (angemeldet, Cache einen Tag; die Adresse trägt `?v=` mit dem Zeitpunkt der Änderung) |
 
 Geändert in AP-3 (19.11.2026): Der Link in der Mail zeigt auf die App (`/anmelden?token=…&einladung=…`), die ihn per `POST /auth/magic-link/verify` einlöst. Ein `GET` würden Link-Prüfer in Mailprogrammen schon vor dem Klick aufrufen und den einmaligen Link verbrauchen. Neue Konten entstehen nur mit gültiger Einladung; unbekannte Adressen ohne Einladung bekommen keine Mail, die Antwort ist trotzdem `202`. Höchstens 5 Links pro Adresse in 15 Minuten. Passkeys: Die `…/options`-Aufrufe liefern die WebAuthn-Optionen als JSON und setzen ein kurzlebiges Cookie mit der ID der Challenge (Tabelle `webauthn_challenge`, 5 Minuten, einmal nutzbar); `…/verify` erwartet die Antwort von `navigator.credentials.create` bzw. `.get` als JSON. Relying Party ist der Hostname von `TOPSTACK_PUBLIC_ORIGIN`.
 
@@ -35,6 +37,7 @@ Seit Phase 5 (AP-1, ADR-0018). Fremde und gelöschte Gruppen antworten mit `404`
 | DELETE | `/groups/{gid}/rules/pending` | Vorgemerkte Regeln verwerfen | Admin |
 | GET | `/groups/{gid}/members` | Mitglieder mit Konto und Rolle | Admin, Mitglied |
 | PUT | `/groups/{gid}/members/{uid}/role` | Rolle ändern; mindestens ein Admin bleibt | Admin |
+| PUT | `/groups/{gid}/players/{pid}/avatar` | Wesen für einen Spieler ohne Konto (`{preset}` oder `null`) | Admin |
 | DELETE | `/groups/{gid}/members/me` | Gruppe verlassen; Antwort `new_admin`, wenn der letzte Admin ging | alle Rollen |
 | POST · DELETE | `/groups/{gid}/archive` | Archivieren (nur ohne offenes Turnier) oder zurückholen | Admin |
 | DELETE | `/groups/{gid}` | In den Papierkorb (nur ohne offenes Turnier); nach 30 Tagen endgültig gelöscht | Admin |
@@ -212,3 +215,5 @@ Aus der Planung von [Phase 3](phase3/README.md) und ADR-0012 und ADR-0013. Sie w
 - `PUT` und `PATCH /matches/{mid}/result` verlangen die bekannte `version` des Matches. Passt sie nicht, antwortet der Server mit `409 Conflict` und dem aktuellen Match (ADR-0013).
 - `POST /tournaments/{tid}/rounds/next` mit offenen Matches antwortet `409` mit `code: "open_matches"` und der Anzahl (`count`); mit `{ "confirm": true }` wird die Runde trotzdem gestartet (UC-15).
 - Der WebSocket sendet alle 25 Sekunden `{ "type": "ping" }`; die App antwortet mit `pong`. Bleibt der Ping aus, baut die App neu auf.
+
+Neu in Phase 5, AP-15 (28.11.2026): Profilbilder. Spieler-, Turnier-, Ranglisten- und Duell-Antworten tragen `avatar` (bei Matches `avatar_a`/`avatar_b`): `preset:<wesen>` (eines der 16 Wesen der App), die Adresse eines eigenen Bildes oder `null`; dann zeigt die App Initialen. Spieler mit Konto haben das Bild ihres Kontos in allen Gruppen, Spieler ohne Konto das Wesen, das ein Admin gewählt hat.

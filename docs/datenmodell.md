@@ -45,6 +45,7 @@ erDiagram
 - `Deck` entfernt, stattdessen `colors` (WUBRG) – Archetypen und Decklisten sind bewusst nicht vorgesehen.
 - Ereignisart `Gift` und `Commander-Schaden` entfernt (keine Zähler in v1.0). Commander kommt in v2.0 als neue Ereignisart dazu.
 - Neu: Gruppe, Mitgliedschaft mit Rolle, Gruppenregeln, Spieleridentität pro Gruppe, Runde, Korrekturprotokoll, Einladung, Passkeys/Sitzungen, Push, Elo, Award, Terminumfrage.
+- Phase 5, AP-15 (28.11.2026): `app_user.avatar_url` ersetzt durch `avatar` (Schlüssel eines Wesens oder `image`), `avatar_image` (bytea, höchstens 300 kB), `avatar_image_type`, `avatar_updated_at`; `player.avatar` für Spieler ohne Konto (Migration 0008).
 
 ## Abgeleitete Werte
 

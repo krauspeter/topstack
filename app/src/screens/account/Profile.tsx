@@ -7,6 +7,7 @@ import type { DeletedGroup, GroupDetail, InvitationCreated, Me } from '../../api
 import { MANA, type Mana, choiceName, describeColors, normalizeColors } from '../../domain/colors';
 import { choiceSurface } from '../../theme';
 import { ResetAppButton } from '../../UpdateBanner';
+import { AvatarPicker } from './AvatarPicker';
 
 interface Props {
   me: Me;
@@ -177,6 +178,8 @@ export function Profile({ me, onChange, onSignOut, onBack, onFeedback, onOpenGro
           )
         )}
       </section>
+
+      <AvatarPicker me={me} onChange={onChange} />
 
       <Notifications />
 
