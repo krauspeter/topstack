@@ -13,6 +13,11 @@ section into a release; a short German "Was ist neu" for the app lives in
 
 ## [Unreleased]
 
+### Changed
+
+- Feedback from beta.topstack.win becomes a GitHub issue too, labelled "beta"
+  and titled "[Beta] …", once the staging .env has the token (#201)
+
 ### Fixed
 
 - The app no longer hangs unnoticed on an old version (ADR-0021): it compares

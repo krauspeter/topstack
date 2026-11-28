@@ -90,6 +90,17 @@ async def test_categories_and_labels(client, session, github):
     assert [i.labels for i in github.issues] == [["feedback", "wunsch"], ["feedback"]]
 
 
+async def test_beta_feedback_is_marked(client, session, github, monkeypatch):
+    """Auf Staging: Label „beta“, „[Beta]“ im Titel, Umgebung im Text (28.11.2026)."""
+    monkeypatch.setattr(settings, "environment", "staging")
+    await as_user(client, session, await make_user(session))
+    assert (await send(client, category="bug", message="Tabelle springt")).status_code == 201
+    [issue] = github.issues
+    assert issue.labels == ["feedback", "bug", "beta"]
+    assert issue.title.startswith("[Beta] Feedback (Fehler): Tabelle springt")
+    assert "**Umgebung:** Beta" in issue.body
+
+
 async def test_github_down_keeps_entry_and_sends_later(client, session, github):
     """TC-109: Ohne GitHub bleibt der Eintrag in der Datenbank und geht später raus."""
     await as_user(client, session, await make_user(session))

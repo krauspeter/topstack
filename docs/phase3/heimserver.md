@@ -533,6 +533,24 @@ docker compose --env-file .env exec api python -m topstack.scripts.feedback rese
 
 Steht in `list` „offen“ mit einem Fehler wie `401` oder `403`, stimmt das Token nicht (abgelaufen, falsches Repo oder Recht fehlt).
 
+### 4. Feedback aus Beta als Issue (seit 28.11.2026)
+
+Auf Beta legt der Feedback-Button ebenfalls Issues an, mit Label **beta** und „[Beta]“ im Titel, damit sie sich von Meldungen der Gruppe unterscheiden. Dafür denselben Token in die Staging-`.env` eintragen.
+
+**Heimserver**, Ordner `~/topstack-beta/infra`:
+
+```bash
+nano .env
+```
+
+Die Zeile `FEEDBACK_GITHUB_TOKEN=` ergänzen (Wert aus dem Passwort-Manager), speichern. Dann:
+
+```bash
+docker compose -f docker-compose.staging.yml --env-file .env up -d api
+```
+
+Feedback, das schon in der Beta-Datenbank liegt, geht beim Start mit raus. Auf GitHub filtern: **Issues → Labels → beta**.
+
 ## Aufräumen und persönliche Links (Phase 4)
 
 Für den Betreiber des Heimservers gibt es keine eigene Rolle in der App, sondern ein Skript. Alle Befehle **auf dem Heimserver** im Ordner `~/topstack` (für Staging `~/topstack-beta`):
